@@ -1,0 +1,591 @@
+import React from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+
+import { COLORS, FONTS, SPACING } from '../../constants';
+import { RootStackParamList } from '../../types';
+import { useAuth } from '../../context/AuthContext';
+import { useAppSelector } from '../../store/hooks';
+import { translations } from '../../i18n/translations';
+
+type ProfileScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Main'>;
+
+const ProfileScreen: React.FC = () => {
+  const navigation = useNavigation<ProfileScreenNavigationProp>();
+  const { user, logout, isAuthenticated } = useAuth();
+  const locale = useAppSelector((state) => state.i18n.locale);
+  
+  const t = (key: string) => {
+    const keys = key.split('.');
+    let value: any = translations[locale as keyof typeof translations];
+    
+    for (const k of keys) {
+      value = value?.[k];
+    }
+    
+    return value || key;
+  };
+
+  const handleLogin = () => {
+    navigation.navigate('Auth');
+  };
+
+
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
+
+  const showComingSoon = (feature: string) => {
+    console.log(`${feature} feature coming soon`);
+    // You can add an alert or toast here if needed
+  };
+
+  // Korean favorite colors for menu icons
+  const getMenuIconColor = (index: number) => {
+    const colors = [
+      { bg: '#FFE4E6', icon: '#FF6B9D' }, // Soft pink
+      { bg: '#E8F4FD', icon: '#4A90E2' }, // Sky blue
+      { bg: '#E8F8F5', icon: '#26D0CE' }, // Mint
+      { bg: '#FFF4E6', icon: '#FF9500' }, // Orange
+      { bg: '#F3E8FF', icon: '#9C88FF' }, // Lavender
+      { bg: '#FFE8E8', icon: '#FF6B6B' }, // Coral
+      { bg: '#E8FFE8', icon: '#4CAF50' }, // Green
+      { bg: '#FFF0E6', icon: '#FF8A65' }, // Peach
+      { bg: '#E6F3FF', icon: '#42A5F5' }, // Light blue
+      { bg: '#F0E6FF', icon: '#AB47BC' }, // Purple
+      { bg: '#E6FFF0', icon: '#66BB6A' }, // Light green
+    ];
+    return colors[index % colors.length];
+  };
+
+  const renderHeader = () => (
+    <LinearGradient
+      colors={['#FFB6C1', '#FFC0CB', '#E6E6FA']} // Korean favorite: Soft pink to lavender
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={styles.header}
+    >
+      <Text style={styles.headerTitle}>{t('profile.myPage')}</Text>
+      <View style={styles.headerIcons}>
+        <TouchableOpacity 
+          style={styles.headerIcon}
+          onPress={() => navigation.navigate('ProfileSettings')}
+        >
+          <Ionicons name="settings-outline" size={24} color="#8B4B8C" />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.headerIcon}>
+          <Ionicons name="headset-outline" size={24} color="#8B4B8C" />
+        </TouchableOpacity>
+      </View>
+    </LinearGradient>
+  );
+
+  const renderUserSection = () => (
+    <View style={styles.userSection}>
+      <View style={styles.userCard}>
+        <View style={styles.userInfo}>
+          <View style={styles.avatarContainer}>
+            <Image
+              source={
+                isAuthenticated && user?.avatar 
+                  ? { uri: user.avatar } 
+                  : require('../../assets/images/avatar.png')
+              }
+              style={styles.avatar}
+            />
+            <View style={styles.avatarBorder} />
+          </View>
+          <View style={styles.userDetails}>
+            <Text style={styles.userName}>
+              {isAuthenticated ? (user?.name || t('profile.user')) : t('profile.users')}
+            </Text>
+            {isAuthenticated && (
+              <View style={styles.userBadge}>
+                <Ionicons name="checkmark-circle" size={16} color="#4CAF50" />
+                <Text style={styles.verifiedText}>인증 회원</Text>
+              </View>
+            )}
+            {isAuthenticated && (
+              <TouchableOpacity style={styles.editButton}>
+                <Ionicons name="pencil" size={14} color={COLORS.primary} />
+                <Text style={styles.editText}>프로필 수정</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+        
+        {!isAuthenticated && (
+          <View style={styles.authSection}>
+            <Text style={styles.welcomeText}>
+              TaoExpress에 오신 것을 환영합니다!
+            </Text>
+            <Text style={styles.loginPrompt}>
+              로그인하여 더 많은 서비스를 이용해보세요
+            </Text>
+            <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+              <LinearGradient
+                colors={['#FF9A9E', '#FECFEF']} // Korean favorite: Coral pink gradient
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.loginGradient}
+              >
+                <Ionicons name="log-in-outline" size={20} color={COLORS.white} />
+                <Text style={styles.loginButtonText}>{t('auth.login')}</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+    </View>
+  );
+
+  const renderStatsSection = () => (
+    <View style={styles.statsSection}>
+      <View style={styles.statsCard}>
+        <View style={styles.statItem}>
+          <View style={[styles.statIconContainer, { backgroundColor: '#FFE4E6' }]}>
+            <Ionicons name="wallet-outline" size={24} color="#FF6B9D" />
+          </View>
+          <Text style={styles.statValue}>₩0</Text>
+          <Text style={styles.statLabel}>{t('profile.deposit')}</Text>
+        </View>
+        <View style={styles.statDivider} />
+        <View style={styles.statItem}>
+          <View style={[styles.statIconContainer, { backgroundColor: '#E8F4FD' }]}>
+            <Ionicons name="diamond-outline" size={24} color="#4A90E2" />
+          </View>
+          <Text style={styles.statValue}>100</Text>
+          <Text style={styles.statLabel}>{t('profile.point')}</Text>
+        </View>
+        <View style={styles.statDivider} />
+        <View style={styles.statItem}>
+          <View style={[styles.statIconContainer, { backgroundColor: '#E8F8F5' }]}>
+            <Ionicons name="heart-outline" size={24} color="#26D0CE" />
+          </View>
+          <Text style={styles.statValue}>0</Text>
+          <Text style={styles.statLabel}>{t('profile.wishList')}</Text>
+        </View>
+        <View style={styles.statDivider} />
+        <View style={styles.statItem}>
+          <View style={[styles.statIconContainer, { backgroundColor: '#FFF4E6' }]}>
+            <Ionicons name="ticket-outline" size={24} color="#FF9500" />
+          </View>
+          <Text style={styles.statValue}>1</Text>
+          <Text style={styles.statLabel}>{t('profile.coupon')}</Text>
+        </View>
+      </View>
+    </View>
+  );
+
+  const renderMenuItems = () => {
+    // BUYING-RELATED ITEMS (Only show when logged in)
+    const buyingMenuItems = [
+      // 1. START: Place New Orders
+      {
+        icon: 'bag-outline',
+        title: t('profile.buyOrder'),
+        onPress: () => navigation.navigate('Settings'), // You can change this to a specific buy order screen
+      },
+      
+      // 2. SETUP: Required for Buying (Address & Payment)
+      {
+        icon: 'location-outline',
+        title: t('profile.address'),
+        onPress: () => navigation.navigate('AddressBook' as never),
+      },
+      {
+        icon: 'card-outline',
+        title: t('profile.bankCard'),
+        onPress: () => navigation.navigate('PaymentMethods'),
+      },
+      
+      // 3. TRACK: Monitor Current Orders
+      {
+        icon: 'cube-outline',
+        title: t('profile.orderTracking'),
+        onPress: () => navigation.navigate('MyOrders'), // Current orders tracking
+      },
+      
+      // 4. MANAGE: Current Packages/Shipments
+      {
+        icon: 'document-text-outline',
+        title: t('profile.myPackage'),
+        onPress: () => navigation.navigate('MyOrders'),
+      },
+      
+      // 5. HISTORY: Past Orders
+      {
+        icon: 'time-outline',
+        title: t('profile.orderHistory'),
+        onPress: () => navigation.navigate('OrderHistory'),
+      },
+      
+      // 6. ISSUES: Problems with Orders/Products
+      {
+        icon: 'alert-circle-outline',
+        title: t('profile.problemProduct'),
+        onPress: () => showComingSoon(t('profile.problemProduct')),
+      },
+    ];
+
+    // NON-BUYING RELATED ITEMS (Always show regardless of login status)
+    const generalMenuItems = [
+      // Support & Help
+      {
+        icon: 'help-circle-outline',
+        title: t('profile.helpCenter'),
+        onPress: () => navigation.navigate('HelpCenter'),
+      },
+      
+      // Personal Features
+      {
+        icon: 'document-text-outline',
+        title: t('profile.note'),
+        onPress: () => showComingSoon(t('profile.note')),
+      },
+      
+      // Social Features
+      {
+        icon: 'share-outline',
+        title: t('profile.appShare'),
+        onPress: () => showComingSoon(t('profile.appShare')),
+      },
+      
+      // App Settings
+      {
+        icon: 'language-outline',
+        title: t('profile.language'),
+        onPress: () => navigation.navigate('LanguageSettings'),
+      },
+    ];
+
+    // Combine items based on authentication status
+    const menuItems = [
+      ...(isAuthenticated ? buyingMenuItems : []), // Only show buying items when logged in
+      ...generalMenuItems // Always show general items
+    ];
+
+    return (
+      <View style={styles.menuContainer}>
+        {menuItems.map((item, index) => (
+          <TouchableOpacity
+            key={index}
+            style={[
+              styles.menuItem,
+              index === 0 && styles.firstMenuItem,
+              index === menuItems.length - 1 && styles.lastMenuItem
+            ]}
+            onPress={item.onPress}
+          >
+            <View style={styles.menuItemLeft}>
+              <View style={[styles.menuIconContainer, { backgroundColor: getMenuIconColor(index).bg }]}>
+                <Ionicons name={item.icon as any} size={22} color={getMenuIconColor(index).icon} />
+              </View>
+              <Text style={styles.menuItemText}>{item.title}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={COLORS.gray[400]} />
+          </TouchableOpacity>
+        ))}
+      </View>
+    );
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      {renderHeader()}
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {renderUserSection()}
+        {isAuthenticated && renderStatsSection()}
+        {renderMenuItems()}
+        
+        {isAuthenticated && (
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <Text style={styles.logoutText}>{t('profile.logout')}</Text>
+          </TouchableOpacity>
+        )}
+      </ScrollView>
+    </SafeAreaView>
+  );
+};
+
+
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#FDF7F7', // Soft pink-white background (Korean favorite)
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.xl,
+    paddingTop: SPACING.xl + 10,
+  },
+  headerTitle: {
+    fontSize: FONTS.sizes.xl,
+    fontWeight: '700',
+    color: '#8B4B8C', // Deep purple-pink
+    letterSpacing: 0.5,
+  },
+  headerIcons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerIcon: {
+    marginLeft: SPACING.md,
+    padding: SPACING.xs,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.7)',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  userSection: {
+    paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.lg,
+    paddingBottom: SPACING.xl, // Add bottom padding for spacing
+    marginTop: -20,
+  },
+  userCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 24, // More rounded for Korean aesthetic
+    padding: SPACING.xl,
+    shadowColor: '#FFB6C1', // Pink shadow
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 12,
+    borderWidth: 1,
+    borderColor: '#FFE4E6', // Soft pink border
+  },
+  userInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  avatarContainer: {
+    position: 'relative',
+    marginRight: SPACING.lg,
+  },
+  avatar: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: COLORS.gray[200],
+  },
+  avatarBorder: {
+    position: 'absolute',
+    top: -3,
+    left: -3,
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    borderWidth: 3,
+    borderColor: '#FF9A9E', // Korean favorite coral pink
+  },
+  userDetails: {
+    flex: 1,
+  },
+  userName: {
+    fontSize: FONTS.sizes.xl,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+    marginBottom: SPACING.xs,
+  },
+  userBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SPACING.sm,
+  },
+  verifiedText: {
+    fontSize: FONTS.sizes.sm,
+    color: '#4CAF50',
+    marginLeft: 4,
+    fontWeight: '500',
+  },
+  editButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFE4E6', // Soft pink background
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.xs,
+    borderRadius: 18,
+    alignSelf: 'flex-start',
+  },
+  editText: {
+    fontSize: FONTS.sizes.sm,
+    color: '#FF6B9D', // Pink text
+    marginLeft: 4,
+    fontWeight: '500',
+  },
+  authSection: {
+    alignItems: 'center',
+    paddingTop: SPACING.md,
+  },
+  welcomeText: {
+    fontSize: FONTS.sizes.lg,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginBottom: SPACING.xs,
+    textAlign: 'center',
+  },
+  loginPrompt: {
+    fontSize: FONTS.sizes.md,
+    color: COLORS.text.secondary,
+    marginBottom: SPACING.xl,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  loginButton: {
+    width: '100%',
+    borderRadius: 25,
+    overflow: 'hidden',
+  },
+  loginGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: SPACING.lg,
+    paddingHorizontal: SPACING.xl,
+  },
+  loginButtonText: {
+    fontSize: FONTS.sizes.md,
+    fontWeight: '600',
+    color: COLORS.white,
+    marginLeft: SPACING.sm,
+  },
+  statsSection: {
+    paddingHorizontal: SPACING.lg,
+    paddingBottom: SPACING.xl, // Add bottom padding for spacing
+  },
+  statsCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 24,
+    padding: SPACING.xl,
+    flexDirection: 'row',
+    shadowColor: '#FFB6C1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: '#FFE4E6',
+  },
+  statItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  statIconContainer: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SPACING.sm,
+  },
+  statDivider: {
+    width: 1,
+    backgroundColor: COLORS.gray[200],
+    marginHorizontal: SPACING.sm,
+  },
+  statValue: {
+    fontSize: FONTS.sizes.lg,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+    marginBottom: SPACING.xs,
+  },
+  statLabel: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.text.secondary,
+    fontWeight: '500',
+  },
+  menuContainer: {
+    marginHorizontal: SPACING.lg,
+    backgroundColor: COLORS.white,
+    borderRadius: 24,
+    marginBottom: SPACING.xl,
+    shadowColor: '#FFB6C1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 8,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#FFE4E6',
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.gray[100],
+    backgroundColor: COLORS.white,
+  },
+  firstMenuItem: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  lastMenuItem: {
+    borderBottomWidth: 0,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+  },
+  menuItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  menuIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: SPACING.lg,
+  },
+  menuItemText: {
+    fontSize: FONTS.sizes.md,
+    color: COLORS.text.primary,
+    fontWeight: '500',
+  },
+  logoutButton: {
+    backgroundColor: COLORS.white,
+    marginHorizontal: SPACING.lg,
+    marginBottom: SPACING.xl,
+    paddingVertical: SPACING.lg,
+    borderRadius: 24,
+    alignItems: 'center',
+    shadowColor: '#FFB6C1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 8,
+    borderWidth: 2,
+    borderColor: '#FFE4E6',
+  },
+  logoutText: {
+    fontSize: FONTS.sizes.md,
+    fontWeight: '600',
+    color: COLORS.error,
+  },
+});
+
+export default ProfileScreen;

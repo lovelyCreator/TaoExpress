@@ -1,0 +1,887 @@
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Image,
+  SafeAreaView,
+  ScrollView,
+  TextInput,
+  Switch,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useRoute, useNavigation } from '@react-navigation/native';
+import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '../../constants';
+import { useAppSelector } from '../../store/hooks';
+import { translations } from '../../i18n/translations';
+import PhotoCaptureModal from '../../components/PhotoCaptureModal';
+import InputCheckServiceModal from '../../components/InputCheckServiceModal';
+import OrderServiceModal from '../../components/OrderServiceModal';
+import TransferMethodModal from '../../components/TransferMethodModal';
+import CouponModal from '../../components/CouponModal';
+import { useToast } from '../../context/ToastContext';
+
+interface PaymentScreenParams {
+  items: Array<{
+    id: string;
+    name: string;
+    color?: string;
+    size?: string;
+    price: number;
+    quantity: number;
+    image: string;
+  }>;
+  totalAmount: number;
+  fromCart?: boolean;
+}
+
+const PaymentScreen: React.FC = () => {
+  const route = useRoute<any>();
+  const navigation = useNavigation<any>();
+  const { items = [], totalAmount = 0, fromCart = false } = route.params as PaymentScreenParams;
+
+  // i18n
+  const locale = useAppSelector((s) => s.i18n.locale);
+  const t = (key: string) => {
+    const keys = key.split('.');
+    let value: any = translations[locale as keyof typeof translations];
+    for (const k of keys) {
+      value = value?.[k];
+    }
+    return value || key;
+  };
+
+  // State
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('');
+  const [orderMemos, setOrderMemos] = useState<Record<string, string>>({});
+  const [usePoints, setUsePoints] = useState(false);
+  const [useCoupon, setUseCoupon] = useState(false);
+  const [photoCaptureVisible, setPhotoCaptureVisible] = useState(false);
+  const [selectedProductForPhoto, setSelectedProductForPhoto] = useState<any>(null);
+  const [inputCheckServiceVisible, setInputCheckServiceVisible] = useState(false);
+  const [orderServiceVisible, setOrderServiceVisible] = useState(false);
+  const [transferMethodVisible, setTransferMethodVisible] = useState(false);
+  const [couponModalVisible, setCouponModalVisible] = useState(false);
+  const [selectedCoupon, setSelectedCoupon] = useState<any>(null);
+
+  const { showToast } = useToast();
+
+  // Helper function to update memo for specific product
+  const updateOrderMemo = (productId: string, memo: string) => {
+    setOrderMemos(prev => ({
+      ...prev,
+      [productId]: memo
+    }));
+  };
+
+  // Handle camera button press
+  const handleCameraPress = (item: any) => {
+    setSelectedProductForPhoto(item);
+    setPhotoCaptureVisible(true);
+  };
+
+  // Handle photo capture confirmation
+  const handlePhotoCaptureConfirm = (data: { quantity: number; request: string; photos: string[] }) => {
+    // Handle photo capture confirmation
+    console.log('Photo capture data for product:', selectedProductForPhoto?.id, data);
+    showToast('Photo capture request submitted successfully', 'success');
+    setPhotoCaptureVisible(false);
+    setSelectedProductForPhoto(null);
+  };
+
+  // Handle input check service confirmation
+  const handleInputCheckServiceConfirm = (selectedServices: string[]) => {
+    console.log('Selected services:', selectedServices);
+    showToast('Input check services updated', 'success');
+  };
+
+  // Handle order service confirmation
+  const handleOrderServiceConfirm = (selectedServices: string[]) => {
+    console.log('Selected order services:', selectedServices);
+    showToast('Order services updated', 'success');
+  };
+
+  // Handle transfer method confirmation
+  const handleTransferMethodConfirm = (selectedMethod: string) => {
+    console.log('Selected transfer method:', selectedMethod);
+    showToast('Transfer method updated', 'success');
+  };
+
+  // Handle coupon confirmation
+  const handleCouponConfirm = (coupon: any) => {
+    setSelectedCoupon(coupon);
+    if (coupon) {
+      showToast(`Coupon "${coupon.name}" applied successfully`, 'success');
+    } else {
+      showToast('Coupon removed', 'success');
+    }
+  };
+
+  // Mock data
+  const paymentMethods = [
+    { 
+      id: 'kakaopay', 
+      name: 'KakaoPay', 
+      iconType: 'text',
+      iconText: 'K',
+      iconColor: '#FFCD00',
+      textColor: '#000000'
+    },
+    { 
+      id: 'naverpay', 
+      name: 'NaverPay', 
+      iconType: 'text',
+      iconText: 'N',
+      iconColor: '#03C75A',
+      textColor: '#FFFFFF'
+    },
+    { 
+      id: 'newcard', 
+      name: 'New Card', 
+      iconType: 'icon',
+      iconName: 'card-outline'
+    },
+  ];
+
+  const cardOptions = [
+    { id: 'visa', name: 'VISA', color: '#1A1F71', textColor: '#FFFFFF' },
+    { id: 'mastercard', name: 'MC', color: '#EB001B', textColor: '#FFFFFF' },
+    { id: 'paypal', name: 'PayPal', color: '#0070BA', textColor: '#FFFFFF' },
+    { id: 'amex', name: 'AMEX', color: '#006FCF', textColor: '#FFFFFF' },
+  ];
+
+  // Calculate pricing
+  const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const warehouseFee = 1.00;
+  const areaTransport = 2.00;
+  const internationalTransport = 0.00;
+  const serviceFee = 3.00;
+  const pointsDiscount = usePoints ? 0.10 : 0;
+  const couponDiscount = selectedCoupon ? 
+    (selectedCoupon.discountType === 'percentage' ? 
+      (subtotal * selectedCoupon.discount / 100) : 
+      selectedCoupon.discount) : 0;
+  const finalTotal = subtotal + warehouseFee + areaTransport + internationalTransport + serviceFee - pointsDiscount - couponDiscount;
+
+  const renderHeader = () => (
+    <View style={styles.header}>
+      <TouchableOpacity 
+        style={styles.backButton}
+        onPress={() => navigation.goBack()}
+      >
+        <Ionicons name="arrow-back" size={24} color={COLORS.black} />
+      </TouchableOpacity>
+      <Text style={styles.headerTitle}>Order Confirm</Text>
+      <View style={styles.placeholder} />
+    </View>
+  );
+
+  const renderSellerSection = () => (
+    <View style={styles.sellerSection}>
+      <View style={styles.sellerRow}>
+        <Image 
+          source={{ uri: 'https://picsum.photos/seed/seller/32/32' }}
+          style={styles.sellerAvatar}
+        />
+        <Text style={styles.sellerName}>bbbxffvwo083i5cyz7jxtprkg</Text>
+      </View>
+    </View>
+  );
+
+  const renderOrderItems = () => (
+    <View>
+      {items.map((item, index) => (
+        <View key={item.id || index}>
+          {/* Product Item */}
+          <View style={styles.orderItemsSection}>
+            <View style={styles.orderItem}>
+              <Image 
+                source={{ uri: item.image }}
+                style={styles.itemImage}
+              />
+              <View style={styles.itemDetails}>
+                <Text style={styles.itemName}>{item.name}</Text>
+                {item.color && <Text style={styles.itemVariant}>{item.color}</Text>}
+                <Text style={styles.itemPrice}>${item.price.toFixed(2)}</Text>
+              </View>
+              <View style={styles.itemQuantity}>
+                <TouchableOpacity 
+                  style={styles.cameraButton}
+                  onPress={() => handleCameraPress(item)}
+                >
+                  <Ionicons name="camera-outline" size={16} color={COLORS.black} />
+                </TouchableOpacity>
+                <Text style={styles.quantityText}>×{item.quantity}</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Input Check Service for this product */}
+          <TouchableOpacity 
+            style={styles.serviceSection}
+            onPress={() => setInputCheckServiceVisible(true)}
+          >
+            <View style={styles.serviceTitleRow}>
+              <Text style={styles.serviceTitle}>Input Check Service</Text>
+              <TouchableOpacity onPress={() => setInputCheckServiceVisible(true)}>
+                <Ionicons name="chevron-forward" size={16} color={COLORS.gray[400]} />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.serviceRow}>
+              <View style={styles.serviceCheck}>
+                <Ionicons name="checkmark-circle" size={20} color={COLORS.primary} />
+                <Text style={styles.serviceName}>Camera</Text>
+              </View>
+              <Text style={styles.servicePrice}>$1</Text>
+            </View>
+          </TouchableOpacity>
+
+          {/* Order Service for this product */}
+          <TouchableOpacity 
+            style={styles.orderServiceSection}
+            onPress={() => setOrderServiceVisible(true)}
+          >
+            <View style={styles.serviceTitleRow}>
+              <Text style={styles.serviceTitle}>Order Service</Text>
+              <TouchableOpacity onPress={() => setOrderServiceVisible(true)}>
+                <Ionicons name="chevron-forward" size={16} color={COLORS.gray[400]} />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.serviceRow}>
+              <View style={styles.serviceCheck}>
+                <Ionicons name="checkmark-circle" size={20} color={COLORS.primary} />
+                <Text style={styles.serviceName}>Camera</Text>
+              </View>
+              <Text style={styles.servicePrice}>$1</Text>
+            </View>
+          </TouchableOpacity>
+
+          {/* Order Memo for this product */}
+          <View style={styles.memoSection}>
+            <Text style={styles.sectionTitle}>Order Memo</Text>
+            <TextInput
+              style={styles.memoInput}
+              placeholder="Please make memo for this order"
+              placeholderTextColor={COLORS.gray[400]}
+              value={orderMemos[item.id] || ''}
+              onChangeText={(text) => updateOrderMemo(item.id, text)}
+              multiline
+            />
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+
+
+
+  const renderPaymentMethods = () => (
+    <View style={styles.paymentSection}>
+      <Text style={styles.sectionTitle}>Payment Methods</Text>
+      {paymentMethods.map((method) => (
+        <TouchableOpacity
+          key={method.id}
+          style={styles.paymentMethod}
+          onPress={() => setSelectedPaymentMethod(method.id)}
+        >
+          <View style={[
+            styles.radioButton,
+            selectedPaymentMethod === method.id && styles.radioButtonSelected
+          ]}>
+            {selectedPaymentMethod === method.id && (
+              <View style={styles.radioButtonInner} />
+            )}
+          </View>
+          <View style={styles.paymentMethodContent}>
+            <Text style={styles.paymentMethodText}>{method.name}</Text>
+            {method.iconType === 'text' && (
+              <View style={[styles.paymentMethodIconBadge, { backgroundColor: method.iconColor }]}>
+                <Text style={[styles.paymentMethodIconText, { color: method.textColor }]}>
+                  {method.iconText}
+                </Text>
+              </View>
+            )}
+            {method.iconType === 'icon' && (
+              <Ionicons 
+                name={method.iconName as any} 
+                size={20} 
+                color={COLORS.gray[400]} 
+              />
+            )}
+          </View>
+        </TouchableOpacity>
+      ))}
+      
+      <View style={styles.cardOptions}>
+        {cardOptions.map((card) => (
+          <TouchableOpacity 
+            key={card.id} 
+            style={[styles.cardOption, { backgroundColor: card.color }]}
+          >
+            <Text style={[styles.cardText, { color: card.textColor }]}>
+              {card.name}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
+
+
+
+
+
+  const renderAddress = () => (
+    <View style={styles.addressSection}>
+      <Text style={styles.sectionTitle}>Address</Text>
+      <TouchableOpacity 
+        style={styles.addressRow}
+        onPress={() => navigation.navigate('AddressBook')}
+      >
+        <Ionicons name="location-outline" size={20} color={COLORS.black} />
+        <Text style={styles.addressText}>Add address</Text>
+        <Ionicons name="chevron-forward" size={16} color={COLORS.gray[400]} />
+      </TouchableOpacity>
+    </View>
+  );
+
+  const renderTransferMethod = () => (
+    <View style={styles.transferSection}>
+      <Text style={styles.sectionTitle}>Transfer Method</Text>
+      <TouchableOpacity 
+        style={styles.transferRow}
+        onPress={() => setTransferMethodVisible(true)}
+      >
+        <Ionicons name="business-outline" size={20} color={COLORS.black} />
+        <Text style={styles.transferText}>Choose Transfer Method</Text>
+        <Ionicons name="chevron-forward" size={16} color={COLORS.gray[400]} />
+      </TouchableOpacity>
+    </View>
+  );
+
+  const renderPriceBreakdown = () => (
+    <View style={styles.priceSection}>
+      <Text style={styles.sectionTitle}>Price</Text>
+      
+      <View style={styles.priceRow}>
+        <Text style={styles.priceLabel}>Total products:</Text>
+        <Text style={styles.priceValue}>${subtotal.toFixed(2)}</Text>
+      </View>
+      
+      <View style={styles.priceRow}>
+        <Text style={styles.priceLabel}>Arrive warehouse:</Text>
+        <Text style={styles.priceValue}>${warehouseFee.toFixed(2)}</Text>
+      </View>
+      
+      <View style={styles.priceRow}>
+        <Text style={styles.priceLabel}>Area transport:</Text>
+        <Text style={styles.priceValue}>${areaTransport.toFixed(2)}</Text>
+      </View>
+      
+      <View style={styles.priceRow}>
+        <Text style={styles.priceLabel}>International transport:</Text>
+        <Text style={styles.priceValue}>${internationalTransport.toFixed(2)}</Text>
+      </View>
+      
+      <View style={styles.priceRow}>
+        <Text style={styles.priceLabel}>Service:</Text>
+        <Text style={styles.priceValue}>${serviceFee.toFixed(2)}</Text>
+      </View>
+      
+      <View style={styles.priceRow}>
+        <Text style={styles.priceLabel}>Use points:</Text>
+        <View style={styles.pointsRow}>
+          <Text style={[styles.priceValue, { color: COLORS.accentPink }]}>
+            ${pointsDiscount.toFixed(1)}
+          </Text>
+          <Switch
+            value={usePoints}
+            onValueChange={setUsePoints}
+            trackColor={{ false: COLORS.gray[300], true: COLORS.success }}
+            thumbColor={COLORS.white}
+          />
+        </View>
+      </View>
+      
+      <View style={styles.priceRow}>
+        <View style={styles.availablePointsRow}>
+          <Ionicons name="card-outline" size={16} color={COLORS.primary} />
+          <Text style={styles.availablePointsText}>Available points:</Text>
+        </View>
+        <Text style={styles.priceValue}>$10</Text>
+      </View>
+      
+      <TouchableOpacity 
+        style={styles.priceRow}
+        onPress={() => setCouponModalVisible(true)}
+      >
+        <View style={styles.couponRow}>
+          <Ionicons name="ticket-outline" size={16} color={COLORS.primary} />
+          <Text style={styles.couponText}>
+            {selectedCoupon ? selectedCoupon.name : 'Coupon:'}
+          </Text>
+        </View>
+        <View style={styles.couponRightSection}>
+          <Text style={[styles.priceValue, { color: COLORS.accentPink }]}>
+            ${couponDiscount.toFixed(0)}
+          </Text>
+          <Ionicons name="chevron-forward" size={16} color={COLORS.gray[400]} />
+        </View>
+      </TouchableOpacity>
+      
+      <View style={[styles.priceRow, styles.totalRow]}>
+        <Text style={styles.totalLabel}>Total:</Text>
+        <Text style={styles.totalValue}>${finalTotal.toFixed(2)}</Text>
+      </View>
+    </View>
+  );
+
+  const renderBottomBar = () => (
+    <View style={styles.bottomBar}>
+      <Text style={styles.bottomTotal}>${finalTotal.toFixed(2)}</Text>
+      <TouchableOpacity 
+        style={styles.confirmButton}
+        onPress={() => {
+          // Handle payment confirmation
+          navigation.navigate('OrderSuccess', {
+            orderId: 'ORD' + Date.now(),
+            totalAmount: finalTotal,
+            items: items
+          });
+        }}
+      >
+        <Text style={styles.confirmButtonText}>Confirm</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  return (
+    <SafeAreaView style={styles.container}>
+      {renderHeader()}
+      
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {renderSellerSection()}
+        {renderOrderItems()}
+        {renderPaymentMethods()}
+        {renderAddress()}
+        {renderTransferMethod()}
+        {renderPriceBreakdown()}
+        
+        <View style={styles.bottomSpace} />
+      </ScrollView>
+      
+      {renderBottomBar()}
+      
+      {selectedProductForPhoto && (
+        <PhotoCaptureModal
+          visible={photoCaptureVisible}
+          onClose={() => {
+            setPhotoCaptureVisible(false);
+            setSelectedProductForPhoto(null);
+          }}
+          onConfirm={handlePhotoCaptureConfirm}
+          product={{
+            id: selectedProductForPhoto.id,
+            name: selectedProductForPhoto.name,
+            image: selectedProductForPhoto.image,
+            price: selectedProductForPhoto.price,
+          }}
+        />
+      )}
+      
+      <InputCheckServiceModal
+        visible={inputCheckServiceVisible}
+        onClose={() => setInputCheckServiceVisible(false)}
+        onConfirm={handleInputCheckServiceConfirm}
+      />
+      
+      <OrderServiceModal
+        visible={orderServiceVisible}
+        onClose={() => setOrderServiceVisible(false)}
+        onConfirm={handleOrderServiceConfirm}
+      />
+      
+      <TransferMethodModal
+        visible={transferMethodVisible}
+        onClose={() => setTransferMethodVisible(false)}
+        onConfirm={handleTransferMethodConfirm}
+      />
+      
+      <CouponModal
+        visible={couponModalVisible}
+        onClose={() => setCouponModalVisible(false)}
+        onConfirm={handleCouponConfirm}
+        selectedCouponId={selectedCoupon?.id}
+      />
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.white,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.gray[200],
+  },
+  backButton: {
+    padding: SPACING.xs,
+  },
+  headerTitle: {
+    fontSize: FONTS.sizes.lg,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+  },
+  placeholder: {
+    width: 40,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  sellerSection: {
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.gray[100],
+  },
+  sellerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  sellerAvatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    marginRight: SPACING.sm,
+  },
+  sellerName: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.gray[600],
+  },
+  orderItemsSection: {
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.gray[100],
+  },
+  orderItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SPACING.sm,
+  },
+  itemImage: {
+    width: 60,
+    height: 60,
+    borderRadius: BORDER_RADIUS.md,
+    marginRight: SPACING.md,
+    backgroundColor: COLORS.gray[100],
+  },
+  itemDetails: {
+    flex: 1,
+  },
+  itemName: {
+    fontSize: FONTS.sizes.md,
+    fontWeight: '500',
+    color: COLORS.text.primary,
+    marginBottom: 2,
+  },
+  itemVariant: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.gray[500],
+    marginBottom: 2,
+  },
+  itemPrice: {
+    fontSize: FONTS.sizes.md,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+  },
+  itemQuantity: {
+    alignItems: 'center',
+  },
+  cameraButton: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: COLORS.gray[100],
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  quantityText: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.text.primary,
+  },
+  serviceSection: {
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.gray[100],
+  },
+  serviceTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SPACING.sm,
+  },
+  serviceTitle: {
+    fontSize: FONTS.sizes.md,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    flex: 1,
+  },
+  serviceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  serviceCheck: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  serviceName: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.text.primary,
+    marginLeft: SPACING.xs,
+  },
+  servicePrice: {
+    fontSize: FONTS.sizes.sm,
+    fontWeight: '500',
+    color: COLORS.text.primary,
+  },
+  paymentSection: {
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.gray[100],
+  },
+  sectionTitle: {
+    fontSize: FONTS.sizes.md,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginBottom: SPACING.md,
+  },
+  paymentMethod: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: SPACING.sm,
+  },
+  radioButton: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: COLORS.gray[300],
+    marginRight: SPACING.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  radioButtonSelected: {
+    borderColor: COLORS.primary,
+  },
+  radioButtonInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: COLORS.primary,
+  },
+  paymentMethodContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'space-between',
+  },
+  paymentMethodText: {
+    fontSize: FONTS.sizes.md,
+    color: COLORS.text.primary,
+  },
+  paymentMethodIconBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  paymentMethodIconText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  cardOptions: {
+    flexDirection: 'row',
+    marginTop: SPACING.md,
+    gap: SPACING.sm,
+  },
+  cardOption: {
+    width: 60,
+    height: 40,
+    borderRadius: BORDER_RADIUS.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  cardText: {
+    fontSize: FONTS.sizes.xs,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  orderServiceSection: {
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.gray[100],
+  },
+  memoSection: {
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.gray[100],
+  },
+  memoInput: {
+    borderWidth: 1,
+    borderColor: COLORS.gray[200],
+    borderRadius: BORDER_RADIUS.md,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    fontSize: FONTS.sizes.md,
+    color: COLORS.text.primary,
+    minHeight: 60,
+    textAlignVertical: 'top',
+  },
+  addressSection: {
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.gray[100],
+  },
+  addressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  addressText: {
+    fontSize: FONTS.sizes.md,
+    color: COLORS.text.primary,
+    flex: 1,
+    marginLeft: SPACING.sm,
+  },
+  transferSection: {
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.gray[100],
+  },
+  transferRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  transferText: {
+    fontSize: FONTS.sizes.md,
+    color: COLORS.text.primary,
+    flex: 1,
+    marginLeft: SPACING.sm,
+  },
+  priceSection: {
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md,
+  },
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: SPACING.xs,
+  },
+  priceLabel: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.gray[600],
+  },
+  priceValue: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.text.primary,
+    fontWeight: '500',
+  },
+  pointsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
+  availablePointsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+  },
+  availablePointsText: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.gray[600],
+  },
+  couponRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+  },
+  couponText: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.gray[600],
+  },
+  couponRightSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+  },
+  totalRow: {
+    borderTopWidth: 1,
+    borderTopColor: COLORS.gray[200],
+    marginTop: SPACING.sm,
+    paddingTop: SPACING.sm,
+  },
+  totalLabel: {
+    fontSize: FONTS.sizes.md,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+  },
+  totalValue: {
+    fontSize: FONTS.sizes.md,
+    fontWeight: '600',
+    color: COLORS.primary,
+  },
+  bottomSpace: {
+    height: 100,
+  },
+  bottomBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md,
+    backgroundColor: COLORS.white,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.gray[200],
+    ...SHADOWS.lg,
+  },
+  bottomTotal: {
+    fontSize: FONTS.sizes.xl,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    flex: 1,
+  },
+  confirmButton: {
+    backgroundColor: COLORS.black,
+    paddingHorizontal: SPACING.xl,
+    paddingVertical: SPACING.md,
+    borderRadius: BORDER_RADIUS.lg,
+  },
+  confirmButtonText: {
+    fontSize: FONTS.sizes.md,
+    fontWeight: '600',
+    color: COLORS.white,
+  },
+});
+
+export default PaymentScreen;

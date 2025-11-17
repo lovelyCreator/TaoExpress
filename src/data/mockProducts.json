@@ -1,0 +1,521 @@
+{
+  "newIn": [
+    {
+      "id": "new_1",
+      "name": "Summer Floral Dress",
+      "image": "https://picsum.photos/seed/dress1/400/500",
+      "images": [
+        "https://picsum.photos/seed/dress1/400/500",
+        "https://picsum.photos/seed/dress1a/400/500",
+        "https://picsum.photos/seed/dress1b/400/500",
+        "https://picsum.photos/seed/dress1c/400/500"
+      ],
+      "price": 45.99,
+      "originalPrice": 65.99,
+      "discount": 30,
+      "rating": 4.5,
+      "ratingCount": 128,
+      "orderCount": 456,
+      "company": "1688",
+      "category": "1688_women",
+      "subcategory": "1688_women_dresses",
+      "subsubcategory": "1688_women_dresses_casual",
+      "description": "There the description of products to planner",
+      "productCode": "SKU-DRS-2024-001",
+      "seller": {
+        "name": "Good 188 | China",
+        "rating": 4.3,
+        "soldCount": "1.3M+"
+      },
+      "colors": [
+        { "name": "Space", "hex": "#4A5568", "image": "https://picsum.photos/seed/color1/100/100" },
+        { "name": "Rose", "hex": "#F687B3", "image": "https://picsum.photos/seed/color2/100/100" },
+        { "name": "Blue", "hex": "#4299E1", "image": "https://picsum.photos/seed/color3/100/100" }
+      ],
+      "sizes": ["S", "M", "L", "XL"],
+      "reviews": [
+        {
+          "user": "Artimus",
+          "rating": 5,
+          "comment": "This product is absolutely Great.",
+          "date": "2024-01-15"
+        },
+        {
+          "user": "Artimus",
+          "rating": 4,
+          "comment": "Good quality product.",
+          "date": "2024-01-10"
+        }
+      ],
+      "details": {
+        "Feeding": "Bottle feeding",
+        "Material": "Cotton blend"
+      }
+    },
+    {
+      "id": "new_2",
+      "name": "Casual Denim Jacket",
+      "image": "https://picsum.photos/seed/jacket1/400/500",
+      "images": [
+        "https://picsum.photos/seed/jacket1/400/500",
+        "https://picsum.photos/seed/jacket1a/400/500",
+        "https://picsum.photos/seed/jacket1b/400/500",
+        "https://picsum.photos/seed/jacket1c/400/500",
+        "https://picsum.photos/seed/jacket1d/400/500",
+        "https://picsum.photos/seed/jacket1e/400/500"
+      ],
+      "price": 59.99,
+      "originalPrice": 89.99,
+      "discount": 33,
+      "rating": 4.7,
+      "ratingCount": 234,
+      "orderCount": 789,
+      "company": "taobao",
+      "category": "taobao_fashion",
+      "description": "Premium quality denim jacket perfect for casual wear",
+      "productCode": "SKU-JKT-2024-002",
+      "colors": [
+        { "name": "Light Blue", "hex": "#87CEEB", "image": "https://picsum.photos/seed/jacket_blue/100/100" },
+        { "name": "Dark Blue", "hex": "#00008B", "image": "https://picsum.photos/seed/jacket_dark/100/100" },
+        { "name": "Black", "hex": "#000000", "image": "https://picsum.photos/seed/jacket_black/100/100" },
+        { "name": "Gray", "hex": "#808080", "image": "https://picsum.photos/seed/jacket_gray/100/100" }
+      ],
+      "sizes": ["S", "M", "L", "XL", "XXL"],
+      "reviews": [
+        {
+          "user": "John Doe",
+          "rating": 5,
+          "comment": "Amazing quality! Fits perfectly and looks great.",
+          "date": "2024-01-20"
+        },
+        {
+          "user": "Sarah Smith",
+          "rating": 4,
+          "comment": "Good jacket, but runs a bit small. Order one size up.",
+          "date": "2024-01-18"
+        },
+        {
+          "user": "Mike Johnson",
+          "rating": 5,
+          "comment": "Best denim jacket I've ever owned. Highly recommend!",
+          "date": "2024-01-15"
+        }
+      ],
+      "details": {
+        "Material": "100% Cotton Denim",
+        "Care": "Machine washable",
+        "Origin": "Made in China",
+        "Weight": "650g"
+      }
+    },
+    {
+      "id": "new_3",
+      "name": "Leather Crossbody Bag",
+      "image": "https://picsum.photos/seed/bag1/400/500",
+      "price": 34.99,
+      "originalPrice": 49.99,
+      "discount": 30,
+      "rating": 4.3,
+      "ratingCount": 89,
+      "orderCount": 234,
+      "company": "1688",
+      "category": "1688_women"
+    },
+    {
+      "id": "new_4",
+      "name": "White Sneakers",
+      "image": "https://picsum.photos/seed/shoes1/400/500",
+      "price": 42.99,
+      "originalPrice": 59.99,
+      "discount": 28,
+      "rating": 4.6,
+      "ratingCount": 567,
+      "orderCount": 1234,
+      "company": "wsy",
+      "category": "wsy_shoes"
+    },
+    {
+      "id": "new_5",
+      "name": "Silk Scarf",
+      "image": "https://picsum.photos/seed/scarf1/400/500",
+      "price": 19.99,
+      "originalPrice": 29.99,
+      "discount": 33,
+      "rating": 4.4,
+      "ratingCount": 145,
+      "orderCount": 567,
+      "company": "taobao",
+      "category": "taobao_accessories"
+    },
+    {
+      "id": "new_6",
+      "name": "Gold Hoop Earrings",
+      "image": "https://picsum.photos/seed/earring1/400/500",
+      "price": 24.99,
+      "originalPrice": 39.99,
+      "discount": 38,
+      "rating": 4.8,
+      "ratingCount": 312,
+      "orderCount": 890,
+      "company": "taobao",
+      "category": "taobao_jewelry"
+    }
+  ],
+  "trending": [
+    {
+      "id": "trend_1",
+      "name": "Oversized Hoodie",
+      "image": "https://picsum.photos/seed/hoodie1/400/500",
+      "images": [
+        "https://picsum.photos/seed/hoodie1/400/500",
+        "https://picsum.photos/seed/hoodie1a/400/500",
+        "https://picsum.photos/seed/hoodie1b/400/500",
+        "https://picsum.photos/seed/hoodie1c/400/500"
+      ],
+      "price": 38.99,
+      "originalPrice": 54.99,
+      "discount": 29,
+      "rating": 4.6,
+      "ratingCount": 892,
+      "orderCount": 2345,
+      "badge": "Hot",
+      "company": "1688",
+      "category": "1688_men",
+      "description": "Comfortable oversized hoodie with premium cotton blend fabric",
+      "productCode": "SKU-HOD-2024-003",
+      "colors": [
+        { "name": "Black", "hex": "#000000", "image": "https://picsum.photos/seed/hoodie_black/100/100" },
+        { "name": "White", "hex": "#FFFFFF", "image": "https://picsum.photos/seed/hoodie_white/100/100" },
+        { "name": "Gray", "hex": "#808080", "image": "https://picsum.photos/seed/hoodie_gray/100/100" },
+        { "name": "Navy", "hex": "#000080", "image": "https://picsum.photos/seed/hoodie_navy/100/100" }
+      ],
+      "sizes": ["M", "L", "XL", "XXL"],
+      "reviews": [
+        {
+          "user": "Alex Chen",
+          "rating": 5,
+          "comment": "Super comfortable and warm. Perfect for winter!",
+          "date": "2024-01-22"
+        },
+        {
+          "user": "Emma Wilson",
+          "rating": 4,
+          "comment": "Nice hoodie, good quality for the price.",
+          "date": "2024-01-19"
+        }
+      ],
+      "details": {
+        "Material": "80% Cotton, 20% Polyester",
+        "Style": "Oversized fit",
+        "Features": "Kangaroo pocket, drawstring hood",
+        "Care": "Machine wash cold"
+      }
+    },
+    {
+      "id": "trend_2",
+      "name": "High Waist Jeans",
+      "image": "https://picsum.photos/seed/jeans1/400/500",
+      "price": 49.99,
+      "originalPrice": 79.99,
+      "discount": 38,
+      "rating": 4.7,
+      "ratingCount": 1234,
+      "orderCount": 3456,
+      "badge": "Trending",
+      "company": "vvic",
+      "category": "vvic_women"
+    },
+    {
+      "id": "trend_3",
+      "name": "Minimalist Watch",
+      "image": "https://picsum.photos/seed/watch1/400/500",
+      "price": 89.99,
+      "originalPrice": 129.99,
+      "discount": 31,
+      "rating": 4.9,
+      "ratingCount": 567,
+      "orderCount": 1890,
+      "badge": "Best Seller",
+      "company": "vip",
+      "category": "vip_luxury"
+    },
+    {
+      "id": "trend_4",
+      "name": "Wireless Earbuds",
+      "image": "https://picsum.photos/seed/earbuds1/400/500",
+      "price": 69.99,
+      "originalPrice": 99.99,
+      "discount": 30,
+      "rating": 4.5,
+      "ratingCount": 2345,
+      "orderCount": 5678,
+      "badge": "Hot",
+      "company": "1688",
+      "category": "1688_electronics"
+    },
+    {
+      "id": "trend_5",
+      "name": "Canvas Tote Bag",
+      "image": "https://picsum.photos/seed/tote1/400/500",
+      "price": 22.99,
+      "originalPrice": 34.99,
+      "discount": 34,
+      "rating": 4.4,
+      "ratingCount": 678,
+      "orderCount": 1567,
+      "badge": "Trending",
+      "company": "taobao",
+      "category": "taobao_bags"
+    },
+    {
+      "id": "trend_6",
+      "name": "Sunglasses",
+      "image": "https://picsum.photos/seed/sunglasses1/400/500",
+      "price": 29.99,
+      "originalPrice": 49.99,
+      "discount": 40,
+      "rating": 4.6,
+      "ratingCount": 456,
+      "orderCount": 1234,
+      "badge": "Hot",
+      "company": "taobao",
+      "category": "taobao_accessories"
+    }
+  ],
+  "forYou": [
+    {
+      "id": "foryou_1",
+      "name": "Knit Cardigan",
+      "image": "https://picsum.photos/seed/cardigan1/400/500",
+      "price": 44.99,
+      "originalPrice": 64.99,
+      "discount": 31,
+      "rating": 4.5,
+      "ratingCount": 234,
+      "orderCount": 678,
+      "company": "1688",
+      "category": "1688_women"
+    },
+    {
+      "id": "foryou_2",
+      "name": "Ankle Boots",
+      "image": "https://picsum.photos/seed/boots1/400/500",
+      "price": 79.99,
+      "originalPrice": 119.99,
+      "discount": 33,
+      "rating": 4.7,
+      "ratingCount": 456,
+      "orderCount": 1234,
+      "company": "wsy",
+      "category": "wsy_shoes"
+    },
+    {
+      "id": "foryou_3",
+      "name": "Pearl Necklace",
+      "image": "https://picsum.photos/seed/necklace1/400/500",
+      "price": 54.99,
+      "originalPrice": 84.99,
+      "discount": 35,
+      "rating": 4.8,
+      "ratingCount": 189,
+      "orderCount": 567,
+      "company": "taobao",
+      "category": "taobao_jewelry"
+    },
+    {
+      "id": "foryou_4",
+      "name": "Yoga Pants",
+      "image": "https://picsum.photos/seed/yoga1/400/500",
+      "price": 32.99,
+      "originalPrice": 49.99,
+      "discount": 34,
+      "rating": 4.6,
+      "ratingCount": 789,
+      "orderCount": 2345,
+      "company": "1688",
+      "category": "1688_sports"
+    },
+    {
+      "id": "foryou_5",
+      "name": "Leather Belt",
+      "image": "https://picsum.photos/seed/belt1/400/500",
+      "price": 24.99,
+      "originalPrice": 39.99,
+      "discount": 38,
+      "rating": 4.4,
+      "ratingCount": 345,
+      "orderCount": 890,
+      "company": "taobao",
+      "category": "taobao_accessories"
+    },
+    {
+      "id": "foryou_6",
+      "name": "Makeup Brush Set",
+      "image": "https://picsum.photos/seed/makeup1/400/500",
+      "price": 34.99,
+      "originalPrice": 54.99,
+      "discount": 36,
+      "rating": 4.7,
+      "ratingCount": 567,
+      "orderCount": 1456,
+      "company": "1688",
+      "category": "1688_beauty"
+    },
+    {
+      "id": "foryou_7",
+      "name": "Smart Watch",
+      "image": "https://picsum.photos/seed/smartwatch1/400/500",
+      "price": 149.99,
+      "originalPrice": 229.99,
+      "discount": 35,
+      "rating": 4.8,
+      "ratingCount": 1234,
+      "orderCount": 3456,
+      "company": "1688",
+      "category": "1688_electronics"
+    },
+    {
+      "id": "foryou_8",
+      "name": "Backpack",
+      "image": "https://picsum.photos/seed/backpack1/400/500",
+      "price": 54.99,
+      "originalPrice": 79.99,
+      "discount": 31,
+      "rating": 4.5,
+      "ratingCount": 678,
+      "orderCount": 1890,
+      "company": "taobao",
+      "category": "taobao_bags"
+    }
+  ],
+  "categoryProducts": {
+    "1688_women_dresses_casual": [
+      {
+        "id": "dress_casual_1",
+        "name": "Cotton Summer Dress",
+        "image": "https://picsum.photos/seed/dress_casual1/400/500",
+        "price": 39.99,
+        "originalPrice": 59.99,
+        "discount": 33,
+        "rating": 4.6,
+        "ratingCount": 234,
+        "orderCount": 567,
+        "company": "1688",
+        "category": "1688_women",
+        "subcategory": "1688_women_dresses",
+        "subsubcategory": "1688_women_dresses_casual"
+      },
+      {
+        "id": "dress_casual_2",
+        "name": "Floral Midi Dress",
+        "image": "https://picsum.photos/seed/dress_casual2/400/500",
+        "price": 44.99,
+        "originalPrice": 64.99,
+        "discount": 31,
+        "rating": 4.7,
+        "ratingCount": 189,
+        "orderCount": 423,
+        "company": "1688",
+        "category": "1688_women",
+        "subcategory": "1688_women_dresses",
+        "subsubcategory": "1688_women_dresses_casual"
+      }
+    ],
+    "1688_women_tops_tshirts": [
+      {
+        "id": "tops_tshirt_1",
+        "name": "Basic White T-Shirt",
+        "image": "https://picsum.photos/seed/tshirt1/400/500",
+        "price": 19.99,
+        "originalPrice": 29.99,
+        "discount": 33,
+        "rating": 4.5,
+        "ratingCount": 456,
+        "orderCount": 1234,
+        "company": "1688",
+        "category": "1688_women",
+        "subcategory": "1688_women_tops",
+        "subsubcategory": "1688_women_tops_tshirts"
+      },
+      {
+        "id": "tops_tshirt_2",
+        "name": "Graphic Print Tee",
+        "image": "https://picsum.photos/seed/tshirt2/400/500",
+        "price": 24.99,
+        "originalPrice": 34.99,
+        "discount": 29,
+        "rating": 4.4,
+        "ratingCount": 321,
+        "orderCount": 890,
+        "company": "1688",
+        "category": "1688_women",
+        "subcategory": "1688_women_tops",
+        "subsubcategory": "1688_women_tops_tshirts"
+      }
+    ],
+    "1688_elec_phones_android": [
+      {
+        "id": "phone_android_1",
+        "name": "Samsung Galaxy S23",
+        "image": "https://picsum.photos/seed/phone1/400/500",
+        "price": 799.99,
+        "originalPrice": 999.99,
+        "discount": 20,
+        "rating": 4.8,
+        "ratingCount": 1234,
+        "orderCount": 3456,
+        "company": "1688",
+        "category": "1688_electronics",
+        "subcategory": "1688_elec_phones",
+        "subsubcategory": "1688_elec_phones_android"
+      },
+      {
+        "id": "phone_android_2",
+        "name": "Google Pixel 8",
+        "image": "https://picsum.photos/seed/phone2/400/500",
+        "price": 699.99,
+        "originalPrice": 899.99,
+        "discount": 22,
+        "rating": 4.7,
+        "ratingCount": 987,
+        "orderCount": 2345,
+        "company": "1688",
+        "category": "1688_electronics",
+        "subcategory": "1688_elec_phones",
+        "subsubcategory": "1688_elec_phones_android"
+      }
+    ],
+    "1688_elec_laptops_gaming": [
+      {
+        "id": "laptop_gaming_1",
+        "name": "ASUS ROG Gaming Laptop",
+        "image": "https://picsum.photos/seed/laptop1/400/500",
+        "price": 1499.99,
+        "originalPrice": 1999.99,
+        "discount": 25,
+        "rating": 4.9,
+        "ratingCount": 567,
+        "orderCount": 1234,
+        "company": "1688",
+        "category": "1688_electronics",
+        "subcategory": "1688_elec_laptops",
+        "subsubcategory": "1688_elec_laptops_gaming"
+      },
+      {
+        "id": "laptop_gaming_2",
+        "name": "MSI Gaming Laptop",
+        "image": "https://picsum.photos/seed/laptop2/400/500",
+        "price": 1299.99,
+        "originalPrice": 1699.99,
+        "discount": 24,
+        "rating": 4.8,
+        "ratingCount": 432,
+        "orderCount": 987,
+        "company": "1688",
+        "category": "1688_electronics",
+        "subcategory": "1688_elec_laptops",
+        "subsubcategory": "1688_elec_laptops_gaming"
+      }
+    ]
+  }
+}
