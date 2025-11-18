@@ -17,25 +17,25 @@ import { COLORS, FONTS, SPACING } from '../../constants';
 import { RootStackParamList } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { useAppSelector } from '../../store/hooks';
-import { translations } from '../../i18n/translations';
+
 
 type ProfileScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Main'>;
 
 const ProfileScreen: React.FC = () => {
   const navigation = useNavigation<ProfileScreenNavigationProp>();
   const { user, logout, isAuthenticated } = useAuth();
-  const locale = useAppSelector((state) => state.i18n.locale);
-  
-  const t = (key: string) => {
-    const keys = key.split('.');
-    let value: any = translations[locale as keyof typeof translations];
-    
-    for (const k of keys) {
-      value = value?.[k];
-    }
-    
-    return value || key;
+  const currentLocale = useAppSelector((state) => state.i18n.locale);
+
+  // Map language codes to flag emojis
+  const getLanguageFlag = (locale: string) => {
+    const flags: { [key: string]: string } = {
+      'en': '🇺🇸',
+      'ko': '🇰🇷',
+      'zh': '🇨🇳',
+    };
+    return flags[locale] || '🇺🇸';
   };
+
 
   const handleLogin = () => {
     navigation.navigate('Auth');
@@ -76,21 +76,25 @@ const ProfileScreen: React.FC = () => {
 
   const renderHeader = () => (
     <LinearGradient
-      colors={['#FFB6C1', '#FFC0CB', '#E6E6FA']} // Korean favorite: Soft pink to lavender
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
+      colors={['#FFE4E6', '#FFF0F1', '#FFFFFF']}
       style={styles.header}
     >
-      <Text style={styles.headerTitle}>{t('profile.myPage')}</Text>
+      <Text style={styles.headerTitle}>My Profile</Text>
       <View style={styles.headerIcons}>
+        <TouchableOpacity 
+          style={styles.flagCircle}
+          onPress={() => navigation.navigate('LanguageSettings')}
+        >
+          <Text style={styles.flagText}>{getLanguageFlag(currentLocale)}</Text>
+        </TouchableOpacity>
         <TouchableOpacity 
           style={styles.headerIcon}
           onPress={() => navigation.navigate('ProfileSettings')}
         >
-          <Ionicons name="settings-outline" size={24} color="#8B4B8C" />
+          <Ionicons name="settings-outline" size={24} color={COLORS.text.primary} />
         </TouchableOpacity>
         <TouchableOpacity style={styles.headerIcon}>
-          <Ionicons name="headset-outline" size={24} color="#8B4B8C" />
+          <Ionicons name="headset-outline" size={24} color={COLORS.text.primary} />
         </TouchableOpacity>
       </View>
     </LinearGradient>
@@ -99,55 +103,44 @@ const ProfileScreen: React.FC = () => {
   const renderUserSection = () => (
     <View style={styles.userSection}>
       <View style={styles.userCard}>
-        <View style={styles.userInfo}>
-          <View style={styles.avatarContainer}>
-            <Image
-              source={
-                isAuthenticated && user?.avatar 
-                  ? { uri: user.avatar } 
-                  : require('../../assets/images/avatar.png')
-              }
-              style={styles.avatar}
-            />
-            <View style={styles.avatarBorder} />
-          </View>
-          <View style={styles.userDetails}>
-            <Text style={styles.userName}>
-              {isAuthenticated ? (user?.name || t('profile.user')) : t('profile.users')}
-            </Text>
-            {isAuthenticated && (
+        {isAuthenticated ? (
+          <View style={styles.userInfo}>
+            <View style={styles.avatarContainer}>
+              <Image
+                source={
+                  user?.avatar 
+                    ? { uri: user.avatar } 
+                    : require('../../assets/images/avatar.png')
+                }
+                style={styles.avatar}
+              />
+              <View style={styles.avatarBorder} />
+            </View>
+            <View style={styles.userDetails}>
+              <Text style={styles.userName}>
+                {user?.name || 'User'}
+              </Text>
               <View style={styles.userBadge}>
                 <Ionicons name="checkmark-circle" size={16} color="#4CAF50" />
-                <Text style={styles.verifiedText}>인증 회원</Text>
+                <Text style={styles.verifiedText}>Verified Member</Text>
               </View>
-            )}
-            {isAuthenticated && (
               <TouchableOpacity style={styles.editButton}>
                 <Ionicons name="pencil" size={14} color={COLORS.primary} />
-                <Text style={styles.editText}>프로필 수정</Text>
+                <Text style={styles.editText}>Edit Profile</Text>
               </TouchableOpacity>
-            )}
+            </View>
           </View>
-        </View>
-        
-        {!isAuthenticated && (
+        ) : (
           <View style={styles.authSection}>
             <Text style={styles.welcomeText}>
-              TaoExpress에 오신 것을 환영합니다!
+              Welcome to TaoExpress!
             </Text>
             <Text style={styles.loginPrompt}>
-              로그인하여 더 많은 서비스를 이용해보세요
+              Login to access more services
             </Text>
             <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-              <LinearGradient
-                colors={['#FF9A9E', '#FECFEF']} // Korean favorite: Coral pink gradient
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.loginGradient}
-              >
-                <Ionicons name="log-in-outline" size={20} color={COLORS.white} />
-                <Text style={styles.loginButtonText}>{t('auth.login')}</Text>
-              </LinearGradient>
+              <Ionicons name="log-in-outline" size={20} color={COLORS.white} />
+              <Text style={styles.loginButtonText}>Login</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -163,7 +156,7 @@ const ProfileScreen: React.FC = () => {
             <Ionicons name="wallet-outline" size={24} color="#FF6B9D" />
           </View>
           <Text style={styles.statValue}>₩0</Text>
-          <Text style={styles.statLabel}>{t('profile.deposit')}</Text>
+          <Text style={styles.statLabel}>Deposit</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
@@ -171,7 +164,7 @@ const ProfileScreen: React.FC = () => {
             <Ionicons name="diamond-outline" size={24} color="#4A90E2" />
           </View>
           <Text style={styles.statValue}>100</Text>
-          <Text style={styles.statLabel}>{t('profile.point')}</Text>
+          <Text style={styles.statLabel}>Points</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
@@ -179,7 +172,7 @@ const ProfileScreen: React.FC = () => {
             <Ionicons name="heart-outline" size={24} color="#26D0CE" />
           </View>
           <Text style={styles.statValue}>0</Text>
-          <Text style={styles.statLabel}>{t('profile.wishList')}</Text>
+          <Text style={styles.statLabel}>Wishlist</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
@@ -187,7 +180,7 @@ const ProfileScreen: React.FC = () => {
             <Ionicons name="ticket-outline" size={24} color="#FF9500" />
           </View>
           <Text style={styles.statValue}>1</Text>
-          <Text style={styles.statLabel}>{t('profile.coupon')}</Text>
+          <Text style={styles.statLabel}>Coupons</Text>
         </View>
       </View>
     </View>
@@ -199,48 +192,48 @@ const ProfileScreen: React.FC = () => {
       // 1. START: Place New Orders
       {
         icon: 'bag-outline',
-        title: t('profile.buyOrder'),
+        title: 'Buy Order',
         onPress: () => navigation.navigate('Settings'), // You can change this to a specific buy order screen
       },
       
       // 2. SETUP: Required for Buying (Address & Payment)
       {
         icon: 'location-outline',
-        title: t('profile.address'),
+        title: 'Address',
         onPress: () => navigation.navigate('AddressBook' as never),
       },
       {
         icon: 'card-outline',
-        title: t('profile.bankCard'),
+        title: 'Bank Card',
         onPress: () => navigation.navigate('PaymentMethods'),
       },
       
       // 3. TRACK: Monitor Current Orders
       {
         icon: 'cube-outline',
-        title: t('profile.orderTracking'),
+        title: 'Order Tracking',
         onPress: () => navigation.navigate('MyOrders'), // Current orders tracking
       },
       
       // 4. MANAGE: Current Packages/Shipments
       {
         icon: 'document-text-outline',
-        title: t('profile.myPackage'),
+        title: 'My Package',
         onPress: () => navigation.navigate('MyOrders'),
       },
       
       // 5. HISTORY: Past Orders
       {
         icon: 'time-outline',
-        title: t('profile.orderHistory'),
+        title: 'Order History',
         onPress: () => navigation.navigate('OrderHistory'),
       },
       
       // 6. ISSUES: Problems with Orders/Products
       {
         icon: 'alert-circle-outline',
-        title: t('profile.problemProduct'),
-        onPress: () => showComingSoon(t('profile.problemProduct')),
+        title: 'Problem Product',
+        onPress: () => showComingSoon('Problem Product'),
       },
     ];
 
@@ -249,30 +242,25 @@ const ProfileScreen: React.FC = () => {
       // Support & Help
       {
         icon: 'help-circle-outline',
-        title: t('profile.helpCenter'),
+        title: 'Help Center',
         onPress: () => navigation.navigate('HelpCenter'),
       },
       
       // Personal Features
       {
         icon: 'document-text-outline',
-        title: t('profile.note'),
-        onPress: () => showComingSoon(t('profile.note')),
+        title: 'Note',
+        onPress: () => showComingSoon('Note'),
       },
       
       // Social Features
       {
         icon: 'share-outline',
-        title: t('profile.appShare'),
-        onPress: () => showComingSoon(t('profile.appShare')),
+        title: 'Share App',
+        onPress: () => showComingSoon('Share App'),
       },
       
-      // App Settings
-      {
-        icon: 'language-outline',
-        title: t('profile.language'),
-        onPress: () => navigation.navigate('LanguageSettings'),
-      },
+
     ];
 
     // Combine items based on authentication status
@@ -316,7 +304,7 @@ const ProfileScreen: React.FC = () => {
         
         {isAuthenticated && (
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Text style={styles.logoutText}>{t('profile.logout')}</Text>
+            <Text style={styles.logoutText}>Logout</Text>
           </TouchableOpacity>
         )}
       </ScrollView>
@@ -329,31 +317,44 @@ const ProfileScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FDF7F7', // Soft pink-white background (Korean favorite)
+    backgroundColor: COLORS.white,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.xl,
-    paddingTop: SPACING.xl + 10,
+    paddingVertical: SPACING.lg,
+    marginBottom: SPACING.md,
   },
   headerTitle: {
     fontSize: FONTS.sizes.xl,
     fontWeight: '700',
-    color: '#8B4B8C', // Deep purple-pink
+    color: COLORS.text.primary,
     letterSpacing: 0.5,
   },
   headerIcons: {
     flexDirection: 'row',
     alignItems: 'center',
   },
+  flagCircle: {
+    marginLeft: SPACING.md,
+    padding: SPACING.xs,
+    borderRadius: 20,
+    backgroundColor: COLORS.gray[100],
+    justifyContent: 'center',
+    alignItems: 'center',
+    minWidth: 36,
+    height: 36,
+  },
+  flagText: {
+    fontSize: 20,
+  },
   headerIcon: {
     marginLeft: SPACING.md,
     padding: SPACING.xs,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.7)',
+    backgroundColor: COLORS.gray[100],
   },
   scrollView: {
     flex: 1,
@@ -366,15 +367,15 @@ const styles = StyleSheet.create({
   },
   userCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 24, // More rounded for Korean aesthetic
-    padding: SPACING.xl,
-    shadowColor: '#FFB6C1', // Pink shadow
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 12,
+    borderRadius: SPACING.md,
+    padding: SPACING.lg,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
     borderWidth: 1,
-    borderColor: '#FFE4E6', // Soft pink border
+    borderColor: COLORS.border,
   },
   userInfo: {
     flexDirection: 'row',
@@ -440,10 +441,10 @@ const styles = StyleSheet.create({
     paddingTop: SPACING.md,
   },
   welcomeText: {
-    fontSize: FONTS.sizes.lg,
-    fontWeight: '600',
+    fontSize: FONTS.sizes['2xl'],
+    fontWeight: '700',
     color: COLORS.text.primary,
-    marginBottom: SPACING.xs,
+    marginBottom: SPACING.sm,
     textAlign: 'center',
   },
   loginPrompt: {
@@ -454,22 +455,21 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   loginButton: {
-    width: '100%',
-    borderRadius: 25,
-    overflow: 'hidden',
-  },
-  loginGradient: {
     flexDirection: 'row',
+    backgroundColor: '#FF0055',
+    borderRadius: 9999,
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.xl,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: SPACING.lg,
-    paddingHorizontal: SPACING.xl,
+    gap: SPACING.sm,
+    width: '100%',
   },
   loginButtonText: {
-    fontSize: FONTS.sizes.md,
-    fontWeight: '600',
+    fontSize: FONTS.sizes.xl,
+    fontWeight: '700',
     color: COLORS.white,
-    marginLeft: SPACING.sm,
+    letterSpacing: 0.5,
   },
   statsSection: {
     paddingHorizontal: SPACING.lg,
@@ -477,16 +477,16 @@ const styles = StyleSheet.create({
   },
   statsCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 24,
+    borderRadius: SPACING.md,
     padding: SPACING.xl,
     flexDirection: 'row',
-    shadowColor: '#FFB6C1',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
     borderWidth: 1,
-    borderColor: '#FFE4E6',
+    borderColor: COLORS.border,
   },
   statItem: {
     flex: 1,
@@ -519,16 +519,16 @@ const styles = StyleSheet.create({
   menuContainer: {
     marginHorizontal: SPACING.lg,
     backgroundColor: COLORS.white,
-    borderRadius: 24,
+    borderRadius: SPACING.md,
     marginBottom: SPACING.xl,
-    shadowColor: '#FFB6C1',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#FFE4E6',
+    borderColor: COLORS.border,
   },
   menuItem: {
     flexDirection: 'row',
@@ -571,15 +571,15 @@ const styles = StyleSheet.create({
     marginHorizontal: SPACING.lg,
     marginBottom: SPACING.xl,
     paddingVertical: SPACING.lg,
-    borderRadius: 24,
+    borderRadius: SPACING.md,
     alignItems: 'center',
-    shadowColor: '#FFB6C1',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
     borderWidth: 2,
-    borderColor: '#FFE4E6',
+    borderColor: COLORS.primary,
   },
   logoutText: {
     fontSize: FONTS.sizes.md,

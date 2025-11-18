@@ -61,7 +61,10 @@ const LanguageSettingsScreen: React.FC = () => {
 
   const handleLanguageSelect = (languageCode: 'en' | 'ko' | 'zh') => {
     dispatch(setLocale(languageCode));
-    // You can add additional logic here like saving to AsyncStorage
+    // Navigate back to profile after selection
+    setTimeout(() => {
+      navigation.goBack();
+    }, 300);
   };
 
   const renderHeader = () => (

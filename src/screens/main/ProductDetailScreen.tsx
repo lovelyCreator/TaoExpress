@@ -11,6 +11,7 @@ import {
   SafeAreaView,
   Modal,
   StatusBar,
+  Share,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { useRoute, useNavigation } from '@react-navigation/native';
@@ -20,8 +21,7 @@ import { useWishlist } from '../../context/WishlistContext';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { useToast } from '../../context/ToastContext';
-import { useAppSelector } from '../../store/hooks';
-import { translations } from '../../i18n/translations';
+
 import { ProductCard } from '../../components';
 import PhotoCaptureModal from '../../components/PhotoCaptureModal';
 import mockProducts from '../../data/mockProducts.json';
@@ -38,16 +38,7 @@ const ProductDetailScreen: React.FC = () => {
   const { addToCart } = useCart();
   const { showToast } = useToast();
   
-  // i18n
-  const locale = useAppSelector((s) => s.i18n.locale);
-  const t = (key: string) => {
-    const keys = key.split('.');
-    let value: any = translations[locale as keyof typeof translations];
-    for (const k of keys) {
-      value = value?.[k];
-    }
-    return value || key;
-  };
+
 
   // Find product from mock data
   const [product, setProduct] = useState<any>(null);
@@ -85,9 +76,17 @@ const ProductDetailScreen: React.FC = () => {
       ...mockProducts.trending,
       ...mockProducts.forYou,
     ];
+    console.log('Looking for product ID:', productId);
+    console.log('Available products:', allProducts.map(p => ({ id: p.id, name: p.name })));
+    
     const foundProduct = allProducts.find((p: any) => p.id === productId);
     if (foundProduct) {
+      console.log('Found product:', foundProduct.name);
+      console.log('Product has colors:', foundProduct.colors?.length || 0);
+      console.log('Product has sizes:', foundProduct.sizes?.length || 0);
       setProduct(foundProduct);
+    } else {
+      console.log('Product not found for ID:', productId);
     }
   }, [productId]);
 
@@ -112,28 +111,28 @@ const ProductDetailScreen: React.FC = () => {
 
   const handleAddToCart = async () => {
     if (!isAuthenticated) {
-      showToast(t('product.pleaseLoginFirst'), 'warning');
+      showToast('Please login first', 'warning');
       return;
     }
 
     if (!canAddToCart) {
-      showToast(t('product.pleaseSelectOptions'), 'warning');
+      showToast('Please select color and size', 'warning');
       return;
     }
 
     try {
       // Pass the entire product object as expected by addToCart function
       await addToCart(product, quantity);
-      showToast(t('product.addedToCart'), 'success');
+      showToast('Added to cart', 'success');
       navigation.navigate('Cart');
     } catch (error) {
-      showToast(t('product.failedToAdd'), 'error');
+      showToast('Failed to add to cart', 'error');
     }
   };
 
   const handleCartIconPress = () => {
     if (!isAuthenticated) {
-      showToast(t('product.pleaseLoginCart'), 'warning');
+      showToast('Please login to view cart', 'warning');
       return;
     }
     navigation.navigate('Cart');
@@ -155,6 +154,20 @@ const ProductDetailScreen: React.FC = () => {
     .filter((p: any) => p.id !== productId && p.category === product.category)
     .slice(0, 6);
 
+  const handleShare = async () => {
+    try {
+      const shareContent = {
+        message: `Check out this amazing product: ${product.name}\nPrice: $${product.price.toFixed(2)}\n\nShared from TaoExpress`,
+        url: `https://taoexpress.com/product/${productId}`, // Replace with your actual app URL
+      };
+      
+      await Share.share(shareContent);
+    } catch (error) {
+      console.error('Error sharing:', error);
+      showToast('Failed to share product', 'error');
+    }
+  };
+
   const renderHeader = () => (
     <View style={styles.header}>
       <TouchableOpacity
@@ -163,8 +176,15 @@ const ProductDetailScreen: React.FC = () => {
       >
         <Ionicons name="arrow-back" size={24} color={COLORS.black} />
       </TouchableOpacity>
+      
+      <View style={styles.headerCenter}>
+        <Text style={styles.headerTitle} numberOfLines={1}>
+          {product?.name || 'Product Details'}
+        </Text>
+      </View>
+      
       <View style={styles.headerRight}>
-        <TouchableOpacity style={styles.headerButton}>
+        <TouchableOpacity style={styles.headerButton} onPress={handleShare}>
           <Ionicons name="share-social-outline" size={24} color={COLORS.black} />
         </TouchableOpacity>
       </View>
@@ -270,10 +290,10 @@ const ProductDetailScreen: React.FC = () => {
         <View style={styles.ratingContainer}>
           <Ionicons name="star" size={16} color="#FFD700" />
           <Text style={styles.ratingText}>
-            {product.rating} | all {t('product.review')} {product.ratingCount}
+            {product.rating} | all reviews {product.ratingCount}
           </Text>
         </View>
-        <Text style={styles.soldText}>{product.orderCount || 0} {t('product.sold')}</Text>
+        <Text style={styles.soldText}>{product.orderCount || 0} sold</Text>
       </View>
 
       <View style={styles.priceRow}>
@@ -291,7 +311,7 @@ const ProductDetailScreen: React.FC = () => {
       {/* Product Code with Copy Button */}
       {product.productCode && (
         <View style={styles.productCodeContainer}>
-          <Text style={styles.productCodeLabel}>{t('product.productCode')}: </Text>
+          <Text style={styles.productCodeLabel}>Product Code: </Text>
           <Text style={styles.productCodeText}>{product.productCode}</Text>
           <TouchableOpacity
             style={styles.copyButton}
@@ -306,7 +326,7 @@ const ProductDetailScreen: React.FC = () => {
               styles.copyButtonText,
               isCopied && { color: "#10B981" }
             ]}>
-              {isCopied ? t('product.copied') : t('product.copy')}
+              {isCopied ? 'Copied' : 'Copy'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -314,64 +334,82 @@ const ProductDetailScreen: React.FC = () => {
     </View>
   );
 
-  const renderColorSelector = () => (
-    <View style={styles.selectorContainer}>
-      <Text style={styles.selectorTitle}>{t('product.color')} : {selectedColor || 'Space'}</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        {(product.colors || []).map((color: any, index: number) => {
-          const isSelected = selectedColor === color.name;
-          return (
+  const renderColorSelector = () => {
+    // Debug: Check if product has colors
+    console.log('Product colors:', product.colors);
+    
+    if (!product.colors || product.colors.length === 0) {
+      return null; // Don't render if no colors
+    }
+    
+    return (
+      <View style={styles.selectorContainer}>
+        <Text style={styles.selectorTitle}>Color : {selectedColor || 'Select Color'}</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          {product.colors.map((color: any, index: number) => {
+            const isSelected = selectedColor === color.name;
+            return (
+              <TouchableOpacity
+                key={index}
+                style={styles.colorOption}
+                onPress={() => setSelectedColor(color.name)}
+              >
+                <Image
+                  source={{ uri: color.image || color.hex }}
+                  style={[
+                    styles.colorImage,
+                    isSelected && styles.selectedColorImage,
+                  ]}
+                />
+                <Text style={[
+                  styles.colorName,
+                  isSelected && styles.selectedColorName,
+                ]}>
+                  {color.name}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
+    );
+  };
+
+  const renderSizeSelector = () => {
+    // Debug: Check if product has sizes
+    console.log('Product sizes:', product.sizes);
+    
+    if (!product.sizes || product.sizes.length === 0) {
+      return null; // Don't render if no sizes
+    }
+    
+    return (
+      <View style={styles.selectorContainer}>
+        <Text style={styles.selectorTitle}>Size</Text>
+        <View style={styles.sizeGrid}>
+          {product.sizes.map((size: string, index: number) => (
             <TouchableOpacity
               key={index}
-              style={styles.colorOption}
-              onPress={() => setSelectedColor(color.name)}
+              style={[
+                styles.sizeOption,
+                selectedSize === size && styles.selectedSizeOption,
+              ]}
+              onPress={() => setSelectedSize(size)}
             >
-              <Image
-                source={{ uri: color.image || color.hex }}
+              <Text
                 style={[
-                  styles.colorImage,
-                  isSelected && styles.selectedColorImage,
+                  styles.sizeText,
+                  selectedSize === size && styles.selectedSizeText,
                 ]}
-              />
-              <Text style={[
-                styles.colorName,
-                isSelected && styles.selectedColorName,
-              ]}>
-                {color.name}
+              >
+                {size}
               </Text>
             </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
-    </View>
-  );
-
-  const renderSizeSelector = () => (
-    <View style={styles.selectorContainer}>
-      <Text style={styles.selectorTitle}>{t('product.size')}</Text>
-      <View style={styles.sizeGrid}>
-        {(product.sizes || []).map((size: string, index: number) => (
-          <TouchableOpacity
-            key={index}
-            style={[
-              styles.sizeOption,
-              selectedSize === size && styles.selectedSizeOption,
-            ]}
-            onPress={() => setSelectedSize(size)}
-          >
-            <Text
-              style={[
-                styles.sizeText,
-                selectedSize === size && styles.selectedSizeText,
-              ]}
-            >
-              {size}
-            </Text>
-          </TouchableOpacity>
-        ))}
+          ))}
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   const renderSellerInfo = () => {
     const sellerId = product.seller?.id || 'seller_123';
@@ -402,9 +440,9 @@ const ProductDetailScreen: React.FC = () => {
   const renderReviews = () => (
     <View style={styles.reviewsContainer}>
       <View style={styles.reviewsHeader}>
-        <Text style={styles.reviewsTitle}>{t('product.reviews')} ({product.ratingCount || '5.5K'})</Text>
+        <Text style={styles.reviewsTitle}>Reviews ({product.ratingCount || '5.5K'})</Text>
         <TouchableOpacity onPress={() => navigation.navigate('Reviews', { productId })}>
-          <Text style={styles.seeAllText}>{t('product.seeAll')}</Text>
+          <Text style={styles.seeAllText}>See All</Text>
         </TouchableOpacity>
       </View>
 
@@ -439,7 +477,7 @@ const ProductDetailScreen: React.FC = () => {
 
   const renderProductDetails = () => (
     <View style={styles.detailsContainer}>
-      <Text style={styles.detailsTitle}>{t('product.productDetails')}</Text>
+      <Text style={styles.detailsTitle}>Product Details</Text>
       {Object.entries(product.details || { Feeding: 'Bottle feeding' }).map(
         ([key, value], index) => (
           <View key={index} style={styles.detailRow}>
@@ -449,7 +487,7 @@ const ProductDetailScreen: React.FC = () => {
         )
       )}
       <TouchableOpacity>
-        <Text style={styles.readMoreText}>{t('product.readMore')}</Text>
+        <Text style={styles.readMoreText}>Read More</Text>
       </TouchableOpacity>
     </View>
   );
@@ -459,7 +497,7 @@ const ProductDetailScreen: React.FC = () => {
     
     return (
       <View style={styles.productImagesContainer}>
-        <Text style={styles.productImagesTitle}>{t('product.productImages')}</Text>
+        <Text style={styles.productImagesTitle}>Product Images</Text>
         {images.map((img: string, index: number) => (
           <TouchableOpacity
             key={index}
@@ -482,7 +520,7 @@ const ProductDetailScreen: React.FC = () => {
 
   const renderSimilarProducts = () => (
     <View style={styles.similarProductsContainer}>
-      <Text style={styles.similarProductsTitle}>{t('product.similarProducts')}</Text>
+      <Text style={styles.similarProductsTitle}>Similar Products</Text>
       <View style={styles.similarProductsGrid}>
         {similarProducts.map((item: any, index: number) => (
           <View key={index} style={styles.similarProductItem}>
@@ -544,8 +582,8 @@ const ProductDetailScreen: React.FC = () => {
           disabled={!canAddToCart}
           onPress={handleAddToCart}
         >
-          <Ionicons name="cart-outline" size={18} color={COLORS.white} />
-          <Text style={styles.addToCartText}>{t('product.addToCart')}</Text>
+          <Ionicons name="cart-outline" size={18} color={COLORS.black} />
+          <Text style={styles.addToCartText}>Add to Cart</Text>
         </TouchableOpacity>
         
         <TouchableOpacity
@@ -553,12 +591,12 @@ const ProductDetailScreen: React.FC = () => {
           disabled={!canAddToCart}
           onPress={() => {
             if (!isAuthenticated) {
-              showToast(t('product.pleaseLoginFirst'), 'warning');
+              showToast('Please login first', 'warning');
               return;
             }
 
             if (!canAddToCart) {
-              showToast(t('product.pleaseSelectOptions'), 'warning');
+              showToast('Please select color and size', 'warning');
               return;
             }
 
@@ -580,7 +618,7 @@ const ProductDetailScreen: React.FC = () => {
             });
           }}
         >
-          <Text style={styles.buyNowText}>{t('product.buyNow')}</Text>
+          <Text style={styles.buyNowText}>Buy Now</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -703,6 +741,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     ...SHADOWS.small,
   },
+  headerCenter: {
+    flex: 1,
+    marginHorizontal: SPACING.md,
+  },
+  headerTitle: {
+    fontSize: FONTS.sizes.lg,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    textAlign: 'center',
+  },
   headerRight: {
     flexDirection: 'row',
     gap: SPACING.sm,
@@ -766,7 +814,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.md,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
   },
   itemInfoText: {
     fontSize: FONTS.sizes.sm,
@@ -1161,8 +1209,10 @@ const styles = StyleSheet.create({
   addToCartButton: {
     flex: 1.2,
     flexDirection: 'row',
-    backgroundColor: COLORS.primary,
-    borderRadius: BORDER_RADIUS.xl,
+    backgroundColor: COLORS.white,
+    borderWidth: 2,
+    borderColor: COLORS.black,
+    borderRadius: 50, // Full round button
     paddingVertical: SPACING.lg,
     justifyContent: 'center',
     alignItems: 'center',
@@ -1173,13 +1223,13 @@ const styles = StyleSheet.create({
   addToCartText: {
     fontSize: FONTS.sizes.lg,
     fontWeight: '700',
-    color: COLORS.white,
+    color: COLORS.black,
     letterSpacing: 0.5,
   },
   buyNowButton: {
     flex: 1,
-    backgroundColor: COLORS.accentPink,
-    borderRadius: BORDER_RADIUS.xl,
+    backgroundColor: COLORS.primary,
+    borderRadius: 50, // Full round button
     paddingVertical: SPACING.lg,
     justifyContent: 'center',
     alignItems: 'center',

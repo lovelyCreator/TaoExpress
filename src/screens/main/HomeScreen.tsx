@@ -8,15 +8,12 @@ import {
   TouchableOpacity,
   Image,
   Dimensions,
-  FlatList,
   StatusBar,
   Animated,
-  ImageBackground,
   Alert,
   Platform,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { Video, ResizeMode } from 'expo-av';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -27,14 +24,13 @@ import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '../../constants'
 import { useAuth } from '../../context/AuthContext';
 import { useWishlist } from '../../context/WishlistContext';
 import { useForYou } from '../../context/ForYouContext';
-import { RootStackParamList, Product, Story, NewInProduct, Store } from '../../types';
-import { useAppSelector } from '../../store/hooks';
-import { translations } from '../../i18n/translations';
+import { RootStackParamList, Product, NewInProduct, Store, Story } from '../../types';
+
 import companiesData from '../../data/mockCompanies.json';
 import mockProductsData from '../../data/mockProducts.json';
 import { productsApi, storesApi } from '../../services/api';
 import { useCart } from '../../context/CartContext';
-import { ProductCard, StoryCard, CategoryCard, QuickCategoryCard, PlatformMenu, SearchButton, NotificationBadge, ImagePickerModal } from '../../components';
+import { ProductCard, PlatformMenu, SearchButton, NotificationBadge, ImagePickerModal } from '../../components';
 import { useCategoriesMutation } from '../../hooks/useCategories';
 import { useNewInProductsMutation, useTrendingProductsMutation, useForYouProductsMutation, useStoresMutation } from '../../hooks/useHomeScreenMutations';
 import { useGetWishlistMutation } from '../../hooks/useWishlistMutations'; // Add this import
@@ -54,16 +50,7 @@ const HomeScreen: React.FC = () => {
   const { addToCart } = useCart();
   const { user, isGuest } = useAuth();
   
-  // i18n
-  const locale = useAppSelector((s) => s.i18n.locale);
-  const t = (key: string) => {
-    const keys = key.split('.');
-    let value: any = translations[locale as keyof typeof translations];
-    for (const k of keys) {
-      value = value?.[k];
-    }
-    return value || key;
-  };
+
   const { likedProductIds, toggleWishlist, isInWishlist, refreshWishlist } = useWishlist();
   const { 
     products: forYouProducts, 
@@ -121,7 +108,7 @@ const HomeScreen: React.FC = () => {
   const categoryContainerWidthRef = useRef(0);
   const categoryContentWidthRef = useRef(0);
   const scrollY = useRef(new Animated.Value(0)).current;
-  const HEADER_TOP_HEIGHT = 100; // Height of logo and notification row
+  const HEADER_TOP_HEIGHT = 85; // Height of logo and notification row
   
   // State for scroll to top button
   const [showScrollToTop, setShowScrollToTop] = useState(false);
@@ -553,45 +540,50 @@ const HomeScreen: React.FC = () => {
         { transform: [{ translateY: headerTranslateY }] }
       ]}
     >
-      <StatusBar barStyle="dark-content" backgroundColor="transparent" />
-      {/* Logo and Notification */}
-      <View style={styles.headerTop}>
-        <View style={styles.logoContainer}>
-          <Image
-            source={require('../../assets/icons/logo.png')}
-            style={styles.logo}
-            resizeMode="contain"
+      {/* <LinearGradient
+        colors={['#FF0055', '#FFFFFF']}
+        locations={[0, 1]}
+        style={styles.headerGradient}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+      > */}
+        <StatusBar barStyle="dark-content" backgroundColor="transparent" />
+        {/* Logo and Notification */}
+        <View style={styles.headerTop}>
+          <View style={styles.logoContainer}>
+            {/* Logo hidden */}
+          </View>
+          <View style={styles.headerSpacer} />
+          <NotificationBadge
+            icon="headset-outline"
+            iconSize={36}
+            iconColor={COLORS.white}
+            count={unreadCount}
+            badgeColor="#fa9d24ff"
+            onPress={() => {
+              navigation.navigate('CustomerService' as never);
+            }}
           />
         </View>
-        <View style={styles.headerSpacer} />
-        <NotificationBadge
-          icon="headset-outline"
-          iconSize={36}
-          iconColor={COLORS.text.primary}
-          count={unreadCount}
-          onPress={() => {
-            navigation.navigate('CustomerService' as never);
-          }}
-        />
-      </View>
-      
-      {/* Search Bar and Platform Menu */}
-      <View style={styles.searchRow}>
-        <PlatformMenu
-          platforms={platforms}
-          selectedPlatform={selectedPlatform}
-          onSelectPlatform={setSelectedPlatform}
-          getLabel={(platform) => t(`home.platforms.${platform}`)}
-          textColor={COLORS.text.primary}
-          iconColor={COLORS.text.primary}
-        />
         
-        <SearchButton
-          placeholder={t('common.search')}
-          onPress={() => navigation.navigate('Search' as never)}
-          onCameraPress={handleImageSearch}
-        />
-      </View>
+        {/* Search Bar and Platform Menu */}
+        <View style={styles.searchRow}>
+          <PlatformMenu
+            platforms={platforms}
+            selectedPlatform={selectedPlatform}
+            onSelectPlatform={setSelectedPlatform}
+            getLabel={(platform) => platform.toUpperCase()}
+            textColor={COLORS.white}
+            iconColor={COLORS.white}
+          />
+          
+          <SearchButton
+            placeholder="Search products..."
+            onPress={() => navigation.navigate('Search' as never)}
+            onCameraPress={handleImageSearch}
+          />
+        </View>
+      {/* </LinearGradient> */}
     </Animated.View>
   );
 
@@ -754,7 +746,7 @@ const HomeScreen: React.FC = () => {
     
     return (
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{t('home.newIn')}</Text>
+        <Text style={styles.sectionTitle}>Today Deals</Text>
         <ScrollView 
           horizontal 
           showsHorizontalScrollIndicator={false}
@@ -836,12 +828,12 @@ const HomeScreen: React.FC = () => {
 
   // Brand images for auto-scrolling carousel
   const brandImages = [
-    require("../../assets/images/sample_newin.jpg"),
-    require("../../assets/images/avatar.png"),
-    require("../../assets/images/dress.png"),
-    require("../../assets/images/heels.png"),
-    require("../../assets/images/sandles.png"),
-    require("../../assets/images/sneakers.png"),
+    "https://picsum.photos/seed/fashion-sale/800/220",
+    "https://picsum.photos/seed/summer-collection/800/220", 
+    "https://picsum.photos/seed/new-arrivals/800/220",
+    "https://picsum.photos/seed/electronics-deal/800/220",
+    "https://picsum.photos/seed/beauty-brands/800/220",
+    "https://picsum.photos/seed/home-decor/800/220",
   ];
 
   const [currentBrandIndex, setCurrentBrandIndex] = useState(0);
@@ -882,7 +874,7 @@ const HomeScreen: React.FC = () => {
         {brandImages.map((imageUrl, index) => (
           <View key={`brand-${index}`} style={styles.brandSlide}>
             <Image
-              source={imageUrl}
+              source={{ uri: imageUrl }}
               style={styles.brandImage}
               resizeMode="cover"
             />
@@ -916,7 +908,7 @@ const HomeScreen: React.FC = () => {
     
     return (
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{t('home.trendingProducts')}</Text>
+        <Text style={styles.sectionTitle}>New In</Text>
         <ScrollView 
           horizontal 
           showsHorizontalScrollIndicator={false}
@@ -1030,7 +1022,7 @@ const HomeScreen: React.FC = () => {
     
     return (
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{t('home.moreToLove')}</Text>
+        <Text style={styles.sectionTitle}>More to Love</Text>
         <View style={styles.newInGridContainer}>
           {productsToDisplay.map((product, index) => {
             if (!product || !product.id) {
@@ -1220,8 +1212,8 @@ const HomeScreen: React.FC = () => {
         ]}
       >
         <LinearGradient
-          colors={['#FF6B9D', '#FFB3D9', '#FFE5F1', '#FFFFFF', '#FFFFFF']}
-          locations={[0, 0.22, 0.45, 0.65, 1]}
+          colors={['#FF0055', '#ff8676ff', '#fca8afff', '#FFFFFF']}
+          locations={[0, 0.4, 0.45, 0.8, 1]}
           style={styles.gradientFill}
           start={{ x: 0, y: 0 }}
           end={{ x: 0, y: 1 }}
@@ -1245,15 +1237,6 @@ const HomeScreen: React.FC = () => {
         scrollEventThrottle={16}
       >
         <View style={styles.contentWrapper}>
-          {/* <Animated.View 
-            style={[
-              styles.headerPlaceholder,
-              { 
-                height: Animated.add(80, headerTranslateY),
-                marginTop: headerTranslateY
-              }
-            ]}
-          /> */}
           {renderQuickCategories()}
           {renderBrandCarousel()}
           {renderTrendingProducts()}
@@ -1311,7 +1294,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   scrollContent: {
-    paddingTop: 100,
+    paddingTop: 70,
     paddingBottom: 10,
     backgroundColor: 'transparent',
   },
@@ -1321,7 +1304,7 @@ const styles = StyleSheet.create({
     marginBottom: -80,
   },
   headerPlaceholder: {
-    backgroundColor: 'transparent',
+    backgroundColor: COLORS.white,
   },
   contentWrapper: {
     backgroundColor: 'transparent',
@@ -1333,17 +1316,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   header: {
-    backgroundColor: 'transparent',
     paddingHorizontal: SPACING.lg,
-    paddingTop: Platform.OS === 'ios' ? 50 : 40,
+    paddingTop: Platform.OS === 'ios' ? 20 : 10,
     paddingBottom: SPACING.sm,
     zIndex: 10,
+    overflow: 'hidden',
+  },
+  headerGradient: {
+    paddingHorizontal: SPACING.lg,
+    paddingTop: Platform.OS === 'ios' ? 20 : 10,
+    paddingBottom: SPACING.sm,
   },
   headerTop: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: SPACING.sm,
+    marginBottom: SPACING.lg,
   },
   logoContainer: {
     // No background needed
@@ -1377,12 +1365,12 @@ const styles = StyleSheet.create({
   },
   categoryTabText: {
     fontSize: FONTS.sizes.lg,
-    color: COLORS.text.primary,
+    color: COLORS.white,
     fontWeight: '400',
   },
   activeCategoryTabText: {
-    color: COLORS.accentPink,
-    fontWeight: '700',
+    color: COLORS.white,
+    fontWeight: '800',
   },
   categoryUnderline: {
     position: 'absolute',
@@ -1390,12 +1378,12 @@ const styles = StyleSheet.create({
     left: SPACING.md,
     right: SPACING.md,
     height: 4,
-    backgroundColor: COLORS.accentPink,
+    backgroundColor: COLORS.white,
     borderRadius: 2,
   },
   quickCategoriesContainer: {
     backgroundColor: 'transparent',
-    paddingVertical: 8, // Reduced from SPACING.sm
+    paddingVertical: 8,
   },
   quickCategoriesGrid: {
     flexDirection: 'row',
@@ -1549,7 +1537,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
   },
   brandDotActive: {
-    backgroundColor: COLORS.accentPink,
+    backgroundColor: COLORS.primary,
     width: 24,
   },
   trendingProductsContainer: {
@@ -1621,7 +1609,7 @@ const styles = StyleSheet.create({
   trendingProductPrice: {
     fontSize: FONTS.sizes.sm,
     fontWeight: '600',
-    color: COLORS.accentPink,
+    color: COLORS.primary,
     marginBottom: 4,
   },
   trendingProductRating: {

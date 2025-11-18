@@ -112,6 +112,11 @@
       "id": "new_3",
       "name": "Leather Crossbody Bag",
       "image": "https://picsum.photos/seed/bag1/400/500",
+      "images": [
+        "https://picsum.photos/seed/bag1/400/500",
+        "https://picsum.photos/seed/bag1a/400/500",
+        "https://picsum.photos/seed/bag1b/400/500"
+      ],
       "price": 34.99,
       "originalPrice": 49.99,
       "discount": 30,
@@ -119,12 +124,41 @@
       "ratingCount": 89,
       "orderCount": 234,
       "company": "1688",
-      "category": "1688_women"
+      "category": "1688_women",
+      "description": "Premium leather crossbody bag with adjustable strap",
+      "productCode": "SKU-BAG-2024-003",
+      "colors": [
+        { "name": "Black", "hex": "#000000", "image": "https://picsum.photos/seed/bag_black/100/100" },
+        { "name": "Brown", "hex": "#8B4513", "image": "https://picsum.photos/seed/bag_brown/100/100" },
+        { "name": "Tan", "hex": "#D2B48C", "image": "https://picsum.photos/seed/bag_tan/100/100" },
+        { "name": "Red", "hex": "#DC143C", "image": "https://picsum.photos/seed/bag_red/100/100" }
+      ],
+      "sizes": ["Small", "Medium", "Large"],
+      "reviews": [
+        {
+          "user": "Emma Wilson",
+          "rating": 4,
+          "comment": "Beautiful bag, great quality leather. Perfect size for daily use.",
+          "date": "2024-01-22"
+        }
+      ],
+      "details": {
+        "Material": "Genuine Leather",
+        "Dimensions": "25cm x 18cm x 8cm",
+        "Strap": "Adjustable 120-140cm",
+        "Closure": "Magnetic snap"
+      }
     },
     {
       "id": "new_4",
       "name": "White Sneakers",
       "image": "https://picsum.photos/seed/shoes1/400/500",
+      "images": [
+        "https://picsum.photos/seed/shoes1/400/500",
+        "https://picsum.photos/seed/shoes1a/400/500",
+        "https://picsum.photos/seed/shoes1b/400/500",
+        "https://picsum.photos/seed/shoes1c/400/500"
+      ],
       "price": 42.99,
       "originalPrice": 59.99,
       "discount": 28,
@@ -132,12 +166,47 @@
       "ratingCount": 567,
       "orderCount": 1234,
       "company": "wsy",
-      "category": "wsy_shoes"
+      "category": "wsy_shoes",
+      "description": "Comfortable white sneakers perfect for everyday wear",
+      "productCode": "SKU-SNK-2024-004",
+      "colors": [
+        { "name": "White", "hex": "#FFFFFF", "image": "https://picsum.photos/seed/shoes_white/100/100" },
+        { "name": "Black", "hex": "#000000", "image": "https://picsum.photos/seed/shoes_black/100/100" },
+        { "name": "Gray", "hex": "#808080", "image": "https://picsum.photos/seed/shoes_gray/100/100" },
+        { "name": "Navy", "hex": "#000080", "image": "https://picsum.photos/seed/shoes_navy/100/100" },
+        { "name": "Red", "hex": "#FF0000", "image": "https://picsum.photos/seed/shoes_red/100/100" }
+      ],
+      "sizes": ["36", "37", "38", "39", "40", "41", "42", "43", "44", "45"],
+      "reviews": [
+        {
+          "user": "Alex Chen",
+          "rating": 5,
+          "comment": "Super comfortable! Great for walking and running.",
+          "date": "2024-01-25"
+        },
+        {
+          "user": "Lisa Park",
+          "rating": 4,
+          "comment": "Nice shoes, true to size. Good quality for the price.",
+          "date": "2024-01-20"
+        }
+      ],
+      "details": {
+        "Material": "Canvas & Rubber",
+        "Sole": "Non-slip rubber sole",
+        "Closure": "Lace-up",
+        "Weight": "350g per shoe"
+      }
     },
     {
       "id": "new_5",
       "name": "Silk Scarf",
       "image": "https://picsum.photos/seed/scarf1/400/500",
+      "images": [
+        "https://picsum.photos/seed/scarf1/400/500",
+        "https://picsum.photos/seed/scarf1a/400/500",
+        "https://picsum.photos/seed/scarf1b/400/500"
+      ],
       "price": 19.99,
       "originalPrice": 29.99,
       "discount": 33,
@@ -145,12 +214,47 @@
       "ratingCount": 145,
       "orderCount": 567,
       "company": "taobao",
-      "category": "taobao_accessories"
+      "category": "taobao_accessories",
+      "description": "Luxurious silk scarf with elegant patterns",
+      "productCode": "SKU-SCF-2024-005",
+      "colors": [
+        { "name": "Floral Blue", "hex": "#4169E1", "image": "https://picsum.photos/seed/scarf_blue/100/100" },
+        { "name": "Rose Gold", "hex": "#E8B4B8", "image": "https://picsum.photos/seed/scarf_rose/100/100" },
+        { "name": "Emerald", "hex": "#50C878", "image": "https://picsum.photos/seed/scarf_green/100/100" },
+        { "name": "Purple", "hex": "#800080", "image": "https://picsum.photos/seed/scarf_purple/100/100" },
+        { "name": "Classic Black", "hex": "#000000", "image": "https://picsum.photos/seed/scarf_black/100/100" }
+      ],
+      "sizes": ["90cm x 90cm", "120cm x 30cm", "180cm x 70cm"],
+      "reviews": [
+        {
+          "user": "Maria Garcia",
+          "rating": 5,
+          "comment": "Beautiful silk scarf! The colors are vibrant and it feels luxurious.",
+          "date": "2024-01-28"
+        },
+        {
+          "user": "Jennifer Lee",
+          "rating": 4,
+          "comment": "Good quality silk, perfect for both casual and formal occasions.",
+          "date": "2024-01-24"
+        }
+      ],
+      "details": {
+        "Material": "100% Mulberry Silk",
+        "Care": "Dry clean only",
+        "Pattern": "Hand-painted floral design",
+        "Origin": "Made in China"
+      }
     },
     {
       "id": "new_6",
       "name": "Gold Hoop Earrings",
       "image": "https://picsum.photos/seed/earring1/400/500",
+      "images": [
+        "https://picsum.photos/seed/earring1/400/500",
+        "https://picsum.photos/seed/earring1a/400/500",
+        "https://picsum.photos/seed/earring1b/400/500"
+      ],
       "price": 24.99,
       "originalPrice": 39.99,
       "discount": 38,
@@ -158,7 +262,36 @@
       "ratingCount": 312,
       "orderCount": 890,
       "company": "taobao",
-      "category": "taobao_jewelry"
+      "category": "taobao_jewelry",
+      "description": "Elegant gold-plated hoop earrings for everyday wear",
+      "productCode": "SKU-EAR-2024-006",
+      "colors": [
+        { "name": "Gold", "hex": "#FFD700", "image": "https://picsum.photos/seed/earring_gold/100/100" },
+        { "name": "Silver", "hex": "#C0C0C0", "image": "https://picsum.photos/seed/earring_silver/100/100" },
+        { "name": "Rose Gold", "hex": "#E8B4B8", "image": "https://picsum.photos/seed/earring_rose/100/100" },
+        { "name": "Black", "hex": "#000000", "image": "https://picsum.photos/seed/earring_black/100/100" }
+      ],
+      "sizes": ["Small (2cm)", "Medium (3cm)", "Large (4cm)", "XL (5cm)"],
+      "reviews": [
+        {
+          "user": "Sophie Brown",
+          "rating": 5,
+          "comment": "Beautiful earrings! They don't turn my ears green and look expensive.",
+          "date": "2024-01-30"
+        },
+        {
+          "user": "Rachel Kim",
+          "rating": 4,
+          "comment": "Nice quality for the price. Perfect for daily wear.",
+          "date": "2024-01-26"
+        }
+      ],
+      "details": {
+        "Material": "18K Gold Plated Brass",
+        "Hypoallergenic": "Yes",
+        "Closure": "Hinged hoop",
+        "Weight": "3g per pair"
+      }
     }
   ],
   "trending": [
@@ -287,6 +420,12 @@
       "id": "foryou_1",
       "name": "Knit Cardigan",
       "image": "https://picsum.photos/seed/cardigan1/400/500",
+      "images": [
+        "https://picsum.photos/seed/cardigan1/400/500",
+        "https://picsum.photos/seed/cardigan1a/400/500",
+        "https://picsum.photos/seed/cardigan1b/400/500",
+        "https://picsum.photos/seed/cardigan1c/400/500"
+      ],
       "price": 44.99,
       "originalPrice": 64.99,
       "discount": 31,
@@ -294,12 +433,42 @@
       "ratingCount": 234,
       "orderCount": 678,
       "company": "1688",
-      "category": "1688_women"
+      "category": "1688_women",
+      "description": "Cozy knit cardigan perfect for layering in any season",
+      "productCode": "SKU-CDG-2024-007",
+      "colors": [
+        { "name": "Cream", "hex": "#F5F5DC", "image": "https://picsum.photos/seed/cardigan_cream/100/100" },
+        { "name": "Dusty Pink", "hex": "#D4A5A5", "image": "https://picsum.photos/seed/cardigan_pink/100/100" },
+        { "name": "Sage Green", "hex": "#9CAF88", "image": "https://picsum.photos/seed/cardigan_sage/100/100" },
+        { "name": "Camel", "hex": "#C19A6B", "image": "https://picsum.photos/seed/cardigan_camel/100/100" },
+        { "name": "Navy", "hex": "#000080", "image": "https://picsum.photos/seed/cardigan_navy/100/100" }
+      ],
+      "sizes": ["XS", "S", "M", "L", "XL"],
+      "reviews": [
+        {
+          "user": "Anna Johnson",
+          "rating": 5,
+          "comment": "So soft and comfortable! Perfect for chilly evenings.",
+          "date": "2024-02-01"
+        }
+      ],
+      "details": {
+        "Material": "70% Cotton, 30% Acrylic",
+        "Care": "Hand wash cold",
+        "Fit": "Relaxed fit",
+        "Length": "Hip length"
+      }
     },
     {
       "id": "foryou_2",
       "name": "Ankle Boots",
       "image": "https://picsum.photos/seed/boots1/400/500",
+      "images": [
+        "https://picsum.photos/seed/boots1/400/500",
+        "https://picsum.photos/seed/boots1a/400/500",
+        "https://picsum.photos/seed/boots1b/400/500",
+        "https://picsum.photos/seed/boots1c/400/500"
+      ],
       "price": 79.99,
       "originalPrice": 119.99,
       "discount": 33,
@@ -307,7 +476,36 @@
       "ratingCount": 456,
       "orderCount": 1234,
       "company": "wsy",
-      "category": "wsy_shoes"
+      "category": "wsy_shoes",
+      "description": "Stylish ankle boots with comfortable heel and premium leather",
+      "productCode": "SKU-BOT-2024-008",
+      "colors": [
+        { "name": "Black Leather", "hex": "#000000", "image": "https://picsum.photos/seed/boots_black/100/100" },
+        { "name": "Brown Leather", "hex": "#8B4513", "image": "https://picsum.photos/seed/boots_brown/100/100" },
+        { "name": "Tan Suede", "hex": "#D2B48C", "image": "https://picsum.photos/seed/boots_tan/100/100" },
+        { "name": "Burgundy", "hex": "#800020", "image": "https://picsum.photos/seed/boots_burgundy/100/100" }
+      ],
+      "sizes": ["35", "36", "37", "38", "39", "40", "41", "42"],
+      "reviews": [
+        {
+          "user": "Jessica Taylor",
+          "rating": 5,
+          "comment": "Love these boots! Comfortable and stylish. Perfect heel height.",
+          "date": "2024-02-03"
+        },
+        {
+          "user": "Michelle Davis",
+          "rating": 4,
+          "comment": "Great quality boots. Run slightly small, order half size up.",
+          "date": "2024-01-29"
+        }
+      ],
+      "details": {
+        "Material": "Genuine Leather",
+        "Heel Height": "5cm",
+        "Sole": "Rubber sole with grip",
+        "Closure": "Side zip"
+      }
     },
     {
       "id": "foryou_3",

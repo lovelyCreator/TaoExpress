@@ -54,12 +54,15 @@ const SignupScreen: React.FC = () => {
   });
   
   const [formData, setFormData] = useState({
-    name: '',
     email: '',
     password: '',
+    confirmPassword: '',
+    name: '',
+    referralCode: '',
     gender: 'woman',
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [hasSignupError, setHasSignupError] = useState(false);
   const [isBusinessAccount, setIsBusinessAccount] = useState(false);
@@ -145,6 +148,12 @@ const SignupScreen: React.FC = () => {
       newErrors.password = 'Your password must be at least 8 characters long and include special characters.';
     } else if (!/(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])/.test(formData.password)) {
       newErrors.password = 'Your password must be at least 8 characters long and include special characters.';
+    }
+
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword = ERROR_MESSAGES.REQUIRED_FIELD;
+    } else if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match';
     }
 
     setErrors(newErrors);
@@ -319,6 +328,25 @@ const SignupScreen: React.FC = () => {
             />
 
             <TextInput
+              label="Confirm Password"
+              placeholder="Re-enter your password"
+              value={formData.confirmPassword}
+              onChangeText={(text) => {
+                setFormData({ ...formData, confirmPassword: text });
+                if (errors.confirmPassword) {
+                  setErrors({ ...errors, confirmPassword: '' });
+                }
+              }}
+              secureTextEntry={showConfirmPassword}
+              onToggleSecure={() => setShowConfirmPassword(!showConfirmPassword)}
+              showSecureToggle={true}
+              autoCapitalize="none"
+              autoCorrect={false}
+              error={errors.confirmPassword}
+              labelStyle={styles.signupLabel}
+            />
+
+            <TextInput
               label="Name"
               placeholder="Enter your name"
               value={formData.name}
@@ -338,6 +366,18 @@ const SignupScreen: React.FC = () => {
               autoCapitalize="words"
               autoCorrect={false}
               error={errors.name}
+              labelStyle={styles.signupLabel}
+            />
+
+            <TextInput
+              label="Referral Code (Optional)"
+              placeholder="Enter referral code"
+              value={formData.referralCode}
+              onChangeText={(text) => {
+                setFormData({ ...formData, referralCode: text });
+              }}
+              autoCapitalize="characters"
+              autoCorrect={false}
               labelStyle={styles.signupLabel}
             />
 
@@ -407,10 +447,11 @@ const SignupScreen: React.FC = () => {
             <Button
               title="Register"
               onPress={handleSignup}
-              disabled={isLoading || !formData.email || !formData.password || !formData.name || !agreeToTerms}
+              disabled={isLoading || !formData.email || !formData.password || !formData.confirmPassword || !formData.name || !agreeToTerms}
               loading={isLoading}
               variant="danger"
               style={styles.registerButton}
+              textStyle={styles.registerButtonText}
             />
 
             <View style={styles.loginContainer}>
@@ -437,43 +478,45 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: SPACING.md,
+    paddingHorizontal: SPACING.lg,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: SPACING.md,
-    marginTop: SPACING.md,
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.xs,
   },
   backButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: COLORS.white,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.gray[100],
     justifyContent: 'center',
     alignItems: 'center',
-    ...SHADOWS.small,
   },
   placeholder: {
-    width: 32,
+    width: 40,
   },
   subHeader: {
-    padding: SPACING.lg,
+    paddingHorizontal: SPACING.xs,
+    paddingTop: SPACING.sm,
+    paddingBottom: SPACING.md,
   },
   title: {
-    fontSize: FONTS.sizes['2lgxl'],
-    fontWeight: 'bold',
+    fontSize: FONTS.sizes['3xl'],
+    fontWeight: '700',
     color: COLORS.text.primary,
     marginBottom: SPACING.xs,
   },
   subtitle: {
-    fontSize: FONTS.sizes.sm,
+    fontSize: FONTS.sizes.md,
     color: COLORS.text.secondary,
+    lineHeight: 20,
   },
   form: {
     flex: 1,
-    marginHorizontal: SPACING.lg,
+    paddingHorizontal: SPACING.xs,
   },
   inputContainer: {
     marginBottom: SPACING.lg,
@@ -574,12 +617,12 @@ const styles = StyleSheet.create({
     fontWeight: '400',
   },
   checkboxContainer: {
-    marginBottom: SPACING.lg,
+    marginBottom: SPACING.md,
   },
   checkboxRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: SPACING.md,
+    marginBottom: SPACING.sm,
   },
   checkbox: {
     width: 20,
@@ -606,15 +649,17 @@ const styles = StyleSheet.create({
   },
   registerButton: {
     backgroundColor: COLORS.error,
-    borderRadius: BORDER_RADIUS['2xl'],
-    paddingVertical: SPACING.smmd,
+    borderRadius: BORDER_RADIUS.full,
+    paddingVertical: SPACING.md,
     alignItems: 'center',
-    marginBottom: SPACING.sm,
+    marginBottom: SPACING.md,
+    ...SHADOWS.sm,
   },
   registerButtonText: {
-    fontSize: FONTS.sizes.base,
-    fontWeight: '500',
+    fontSize: FONTS.sizes['2xl'],
+    fontWeight: '700',
     color: COLORS.white,
+    letterSpacing: 0.5,
   },
   demoButton: {
     backgroundColor: COLORS.primary,
@@ -675,17 +720,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    // marginTop: SPACING.lg,
+    paddingVertical: SPACING.md,
   },
   loginText: {
-    fontSize: FONTS.sizes.sm,
-    color: COLORS.text.primary,
+    fontSize: FONTS.sizes.md,
+    color: COLORS.text.secondary,
     fontWeight: '500',
   },
   loginLink: {
-    fontSize: FONTS.sizes.sm,
-    color: '#FE1583',
-    fontWeight: '500',
+    fontSize: FONTS.sizes.md,
+    color: COLORS.error,
+    fontWeight: '700',
   },
 });
 

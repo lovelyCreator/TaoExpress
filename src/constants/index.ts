@@ -1,28 +1,27 @@
-import { transform } from 'lodash';
 import { Dimensions } from 'react-native';
 
 // Screen Dimensions
 export const SCREEN_WIDTH = Dimensions.get('window').width;
 export const SCREEN_HEIGHT = Dimensions.get('window').height;
 
-// Colors - 2025 Korean E-commerce Aesthetic
+// Colors - Clean E-commerce Design (Amazon/eBay style)
 export const COLORS = {
-  // Primary Colors - Soft pastels (Korean favorite)
-  primary: '#B8A9FF', // Soft lavender
-  primaryDark: '#9B7EDE',
-  primaryLight: '#D4C9FF',
-  transparent: '#11111101',
+  // Primary Colors - Red theme
+  primary: '#FF0055', // Pure red
+  primaryDark: '#D70015',
+  primaryLight: 'rgb(255, 0, 85)',
+  transparent: '#00000001',
   
-  // Secondary Colors - Muted coral pink
-  secondary: '#FFB3BA', // Baby pink
-  secondaryDark: '#FF9AA1',
-  secondaryLight: '#FFCCD1',
-  // Brand Accent - Soft rose
-  accentPink: '#FF6B9D',
+  // Secondary Colors - Black variations
+  secondary: '#000000', // Pure black
+  secondaryDark: '#000000',
+  secondaryLight: '#333333',
+  // Brand Accent - Red
+  accentPink: '#FF0055',
   
-  // Neutral Colors - Warm grays
+  // Neutral Colors - Clean whites and blacks
   white: '#FFFFFF',
-  black: '#1A1A1A',
+  black: '#000000',
   gray: {
     50: '#FAFAFA',
     100: '#F5F5F5',
@@ -36,11 +35,11 @@ export const COLORS = {
     900: '#212121',
   },
   
-  // Status Colors - Softer tones
-  success: '#4CAF50',
-  warning: '#FFB74D',
-  error: '#FF6B6B',
-  info: '#64B5F6',
+  // Status Colors - Black, White, Red only
+  success: '#000000',   // Black for success (or use red if needed)
+  warning: '#FF0055',   // Red for warning
+  error: '#FF0055',     // Red for error
+  info: '#000000',      // Black for info
   
   // Background Colors - Subtle off-white
   background: '#FAFAFA',
@@ -48,13 +47,13 @@ export const COLORS = {
   card: '#FFFFFF',
   onboardingBackground: '#FAFAFA',
   
-  // Text Colors - Softer blacks
+  // Text Colors - Black, White, Red only
   text: {
-    primary: '#2C2C2C',
-    secondary: '#757575',
-    disabled: '#BDBDBD',
-    inverse: '#FFFFFF',
-    custom: '#424242'
+    primary: '#000000',    // Pure black for main text
+    secondary: '#666666',  // Dark gray (black combination)
+    disabled: '#CCCCCC',   // Light gray (black + white combination)
+    inverse: '#FFFFFF',    // Pure white for dark backgrounds
+    custom: '#FF0055'      // Red for highlights and accents
   },
   
   // Border Colors - Subtle
@@ -66,16 +65,12 @@ export const COLORS = {
   shadow: 'rgba(0, 0, 0, 0.5)',
   shadowDark: 'rgba(0, 0, 0, 0.25)',
   
-  // Gradient Colors - Soft and elegant
+  // Gradient Colors - Black, White, Red combinations
   gradients: {
-    primary: ['#9B7EDE', '#C4B5F6'],
-    secondary: ['#FF9B9B', '#FFBDBD'],
-    accent: ['#FFB74D', '#FFD54F'],
-    success: ['#81C784', '#A5D6A7'],
-    sunset: ['#FF8A80', '#FFCCBC'],
-    ocean: ['#81D4FA', '#B3E5FC'],
-    forest: ['#A5D6A7', '#C8E6C9'],
-    rose: ['#FF6B9D', '#FFB3D9'],
+    primary: ['#FF0055', 'rgb(255, 0, 85)'],     // Red gradient
+    secondary: ['#000000', '#333333'],    // Black gradient
+    accent: ['#FF0055', '#FFFFFF'],       // Red to white
+    success: ['#000000', '#666666'],      // Black gradient
   },
 };
 
@@ -104,9 +99,9 @@ export const FONTS = {
     extrabold: '800' as const,
   },
   families: {
-    regular: 'Satoshi',
-    medium: 'Satoshi',
-    bold: 'Satoshi',
+    regular: 'System',
+    medium: 'System',
+    bold: 'System',
   },
 };
 

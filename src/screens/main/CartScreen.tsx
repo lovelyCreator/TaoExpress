@@ -74,7 +74,11 @@ const mockMoreToLoveProducts = [
     inStock: true,
     stockCount: 50,
     sizes: ['Single', 'Double', 'Queen'],
-    colors: ['White', 'Brown', 'Black'],
+    colors: [
+      { name: 'White', hex: '#FFFFFF' },
+      { name: 'Brown', hex: '#8B4513' },
+      { name: 'Black', hex: '#000000' }
+    ],
     tags: ['furniture', 'bedroom'],
     isNew: false,
     isFeatured: true,
@@ -112,7 +116,11 @@ const mockMoreToLoveProducts = [
     inStock: true,
     stockCount: 30,
     sizes: ['Single', 'Double', 'Queen'],
-    colors: ['Gray', 'Beige', 'Navy'],
+    colors: [
+      { name: 'Gray', hex: '#808080' },
+      { name: 'Beige', hex: '#F5F5DC' },
+      { name: 'Navy', hex: '#000080' }
+    ],
     tags: ['furniture', 'modern'],
     isNew: true,
     isFeatured: false,
@@ -150,7 +158,11 @@ const mockMoreToLoveProducts = [
     inStock: true,
     stockCount: 15,
     sizes: ['Queen', 'King'],
-    colors: ['Cream', 'Gold', 'Silver'],
+    colors: [
+      { name: 'Cream', hex: '#FFFDD0' },
+      { name: 'Gold', hex: '#FFD700' },
+      { name: 'Silver', hex: '#C0C0C0' }
+    ],
     tags: ['furniture', 'luxury'],
     isNew: false,
     isFeatured: true,
@@ -188,7 +200,11 @@ const mockMoreToLoveProducts = [
     inStock: true,
     stockCount: 75,
     sizes: ['Single', 'Double'],
-    colors: ['White', 'Pine', 'Oak'],
+    colors: [
+      { name: 'White', hex: '#FFFFFF' },
+      { name: 'Pine', hex: '#FFC000' },
+      { name: 'Oak', hex: '#D2B48C' }
+    ],
     tags: ['furniture', 'budget'],
     isNew: false,
     isFeatured: false,

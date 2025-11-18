@@ -9,6 +9,7 @@ interface NotificationBadgeProps {
   iconColor?: string;
   count: number;
   onPress: () => void;
+  badgeColor?: string;
 }
 
 const NotificationBadge: React.FC<NotificationBadgeProps> = ({
@@ -17,6 +18,7 @@ const NotificationBadge: React.FC<NotificationBadgeProps> = ({
   iconColor = COLORS.text.primary,
   count,
   onPress,
+  badgeColor = COLORS.primary,
 }) => {
   const badgePulse = useRef(new Animated.Value(1)).current;
 
@@ -48,7 +50,7 @@ const NotificationBadge: React.FC<NotificationBadgeProps> = ({
       <Ionicons name={icon as any} size={iconSize} color={iconColor} />
       {count > 0 && (
         <Animated.View
-          style={[styles.badge, { transform: [{ scale: badgePulse }] }]}
+          style={[styles.badge, { backgroundColor: badgeColor }, { transform: [{ scale: badgePulse }] }]}
         >
           <Text style={styles.badgeText}>{count}</Text>
         </Animated.View>
@@ -66,7 +68,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -2,
     right: -2,
-    backgroundColor: '#4A90E2',
+    backgroundColor: COLORS.primary,
     borderRadius: 12,
     minWidth: 24,
     height: 24,

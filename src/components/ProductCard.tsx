@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   Image,
   ScrollView,
   Dimensions,
+  Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -18,6 +19,95 @@ import { useAuth } from '../context/AuthContext';
 
 const { width } = Dimensions.get('window');
 const GRID_CARD_WIDTH = (width - SPACING.md * 2 - SPACING.md) / 2;
+
+// Generate dynamic live messages based on product data
+const generateLiveMessages = (product?: Product): string[] => {
+  const allMessages: string[] = [];
+  
+  // Savings message (if discount available)
+  if (product?.originalPrice && product?.price) {
+    const savings = product.originalPrice - product.price;
+    if (savings > 0) {
+      allMessages.push(`$${savings.toFixed(2)} off on $${product.originalPrice.toFixed(2)}`);
+    }
+  }
+  
+  // Fast delivery
+  allMessages.push('Fast delivery available');
+  
+  // Cart activity (random number for demo)
+  const cartAdded = Math.floor(Math.random() * 50) + 10;
+  allMessages.push(`${cartAdded}+ added to cart`);
+  
+  // 5-star reviews (based on order count or random)
+  const reviews = product?.orderCount ? product.orderCount * 10 : Math.floor(Math.random() * 500) + 100;
+  allMessages.push(`${reviews}+ gave 5-star`);
+  
+  // Additional messages
+  allMessages.push('Free shipping on orders over $50');
+  allMessages.push('Trusted by thousands');
+  allMessages.push('Quality guaranteed');
+  allMessages.push('Easy returns within 30 days');
+  allMessages.push('Secure payment guaranteed');
+  allMessages.push('24/7 customer support');
+  
+  // Shuffle messages to make each product show different order
+  return allMessages.sort(() => Math.random() - 0.5);
+};
+
+// Component for scrolling live text with upward animation
+const LiveText: React.FC<{ product?: Product }> = ({ product }) => {
+  const [messages] = useState(() => generateLiveMessages(product));
+  // Random starting index for each product
+  const [currentIndex, setCurrentIndex] = useState(() => Math.floor(Math.random() * messages.length));
+  const translateY = useState(new Animated.Value(0))[0];
+  // Random interval between 2.5 to 4 seconds for each product
+  const [intervalTime] = useState(() => Math.floor(Math.random() * 1500) + 2500);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Slide up animation
+      Animated.sequence([
+        Animated.timing(translateY, {
+          toValue: -20,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+        Animated.timing(translateY, {
+          toValue: 20,
+          duration: 0,
+          useNativeDriver: true,
+        }),
+        Animated.timing(translateY, {
+          toValue: 0,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+      ]).start();
+
+      // Change text after animation starts
+      setTimeout(() => {
+        setCurrentIndex((prev) => (prev + 1) % messages.length);
+      }, 200);
+    }, intervalTime);
+
+    return () => clearInterval(interval);
+  }, [translateY, messages.length, intervalTime]);
+
+  return (
+    <View style={styles.liveTextContainer}>
+      <Animated.Text 
+        style={[
+          styles.liveText, 
+          { transform: [{ translateY }] }
+        ]} 
+        numberOfLines={1}
+      >
+        {messages[currentIndex]}
+      </Animated.Text>
+    </View>
+  );
+};
 
 interface ProductCardProps {
   product: Product;
@@ -177,20 +267,17 @@ const ProductCard: React.FC<ProductCardProps> = ({
         </View>
         
         <View style={[styles.gridInfo, isFullWidth && styles.fullWidthInfo]}>
-          <Text style={styles.gridName} numberOfLines={2}>
+          <Text style={styles.gridName} numberOfLines={1}>
             {product.name}
           </Text>
-          <Text style={styles.gridPrice}>${product.price?.toFixed(2) || '0.00'}</Text>
-          {product.originalPrice && (
-            <View style={styles.originalPriceRow}>
+          <View style={styles.gridPriceRow}>
+            <Text style={styles.gridPrice}>${product.price?.toFixed(2) || '0.00'}</Text>
+            {product.originalPrice && (
               <Text style={styles.gridOriginalPrice}>
                 ${product.originalPrice.toFixed(2)}
               </Text>
-              {showDiscountBadge && discountPercentage > 0 && (
-                <Text style={styles.gridDiscount}>-{discountPercentage}%</Text>
-              )}
-            </View>
-          )}
+            )}
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -255,20 +342,17 @@ const ProductCard: React.FC<ProductCardProps> = ({
         </View>
         
         <View style={styles.horizontalInfo}>
-          <Text style={styles.horizontalName} numberOfLines={2}>
+          <Text style={styles.horizontalName} numberOfLines={1}>
             {product.name}
           </Text>
-          <Text style={styles.horizontalPrice}>${product.price?.toFixed(2) || '0.00'}</Text>
-          {product.originalPrice && (
-            <View style={styles.originalPriceRow}>
+          <View style={styles.horizontalPriceRow}>
+            <Text style={styles.horizontalPrice}>${product.price?.toFixed(2) || '0.00'}</Text>
+            {product.originalPrice && (
               <Text style={styles.horizontalOriginalPrice}>
                 ${product.originalPrice.toFixed(2)}
               </Text>
-              {showDiscountBadge && discountPercentage > 0 && (
-                <Text style={styles.horizontalDiscount}>-{discountPercentage}%</Text>
-              )}
-            </View>
-          )}
+            )}
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -333,28 +417,31 @@ const ProductCard: React.FC<ProductCardProps> = ({
         </View>
         
         <View style={styles.moreToLoveInfo}>
+          {/* Line 1: Product Name */}
           <Text style={styles.moreToLoveName} numberOfLines={2}>
             {product.name}
           </Text>
-          <View style={styles.priceRow}>
+          
+          {/* Line 2: Live Text with scrolling animation */}
+          <LiveText product={product} />
+          
+          {/* Line 3: Price, Sold, and Reviews */}
+          <View style={styles.bottomRow}>
             <Text style={styles.moreToLovePrice}>${product.price?.toFixed(2) || '0.00'}</Text>
-            {showDiscountBadge && discountPercentage > 0 && (
-              <View style={styles.discountBadgeInline}>
-                <Text style={styles.discountTextInline}>{discountPercentage}%</Text>
-              </View>
+            {showRating && (
+              <>
+                <Text style={styles.soldText}>
+                  {product.orderCount || 0} sold
+                </Text>
+                <View style={styles.reviewBadge}>
+                  <Ionicons name="star" size={11} color="#FFD700" />
+                  <Text style={styles.reviewNumber}>
+                    {product.rating || 0}
+                  </Text>
+                </View>
+              </>
             )}
           </View>
-          {showRating && (
-            <View style={styles.ratingRow}>
-              <Ionicons name="star" size={12} color="#FFD700" />
-              <Text style={styles.ratingText}>
-                {product.rating || 0} ({product.reviewCount || product.rating_count || 0})
-              </Text>
-              <Text style={styles.soldText}>
-                {product.orderCount || 0} sold
-              </Text>
-            </View>
-          )}
         </View>
       </TouchableOpacity>
     );
@@ -556,21 +643,20 @@ const styles = StyleSheet.create({
     color: COLORS.text.primary,
     marginBottom: 6,
   },
+  gridPriceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   gridPrice: {
     fontSize: FONTS.sizes.lg,
     fontWeight: '700',
     color: COLORS.accentPink,
-    marginBottom: 4,
   },
   gridOriginalPrice: {
-    fontSize: FONTS.sizes.sm,
+    fontSize: FONTS.sizes.md,
     color: COLORS.gray[500],
     textDecorationLine: 'line-through',
-  },
-  gridDiscount: {
-    fontSize: FONTS.sizes.sm,
-    color: COLORS.accentPink,
-    fontWeight: '600',
   },
   
   // Horizontal variant (trending)
@@ -593,26 +679,20 @@ const styles = StyleSheet.create({
     color: COLORS.text.primary,
     marginBottom: 6,
   },
-  horizontalPrice: {
-    fontSize: FONTS.sizes.lg,
-    fontWeight: '700',
-    color: COLORS.accentPink,
-    marginBottom: 4,
-  },
-  originalPriceRow: {
+  horizontalPriceRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
+  horizontalPrice: {
+    fontSize: FONTS.sizes.lg,
+    fontWeight: '700',
+    color: COLORS.accentPink,
+  },
   horizontalOriginalPrice: {
-    fontSize: FONTS.sizes.sm,
+    fontSize: FONTS.sizes.md,
     color: COLORS.gray[500],
     textDecorationLine: 'line-through',
-  },
-  horizontalDiscount: {
-    fontSize: FONTS.sizes.sm,
-    color: COLORS.accentPink,
-    fontWeight: '600',
   },
   
   // More to Love variant
@@ -627,18 +707,36 @@ const styles = StyleSheet.create({
   },
   moreToLoveInfo: {
     flex: 1,
+    paddingHorizontal: 4,
   },
   moreToLoveName: {
     fontSize: FONTS.sizes.md,
     fontWeight: '500',
     color: COLORS.text.primary,
-    marginBottom: 4,
+    marginBottom: 2,
+    lineHeight: 18,
   },
   moreToLovePrice: {
     fontSize: FONTS.sizes.lg,
+    fontWeight: '700',
+    color: COLORS.error,
+    marginRight: 8,
+  },
+  bottomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  reviewBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 6,
+  },
+  reviewNumber: {
+    fontSize: FONTS.sizes.xs,
+    color: COLORS.text.primary,
     fontWeight: '600',
-    color: COLORS.accentPink,
-    marginBottom: 4,
+    marginLeft: 2,
   },
   
   // Simple variant (category page)
@@ -728,10 +826,22 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   soldText: {
-    fontSize: FONTS.sizes.sm,
-    color: COLORS.text.primary,
+    fontSize: FONTS.sizes.xs,
+    color: COLORS.text.secondary,
     fontWeight: '500',
-    marginLeft: 8,
+  },
+  
+  // Live text styles
+  liveTextContainer: {
+    height: 20,
+    marginVertical: 2,
+    overflow: 'hidden',
+  },
+  liveText: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.error,
+    fontWeight: '600',
+    lineHeight: 20,
   },
 });
 
