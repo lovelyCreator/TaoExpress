@@ -147,7 +147,7 @@ Then add this exact URI to your Google Cloud Console:
 
 **App Scheme:** `taoexpress`
 **Package Name (Android):** `com.app.taoexpress`
-**Current Client ID:** `329489503761-db8oqqkc3q63k3ilpigktbpr6tr1r7oe.apps.googleusercontent.com`
+**Current Client ID:** `504835766110-ionim2k1keti3uhom9quotmifkimg42o.apps.googleusercontent.com`
 
 ---
 

@@ -4,20 +4,27 @@ import * as Crypto from 'expo-crypto';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { Platform } from 'react-native';
 import React from 'react';
+// import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { SocialLoginOptions, SocialLoginResult } from '../types';
 
 // Handle redirect URI for OAuth
 WebBrowser.maybeCompleteAuthSession();
 
 // Google OAuth Configuration
-const GOOGLE_CLIENT_ID = '329489503761-db8oqqkc3q63k3ilpigktbpr6tr1r7oe.apps.googleusercontent.com';
-const GOOGLE_REDIRECT_URI = AuthSession.makeRedirectUri({
-  // Use the scheme from your app.json/app.config.js
-  // For Expo Go: uses exp://
-  // For development builds: uses your custom scheme
-  useProxy: true, // Use Expo's proxy for development
-});
-console.log("Redirect URI:", GOOGLE_REDIRECT_URI);
+// IMPORTANT: You need BOTH Web Client ID AND Android Client ID in Google Cloud Console
+// Web Client ID - for getting ID tokens
+const GOOGLE_WEB_CLIENT_ID = '504835766110-u1kq6htjoenjum17a9g7k27j7ui4q2u7.apps.googleusercontent.com';
+const GOOGLE_REDIRECT_URI = "https://auth.expo.io/@roy_hensley/taoexpress";
+
+// Configure Google Sign-In
+// Make sure you have created an Android OAuth Client in Google Cloud Console with:
+// - Package name: com.app.taoexpress
+// - SHA-1: 35:2A:B3:C0:06:50:CC:C9:2C:A7:29:D2:7D:23:77:48:5D:0C:06:D0
+// GoogleSignin.configure({
+//   webClientId: GOOGLE_WEB_CLIENT_ID,
+//   offlineAccess: true,
+//   forceCodeForRefreshToken: true,
+// });
 // Facebook OAuth Configuration
 const FACEBOOK_APP_ID = 'YOUR_FACEBOOK_APP_ID';
 const FACEBOOK_REDIRECT_URI = AuthSession.makeRedirectUri({
@@ -67,80 +74,81 @@ const generateCodeChallenge = async (codeVerifier: string): Promise<string> => {
     .replace(/=/g, '');
 };
 
-// Google Sign In
+// Google Sign In with native modal
 export const signInWithGoogle = async () => {
   try {
-    // Generate PKCE codes
-    const codeVerifier = await generateRandomString(64);
-    const codeChallenge = await generateCodeChallenge(codeVerifier);
-
-    // Create discovery document
-    const discovery = {
-      authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
-      tokenEndpoint: 'https://oauth2.googleapis.com/token',
+    // MOCK MODE: Return mock Google user data for testing
+    console.log('Google Sign-In: Using MOCK mode for testing');
+    
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Return mock Google user
+    return {
+      success: true,
+      data: {
+        accessToken: `mock_google_token_${Date.now()}`,
+        refreshToken: `mock_google_refresh_${Date.now()}`,
+        userInfo: {
+          id: 'google_user_123',
+          email: 'googleuser@gmail.com',
+          name: 'Google Test User',
+          picture: 'https://via.placeholder.com/150',
+        },
+      },
     };
 
-    // Create auth request
-    const authRequest = new AuthSession.AuthRequest({
-      clientId: GOOGLE_CLIENT_ID,
-      redirectUri: GOOGLE_REDIRECT_URI,
-      scopes: ['openid', 'profile', 'email'],
-      extraParams: {
-        code_challenge: codeChallenge,
-        code_challenge_method: 'S256',
+    // REAL IMPLEMENTATION (commented out for testing):
+    /*
+    // Check if Play Services are available (Android only)
+    await GoogleSignin.hasPlayServices();
+    console.log("Google Signin Start");
+    
+    // Sign in with Google - this shows the native Google Sign-In modal
+    const response = await GoogleSignin.signIn();
+    
+    console.log('Google Sign-In Success:', response);
+
+    // Get tokens
+    const tokens = await GoogleSignin.getTokens();
+
+    // Extract user data from response
+    const userData = response.data;
+
+    return {
+      success: true,
+      data: {
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.idToken,
+        userInfo: {
+          id: userData?.user?.id || '',
+          email: userData?.user?.email || '',
+          name: userData?.user?.name || '',
+          picture: userData?.user?.photo || '',
+        },
       },
-    });
-
-    // Perform the authentication
-    const response = await authRequest.promptAsync(discovery, {
-      windowFeatures: { width: 500, height: 600 },
-    });
-
-    if (response.type === 'success') {
-      // Exchange code for token
-      const tokenResponse = await AuthSession.exchangeCodeAsync(
-        {
-          code: response.params.code,
-          clientId: GOOGLE_CLIENT_ID,
-          redirectUri: GOOGLE_REDIRECT_URI,
-          extraParams: {
-            code_verifier: codeVerifier,
-          },
-        },
-        discovery
-      );
-
-      // Get user info
-      const userInfoResponse = await fetch(
-        'https://www.googleapis.com/oauth2/v2/userinfo',
-        {
-          headers: { Authorization: `Bearer ${tokenResponse.accessToken}` },
-        }
-      );
-
-      const userInfo = await userInfoResponse.json();
-
-      return {
-        success: true,
-        data: {
-          accessToken: tokenResponse.accessToken,
-          refreshToken: tokenResponse.refreshToken,
-          userInfo: {
-            id: userInfo.id,
-            email: userInfo.email,
-            name: userInfo.name,
-            picture: userInfo.picture,
-          },
-        },
-      };
-    } else {
+    };
+    */
+  } catch (error: any) {
+    console.error('Google Sign-In Error:', error);
+    
+    if (error.code === 'SIGN_IN_CANCELLED') {
       return {
         success: false,
         error: 'Authentication cancelled',
       };
+    } else if (error.code === 'IN_PROGRESS') {
+      return {
+        success: false,
+        error: 'Sign in already in progress',
+      };
+    } else if (error.code === 'PLAY_SERVICES_NOT_AVAILABLE') {
+      return {
+        success: false,
+        error: 'Play Services not available',
+      };
     }
-  } catch (error) {
-    console.error('Google Sign-In Error:', error);
+    
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',

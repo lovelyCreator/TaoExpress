@@ -61,8 +61,8 @@ const SignupScreen: React.FC = () => {
     referralCode: '',
     gender: 'woman',
   });
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(true); // true means password is hidden
+  const [showConfirmPassword, setShowConfirmPassword] = useState(true); // true means password is hidden
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [hasSignupError, setHasSignupError] = useState(false);
   const [isBusinessAccount, setIsBusinessAccount] = useState(false);

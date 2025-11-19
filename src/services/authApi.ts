@@ -14,8 +14,61 @@ const apiClient = axios.create({
   },
 });
 
-// In-memory storage for frontend-only mode
-let frontendUsers: { [key: string]: { password: string; user: Partial<User> } } = {};
+// In-memory storage for frontend-only mode with pre-configured test users
+let frontendUsers: { [key: string]: { password: string; user: Partial<User> } } = {
+  'test@example.com': {
+    password: 'password123',
+    user: {
+      id: 'user_test_1',
+      email: 'test@example.com',
+      name: 'Test User',
+      avatar: 'https://via.placeholder.com/150',
+      phone: '+1234567890',
+      addresses: [],
+      paymentMethods: [],
+      wishlist: [],
+      followersCount: 150,
+      followingsCount: 89,
+      preferences: {
+        notifications: {
+          email: true,
+          push: true,
+          sms: true,
+        },
+        language: 'en',
+        currency: 'USD',
+      },
+      createdAt: new Date('2024-01-01'),
+      updatedAt: new Date(),
+    },
+  },
+  'demo@example.com': {
+    password: 'Demo123!',
+    user: {
+      id: 'user_demo_1',
+      email: 'demo@example.com',
+      name: 'Demo User',
+      avatar: 'https://via.placeholder.com/150',
+      phone: '+1234567891',
+      addresses: [],
+      paymentMethods: [],
+      wishlist: [],
+      followersCount: 250,
+      followingsCount: 120,
+      preferences: {
+        notifications: {
+          email: true,
+          push: true,
+          sms: true,
+        },
+        language: 'en',
+        currency: 'USD',
+      },
+      createdAt: new Date('2024-01-15'),
+      updatedAt: new Date(),
+    },
+  },
+};
 
 // Helper function to store user data and token
 const storeAuthData = async (token: string, userData: Partial<User>) => {

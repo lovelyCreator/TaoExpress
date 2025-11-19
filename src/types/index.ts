@@ -315,6 +315,9 @@ export type RootStackParamList = {
   PrivacyPolicy: undefined;
   AboutUs: undefined;
   ChangePassword: undefined;
+  AffiliateMarketing: undefined;
+  UnitSettings: undefined;
+  PaymentPassword: undefined;
   Variations: { variations?: VariationData } | undefined;
   SetUpVariationsInfo: { variations?: Variation[] } | undefined;
   // Chat screens

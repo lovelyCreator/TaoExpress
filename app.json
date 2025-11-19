@@ -7,11 +7,6 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
@@ -29,9 +24,10 @@
       "package": "com.app.taoexpress",
       "networkSecurityConfig": "@xml/network_security_config",
       "permissions": [
-        "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE"
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "scheme": "taoexpress",
@@ -49,13 +45,13 @@
       [
         "@react-native-google-signin/google-signin",
         {
-          "iosUrlScheme": "com.googleusercontent.apps.taoexpress"
+          "iosUrlScheme": "com.googleusercontent.apps.504835766110-u1kq6htjoenjum17a9g7k27j7ui4q2u7"
         }
       ]
     ],
     "extra": {
       "eas": {
-        "projectId": "7344e826-9eff-42c4-9dbb-6525bb2f6c90"
+        "projectId": "f4d484b2-c29b-4aef-af7e-10b1d46f63b6"
       }
     }
   }

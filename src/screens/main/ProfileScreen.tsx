@@ -23,7 +23,7 @@ type ProfileScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Main
 
 const ProfileScreen: React.FC = () => {
   const navigation = useNavigation<ProfileScreenNavigationProp>();
-  const { user, logout, isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const currentLocale = useAppSelector((state) => state.i18n.locale);
 
   // Map language codes to flag emojis
@@ -39,16 +39,6 @@ const ProfileScreen: React.FC = () => {
 
   const handleLogin = () => {
     navigation.navigate('Auth');
-  };
-
-
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
   };
 
   const showComingSoon = (feature: string) => {
@@ -124,7 +114,10 @@ const ProfileScreen: React.FC = () => {
                 <Ionicons name="checkmark-circle" size={16} color="#4CAF50" />
                 <Text style={styles.verifiedText}>Verified Member</Text>
               </View>
-              <TouchableOpacity style={styles.editButton}>
+              <TouchableOpacity 
+                style={styles.editButton}
+                onPress={() => navigation.navigate('ProfileSettings')}
+              >
                 <Ionicons name="pencil" size={14} color={COLORS.primary} />
                 <Text style={styles.editText}>Edit Profile</Text>
               </TouchableOpacity>
@@ -301,12 +294,6 @@ const ProfileScreen: React.FC = () => {
         {renderUserSection()}
         {isAuthenticated && renderStatsSection()}
         {renderMenuItems()}
-        
-        {isAuthenticated && (
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Text style={styles.logoutText}>Logout</Text>
-          </TouchableOpacity>
-        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -565,26 +552,6 @@ const styles = StyleSheet.create({
     fontSize: FONTS.sizes.md,
     color: COLORS.text.primary,
     fontWeight: '500',
-  },
-  logoutButton: {
-    backgroundColor: COLORS.white,
-    marginHorizontal: SPACING.lg,
-    marginBottom: SPACING.xl,
-    paddingVertical: SPACING.lg,
-    borderRadius: SPACING.md,
-    alignItems: 'center',
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-    borderWidth: 2,
-    borderColor: COLORS.primary,
-  },
-  logoutText: {
-    fontSize: FONTS.sizes.md,
-    fontWeight: '600',
-    color: COLORS.error,
   },
 });
 

@@ -11,8 +11,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Import screens
 import SplashScreen from '../screens/lazy/SplashScreen.lazy';
-import LoginScreen from '../screens/lazy/LoginScreen.lazy';
-import SignupScreen from '../screens/lazy/SignupScreen.lazy';
+import LoginScreen from '../screens/auth/LoginScreen';
+import SignupScreen from '../screens/auth/SignupScreen';
 import ForgotPasswordScreen from '../screens/lazy/ForgotPasswordScreen.lazy';
 import ResetPasswordScreen from '../screens/lazy/ResetPasswordScreen.lazy';
 import HomeScreen from '../screens/main/HomeScreen.lazy';
@@ -73,6 +73,9 @@ import SellerNotificationSettingsScreen from '../screens/lazy/SellerNotification
 import PrivacyPolicyScreen from '../screens/lazy/PrivacyPolicyScreen.lazy';
 import AboutUsScreen from '../screens/lazy/AboutUsScreen.lazy';
 import ChangePasswordScreen from '../screens/lazy/ChangePasswordScreen.lazy';
+import AffiliateMarketingScreen from '../screens/main/AffiliateMarketingScreen';
+import UnitSettingsScreen from '../screens/main/UnitSettingsScreen';
+import PaymentPasswordScreen from '../screens/main/PaymentPasswordScreen';
 // Chat screens
 import ChatScreen from '../screens/lazy/ChatScreen.lazy';
 import ChatErrorBoundary from '../components/ChatErrorBoundary';
@@ -310,21 +313,6 @@ const RootNavigator = () => {
             options={{
               headerShown: false,
               title: 'Payment',
-              headerStyle: {
-                backgroundColor: COLORS.white,
-              },
-              headerTintColor: COLORS.text.primary,
-              headerTitleStyle: {
-                fontWeight: '600',
-              },
-            }}
-          />
-          <RootStack.Screen 
-            name="AddAddress" 
-            component={AddAddressScreen}
-            options={{
-              headerShown: false,
-              title: 'Add Address',
               headerStyle: {
                 backgroundColor: COLORS.white,
               },
@@ -1047,6 +1035,51 @@ const RootNavigator = () => {
             options={{
               headerShown: false,
               title: 'Change Password',
+              headerStyle: {
+                backgroundColor: COLORS.white,
+              },
+              headerTintColor: COLORS.text.primary,
+              headerTitleStyle: {
+                fontWeight: '600',
+              },
+            }}
+          />
+          <RootStack.Screen 
+            name="AffiliateMarketing" 
+            component={AffiliateMarketingScreen}
+            options={{
+              headerShown: false,
+              title: 'Affiliate Marketing',
+              headerStyle: {
+                backgroundColor: COLORS.white,
+              },
+              headerTintColor: COLORS.text.primary,
+              headerTitleStyle: {
+                fontWeight: '600',
+              },
+            }}
+          />
+          <RootStack.Screen 
+            name="UnitSettings" 
+            component={UnitSettingsScreen}
+            options={{
+              headerShown: false,
+              title: 'Unit Settings',
+              headerStyle: {
+                backgroundColor: COLORS.white,
+              },
+              headerTintColor: COLORS.text.primary,
+              headerTitleStyle: {
+                fontWeight: '600',
+              },
+            }}
+          />
+          <RootStack.Screen 
+            name="PaymentPassword" 
+            component={PaymentPasswordScreen}
+            options={{
+              headerShown: false,
+              title: 'Payment Password',
               headerStyle: {
                 backgroundColor: COLORS.white,
               },

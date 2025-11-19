@@ -38,6 +38,24 @@ const SettingsScreen: React.FC = () => {
   const [pushNotifications, setPushNotifications] = useState(true);
   const [locationServices, setLocationServices] = useState(false);
 
+  // Korean favorite colors for menu icons (same as ProfileScreen)
+  const getMenuIconColor = (index: number) => {
+    const colors = [
+      { bg: '#FFE4E6', icon: '#FF6B9D' }, // Soft pink
+      { bg: '#E8F4FD', icon: '#4A90E2' }, // Sky blue
+      { bg: '#E8F8F5', icon: '#26D0CE' }, // Mint
+      { bg: '#FFF4E6', icon: '#FF9500' }, // Orange
+      { bg: '#F3E8FF', icon: '#9C88FF' }, // Lavender
+      { bg: '#FFE8E8', icon: '#FF6B6B' }, // Coral
+      { bg: '#E8FFE8', icon: '#4CAF50' }, // Green
+      { bg: '#FFF0E6', icon: '#FF8A65' }, // Peach
+      { bg: '#E6F3FF', icon: '#42A5F5' }, // Light blue
+      { bg: '#F0E6FF', icon: '#AB47BC' }, // Purple
+      { bg: '#E6FFF0', icon: '#66BB6A' }, // Light green
+    ];
+    return colors[index % colors.length];
+  };
+
   const handleLogout = () => {
     Alert.alert(
       'Logout',
@@ -74,127 +92,78 @@ const SettingsScreen: React.FC = () => {
     );
   };
 
-  const settingsSections: SettingItem[][] = [
-    [
-      {
-        id: 'profile',
-        title: 'Edit Profile',
-        subtitle: 'Update your personal information',
-        icon: 'person-outline',
-        type: 'navigation',
-        onPress: () => navigation.navigate('EditProfile'),
-      },
-      {
-        id: 'addresses',
-        title: 'Address Book',
-        subtitle: 'Manage your delivery addresses',
-        icon: 'location-outline',
-        type: 'navigation',
-        onPress: () => navigation.navigate('AddressBook' as never),
-      },
-      {
-        id: 'payment',
-        title: 'Payment Methods',
-        subtitle: 'Manage your payment options',
-        icon: 'card-outline',
-        type: 'navigation',
-        onPress: () => navigation.navigate('PaymentMethods'),
-      },
-    ],
-    [
-      {
-        id: 'notifications',
-        title: 'Push Notifications',
-        subtitle: 'Receive notifications on your device',
-        icon: 'notifications-outline',
-        type: 'toggle',
-        value: pushNotifications,
-        onPress: () => setPushNotifications(!pushNotifications),
-      },
-      {
-        id: 'email',
-        title: 'Email Updates',
-        subtitle: 'Receive updates via email',
-        icon: 'mail-outline',
-        type: 'toggle',
-        value: emailUpdates,
-        onPress: () => setEmailUpdates(!emailUpdates),
-      },
-      {
-        id: 'location',
-        title: 'Location Services',
-        subtitle: 'Allow location access for better recommendations',
-        icon: 'location-outline',
-        type: 'toggle',
-        value: locationServices,
-        onPress: () => setLocationServices(!locationServices),
-      },
-    ],
-    [
-      {
-        id: 'language',
-        title: 'Language',
-        subtitle: 'English',
-        icon: 'language-outline',
-        type: 'navigation',
-        onPress: () => Alert.alert('Language', 'Language selection coming soon!'),
-      },
-      {
-        id: 'currency',
-        title: 'Currency',
-        subtitle: 'USD ($)',
-        icon: 'cash-outline',
-        type: 'navigation',
-        onPress: () => Alert.alert('Currency', 'Currency selection coming soon!'),
-      },
-      {
-        id: 'privacy',
-        title: 'Privacy Policy',
-        icon: 'shield-outline',
-        type: 'navigation',
-        onPress: () => Alert.alert('Privacy Policy', 'Privacy policy coming soon!'),
-      },
-      {
-        id: 'terms',
-        title: 'Terms of Service',
-        icon: 'document-text-outline',
-        type: 'navigation',
-        onPress: () => Alert.alert('Terms of Service', 'Terms of service coming soon!'),
-      },
-    ],
-    [
-      {
-        id: 'help',
-        title: 'Help & Support',
-        icon: 'help-circle-outline',
-        type: 'navigation',
-        onPress: () => Alert.alert('Help & Support', 'Help center coming soon!'),
-      },
-      {
-        id: 'about',
-        title: 'About Glowmify',
-        subtitle: 'Version 1.0.0',
-        icon: 'information-circle-outline',
-        type: 'navigation',
-        onPress: () => Alert.alert('About', 'Glowmify v1.0.0\nYour favorite shopping app!'),
-      },
-    ],
-    [
-      {
-        id: 'logout',
-        title: 'Logout',
-        icon: 'log-out-outline',
-        type: 'action',
-        onPress: handleLogout,
-      },
-      {
-        id: 'delete',
-        title: 'Delete Account',
-        icon: 'trash-outline',
-        type: 'action',
-        onPress: handleDeleteAccount,
-      },
-    ],
+  const settingsItems = [
+    {
+      id: 'profile',
+      title: 'Edit Profile',
+      icon: 'person-outline',
+      type: 'navigation' as const,
+      onPress: () => navigation.navigate('EditProfile'),
+    },
+    {
+      id: 'addresses',
+      title: 'Address Book',
+      icon: 'location-outline',
+      type: 'navigation' as const,
+      onPress: () => navigation.navigate('AddressBook' as never),
+    },
+    {
+      id: 'payment',
+      title: 'Payment Methods',
+      icon: 'card-outline',
+      type: 'navigation' as const,
+      onPress: () => navigation.navigate('PaymentMethods'),
+    },
+    {
+      id: 'notifications',
+      title: 'Push Notifications',
+      icon: 'notifications-outline',
+      type: 'toggle' as const,
+      value: pushNotifications,
+      onPress: () => setPushNotifications(!pushNotifications),
+    },
+    {
+      id: 'language',
+      title: 'Language',
+      icon: 'language-outline',
+      type: 'navigation' as const,
+      onPress: () => navigation.navigate('LanguageSettings'),
+    },
+    {
+      id: 'privacy',
+      title: 'Privacy Policy',
+      icon: 'shield-outline',
+      type: 'navigation' as const,
+      onPress: () => Alert.alert('Privacy Policy', 'Privacy policy coming soon!'),
+    },
+    {
+      id: 'terms',
+      title: 'Terms of Service',
+      icon: 'document-text-outline',
+      type: 'navigation' as const,
+      onPress: () => Alert.alert('Terms of Service', 'Terms of service coming soon!'),
+    },
+    {
+      id: 'help',
+      title: 'Help & Support',
+      icon: 'help-circle-outline',
+      type: 'navigation' as const,
+      onPress: () => Alert.alert('Help & Support', 'Help center coming soon!'),
+    },
+    {
+      id: 'about',
+      title: 'About TaoExpress',
+      icon: 'information-circle-outline',
+      type: 'navigation' as const,
+      onPress: () => Alert.alert('About', 'TaoExpress v1.0.0\nYour favorite shopping app!'),
+    },
+    {
+      id: 'logout',
+      title: 'Logout',
+      icon: 'log-out-outline',
+      type: 'action' as const,
+      onPress: handleLogout,
+    },
   ];
 
   const renderHeader = () => (
@@ -210,50 +179,6 @@ const SettingsScreen: React.FC = () => {
     </View>
   );
 
-  const renderSettingItem = (item: SettingItem) => (
-    <TouchableOpacity
-      key={item.id}
-      style={styles.settingItem}
-      onPress={item.onPress}
-      disabled={item.type === 'toggle'}
-    >
-      <View style={styles.settingLeft}>
-        <View style={styles.iconContainer}>
-          <Ionicons name={item.icon as any} size={20} color={COLORS.primary} />
-        </View>
-        <View style={styles.settingInfo}>
-          <Text style={styles.settingTitle}>{item.title}</Text>
-          {item.subtitle && (
-            <Text style={styles.settingSubtitle}>{item.subtitle}</Text>
-          )}
-        </View>
-      </View>
-      
-      <View style={styles.settingRight}>
-        {item.type === 'toggle' ? (
-          <Switch
-            value={item.value}
-            onValueChange={item.onPress}
-            trackColor={{ false: COLORS.border, true: COLORS.primary }}
-            thumbColor={COLORS.white}
-          />
-        ) : (
-          <Ionicons
-            name="chevron-forward"
-            size={20}
-            color={COLORS.text.secondary}
-          />
-        )}
-      </View>
-    </TouchableOpacity>
-  );
-
-  const renderSection = (section: SettingItem[], index: number) => (
-    <View key={`section-${index}`} style={styles.section}>
-      {section.map(renderSettingItem)}
-    </View>
-  );
-
   return (
     <SafeAreaView style={styles.container}>
       {renderHeader()}
@@ -263,7 +188,38 @@ const SettingsScreen: React.FC = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {settingsSections.map(renderSection)}
+        <View style={styles.menuContainer}>
+          {settingsItems.map((item, index) => (
+            <TouchableOpacity
+              key={item.id}
+              style={[
+                styles.menuItem,
+                index === 0 && styles.firstMenuItem,
+                index === settingsItems.length - 1 && styles.lastMenuItem
+              ]}
+              onPress={item.onPress}
+              disabled={item.type === 'toggle'}
+            >
+              <View style={styles.menuItemLeft}>
+                <View style={[styles.menuIconContainer, { backgroundColor: getMenuIconColor(index).bg }]}>
+                  <Ionicons name={item.icon as any} size={22} color={getMenuIconColor(index).icon} />
+                </View>
+                <Text style={styles.menuItemText}>{item.title}</Text>
+              </View>
+              
+              {item.type === 'toggle' ? (
+                <Switch
+                  value={item.value}
+                  onValueChange={item.onPress}
+                  trackColor={{ false: COLORS.border, true: '#FF6B9D' }}
+                  thumbColor={COLORS.white}
+                />
+              ) : (
+                <Ionicons name="chevron-forward" size={18} color={COLORS.gray[400]} />
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -272,14 +228,14 @@ const SettingsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: COLORS.white,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.lg,
     backgroundColor: COLORS.white,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
@@ -288,14 +244,15 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: COLORS.surface,
+    backgroundColor: COLORS.gray[100],
     justifyContent: 'center',
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: FONTS.sizes.lg,
-    fontWeight: '600',
+    fontSize: FONTS.sizes.xl,
+    fontWeight: '700',
     color: COLORS.text.primary,
+    letterSpacing: 0.5,
   },
   placeholder: {
     width: 40,
@@ -304,52 +261,57 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: SPACING.md,
+    padding: SPACING.lg,
   },
-  section: {
+  menuContainer: {
     backgroundColor: COLORS.white,
-    borderRadius: BORDER_RADIUS.lg,
-    marginBottom: SPACING.md,
-    ...SHADOWS.sm,
+    borderRadius: SPACING.md,
+    marginBottom: SPACING.xl,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
-  settingItem: {
+  menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.lg,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.borderLight,
+    borderBottomColor: COLORS.gray[100],
+    backgroundColor: COLORS.white,
   },
-  settingLeft: {
+  firstMenuItem: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  lastMenuItem: {
+    borderBottomWidth: 0,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+  },
+  menuItemLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
   },
-  iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.surface,
-    justifyContent: 'center',
+  menuIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
-    marginRight: SPACING.md,
+    justifyContent: 'center',
+    marginRight: SPACING.lg,
   },
-  settingInfo: {
-    flex: 1,
-  },
-  settingTitle: {
-    fontSize: FONTS.sizes.base,
-    fontWeight: '500',
+  menuItemText: {
+    fontSize: FONTS.sizes.md,
     color: COLORS.text.primary,
-    marginBottom: 2,
-  },
-  settingSubtitle: {
-    fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
-  },
-  settingRight: {
-    marginLeft: SPACING.sm,
+    fontWeight: '500',
   },
 });
 

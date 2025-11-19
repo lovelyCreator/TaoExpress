@@ -15,7 +15,6 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import GoogleIcon from '../../assets/icons/GoogleIcon';
 import { Button, TextInput } from '../../components';
-// import { GoogleSignin, GoogleSigninButton, isErrorWithCode, isSuccessResponse, statusCodes } from '@react-native-google-signin/google-signin';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
 import { useLoginMutation } from '../../hooks/useAuthMutations';
@@ -23,7 +22,7 @@ import { useSocialLogin } from '../../services/socialAuth';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS, VALIDATION_RULES, ERROR_MESSAGES } from '../../constants';
 
 // GoogleSignin.configure({
-//   webClientId: '329489503761-db8oqqkc3q63k3ilpigktbpr6tr1r7oe.apps.googleusercontent.com',
+//   webClientId: '504835766110-ionim2k1keti3uhom9quotmifkimg42o.apps.googleusercontent.com',
 // });
 
 const LoginScreen: React.FC = () => {
@@ -120,7 +119,7 @@ const LoginScreen: React.FC = () => {
     email: '',
     password: '',
   });
-  const [showPassword, setShowPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(true); // true means password is hidden (secureTextEntry=true)
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   // Watch for login success and navigate to profile

@@ -20,6 +20,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 
+// Create animated icon component
+const AnimatedIcon = Animated.createAnimatedComponent(Ionicons);
+
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '../../constants';
 import { useAuth } from '../../context/AuthContext';
 import { useWishlist } from '../../context/WishlistContext';
@@ -93,6 +96,7 @@ const HomeScreen: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [useMockData, setUseMockData] = useState(true); // Use mock data for filtering demo
   const [imagePickerModalVisible, setImagePickerModalVisible] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false); // Track if scrolled past threshold
   
   // Update selected category when platform changes
   useEffect(() => {
@@ -108,7 +112,8 @@ const HomeScreen: React.FC = () => {
   const categoryContainerWidthRef = useRef(0);
   const categoryContentWidthRef = useRef(0);
   const scrollY = useRef(new Animated.Value(0)).current;
-  const HEADER_TOP_HEIGHT = 85; // Height of logo and notification row
+  const HEADER_TOP_HEIGHT = 80; // Height of logo and notification row
+  const SCROLL_THRESHOLD = 5; // Very fast animated color change
   
   // State for scroll to top button
   const [showScrollToTop, setShowScrollToTop] = useState(false);
@@ -118,6 +123,13 @@ const HomeScreen: React.FC = () => {
   const headerTranslateY = scrollY.interpolate({
     inputRange: [0, HEADER_TOP_HEIGHT],
     outputRange: [0, -HEADER_TOP_HEIGHT],
+    extrapolate: 'clamp',
+  });
+  
+  // Immediate color change - step function (0 or 1, no gradual transition)
+  const headerBgOpacity = scrollY.interpolate({
+    inputRange: [0, SCROLL_THRESHOLD],
+    outputRange: [0, 1],
     extrapolate: 'clamp',
   });
   
@@ -533,59 +545,76 @@ const HomeScreen: React.FC = () => {
     });
   };
 
-  const renderHeader = () => (
-    <Animated.View 
-      style={[
-        styles.header,
-        { transform: [{ translateY: headerTranslateY }] }
-      ]}
-    >
-      {/* <LinearGradient
-        colors={['#FF0055', '#FFFFFF']}
-        locations={[0, 1]}
-        style={styles.headerGradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-      > */}
-        <StatusBar barStyle="dark-content" backgroundColor="transparent" />
-        {/* Logo and Notification */}
-        <View style={styles.headerTop}>
-          <View style={styles.logoContainer}>
-            {/* Logo hidden */}
+  const renderHeader = () => {
+    // Animated icon color (white to black)
+    const animatedIconColor = scrollY.interpolate({
+      inputRange: [0, SCROLL_THRESHOLD],
+      outputRange: [0, 1],
+      extrapolate: 'clamp',
+    });
+    
+    return (
+      <Animated.View 
+        style={[
+          styles.header,
+          { 
+            transform: [{ translateY: headerTranslateY }],
+          }
+        ]}
+      >
+        <View style={styles.headerContent}>
+          <StatusBar barStyle="dark-content" backgroundColor="transparent" />
+          {/* Logo and Notification */}
+          <View style={styles.headerTop}>
+            <View style={styles.logoContainer}>
+              {/* Logo hidden */}
+            </View>
+            <View style={styles.headerSpacer} />
+            <NotificationBadge
+              icon="headset-outline"
+              iconSize={36}
+              iconColor={COLORS.white}
+              count={unreadCount}
+              badgeColor="#fa9d24ff"
+              onPress={() => {
+                navigation.navigate('CustomerService' as never);
+              }}
+            />
           </View>
-          <View style={styles.headerSpacer} />
-          <NotificationBadge
-            icon="headset-outline"
-            iconSize={36}
-            iconColor={COLORS.white}
-            count={unreadCount}
-            badgeColor="#fa9d24ff"
-            onPress={() => {
-              navigation.navigate('CustomerService' as never);
-            }}
-          />
-        </View>
-        
-        {/* Search Bar and Platform Menu */}
-        <View style={styles.searchRow}>
-          <PlatformMenu
-            platforms={platforms}
-            selectedPlatform={selectedPlatform}
-            onSelectPlatform={setSelectedPlatform}
-            getLabel={(platform) => platform.toUpperCase()}
-            textColor={COLORS.white}
-            iconColor={COLORS.white}
-          />
           
-          <SearchButton
-            placeholder="Search products..."
-            onPress={() => navigation.navigate('Search' as never)}
-            onCameraPress={handleImageSearch}
-          />
+          {/* Search Bar and Platform Menu */}
+          <View style={styles.searchRow}>
+            <TouchableOpacity
+              style={styles.platformButton}
+              onPress={() => {
+                // Platform menu logic would go here
+              }}
+            >
+              <Text style={[
+                styles.platformButtonText,
+                {
+                  color: COLORS.white,
+                }
+              ]}>
+                {selectedPlatform.toUpperCase()}
+              </Text>
+              <Ionicons 
+                name="chevron-down" 
+                size={18} 
+                color={COLORS.white}
+              />
+            </TouchableOpacity>
+            
+            <SearchButton
+              placeholder="Search products..."
+              onPress={() => navigation.navigate('Search' as never)}
+              onCameraPress={handleImageSearch}
+            />
+          </View>
         </View>
-      {/* </LinearGradient> */}
-    </Animated.View>
-  );
+      </Animated.View>
+    );
+  };
 
   // Store category tab layouts for auto-scroll
   const categoryTabLayouts = useRef<{ [key: string]: { x: number; width: number } }>({});
@@ -599,11 +628,20 @@ const HomeScreen: React.FC = () => {
       ...companyCategories
     ];
     
+    // Animated text color (white to black)
+    const animatedTextColor = scrollY.interpolate({
+      inputRange: [0, SCROLL_THRESHOLD],
+      outputRange: [0, 1],
+      extrapolate: 'clamp',
+    });
+    
     return (
       <Animated.View 
         style={[
           styles.categoryTabsContainer,
-          { transform: [{ translateY: headerTranslateY }] }
+          { 
+            transform: [{ translateY: headerTranslateY }],
+          }
         ]}
         onLayout={(e) => {
           categoryScrollViewWidth.current = e.nativeEvent.layout.width;
@@ -1148,6 +1186,14 @@ const HomeScreen: React.FC = () => {
         
         // Show/hide scroll to top button based on scroll position
         const scrollPosition = contentOffset.y;
+        
+        // Update isScrolled state based on threshold
+        if (scrollPosition > SCROLL_THRESHOLD && !isScrolled) {
+          setIsScrolled(true);
+        } else if (scrollPosition <= SCROLL_THRESHOLD && isScrolled) {
+          setIsScrolled(false);
+        }
+        
         if (scrollPosition > 300 && !showScrollToTop) {
           setShowScrollToTop(true);
           Animated.timing(scrollToTopOpacity, {
@@ -1213,7 +1259,7 @@ const HomeScreen: React.FC = () => {
       >
         <LinearGradient
           colors={['#FF0055', '#ff8676ff', '#fca8afff', '#FFFFFF']}
-          locations={[0, 0.4, 0.45, 0.8, 1]}
+          locations={[0, 0.4, 0.45, 0.7, 1]}
           style={styles.gradientFill}
           start={{ x: 0, y: 0 }}
           end={{ x: 0, y: 1 }}
@@ -1258,7 +1304,7 @@ const HomeScreen: React.FC = () => {
             style={styles.scrollToTopTouchable}
             activeOpacity={0.8}
           >
-            <Ionicons name="arrow-up" size={24} color={COLORS.white} />
+            <Ionicons name="chevron-up" size={28} color={COLORS.text.primary} />
           </TouchableOpacity>
         </Animated.View>
       )}
@@ -1316,16 +1362,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   header: {
-    paddingHorizontal: SPACING.lg,
-    paddingTop: Platform.OS === 'ios' ? 20 : 10,
-    paddingBottom: SPACING.sm,
     zIndex: 10,
-    overflow: 'hidden',
-  },
-  headerGradient: {
     paddingHorizontal: SPACING.lg,
-    paddingTop: Platform.OS === 'ios' ? 20 : 10,
+    paddingTop: Platform.OS === 'ios' ? 30 : 20,
     paddingBottom: SPACING.sm,
+  },
+  headerContent: {
   },
   headerTop: {
     flexDirection: 'row',
@@ -1347,6 +1389,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.sm,
+  },
+  platformButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: SPACING.xs,
+  },
+  platformButtonText: {
+    fontSize: FONTS.sizes.lg,
+    fontWeight: '700',
   },
   categoryTabsContainer: {
     backgroundColor: 'transparent',
@@ -1700,7 +1752,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: COLORS.accentPink,
+    backgroundColor: COLORS.white,
     justifyContent: 'center',
     alignItems: 'center',
     ...SHADOWS.lg,

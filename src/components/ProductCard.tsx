@@ -28,7 +28,7 @@ const generateLiveMessages = (product?: Product): string[] => {
   if (product?.originalPrice && product?.price) {
     const savings = product.originalPrice - product.price;
     if (savings > 0) {
-      allMessages.push(`$${savings.toFixed(2)} off on $${product.originalPrice.toFixed(2)}`);
+      allMessages.push(`${savings.toFixed(2)} off on ${product.originalPrice.toFixed(2)}`);
     }
   }
   
@@ -155,22 +155,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
     }
   };
 
-  const handleCartPress = (e: any) => {
-    e.stopPropagation();
-    
-    // Check if user is logged in
-    if (!user || isGuest) {
-      showToast('Please login first', 'warning');
-      return;
-    }
-    
-    if (onAddToCart) {
-      onAddToCart();
-    } else {
-      console.log('Add to cart');
-    }
-  };
-
   // Calculate discount percentage if not provided
   const discountPercentage = product.discount || 
     (product.originalPrice && product.price 
@@ -239,10 +223,10 @@ const ProductCard: React.FC<ProductCardProps> = ({
             )}
           </ScrollView>
           
-          {/* Like button - bottom left */}
+          {/* Like button - bottom right */}
           {showLikeButton && (
             <TouchableOpacity
-              style={styles.likeButtonLeft}
+              style={styles.likeButtonRight}
               onPress={handleLikePress}
             >
               <Ionicons
@@ -252,18 +236,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
               />
             </TouchableOpacity>
           )}
-          
-          {/* Cart button - bottom right */}
-          <TouchableOpacity
-            style={styles.cartButton}
-            onPress={handleCartPress}
-          >
-            <Ionicons
-              name="cart-outline"
-              size={22}
-              color={COLORS.white}
-            />
-          </TouchableOpacity>
         </View>
         
         <View style={[styles.gridInfo, isFullWidth && styles.fullWidthInfo]}>
@@ -314,10 +286,10 @@ const ProductCard: React.FC<ProductCardProps> = ({
             )}
           </ScrollView>
           
-          {/* Like button - bottom left */}
+          {/* Like button - bottom right */}
           {showLikeButton && (
             <TouchableOpacity
-              style={styles.likeButtonLeft}
+              style={styles.likeButtonRight}
               onPress={handleLikePress}
             >
               <Ionicons
@@ -327,18 +299,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
               />
             </TouchableOpacity>
           )}
-          
-          {/* Cart button - bottom right */}
-          <TouchableOpacity
-            style={styles.cartButton}
-            onPress={handleCartPress}
-          >
-            <Ionicons
-              name="cart-outline"
-              size={22}
-              color={COLORS.white}
-            />
-          </TouchableOpacity>
         </View>
         
         <View style={styles.horizontalInfo}>
@@ -389,10 +349,10 @@ const ProductCard: React.FC<ProductCardProps> = ({
             )}
           </ScrollView>
           
-          {/* Like button - bottom left */}
+          {/* Like button - bottom right */}
           {showLikeButton && (
             <TouchableOpacity
-              style={styles.likeButtonLeft}
+              style={styles.likeButtonRight}
               onPress={handleLikePress}
             >
               <Ionicons
@@ -402,18 +362,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
               />
             </TouchableOpacity>
           )}
-          
-          {/* Cart button - bottom right */}
-          <TouchableOpacity
-            style={styles.cartButton}
-            onPress={handleCartPress}
-          >
-            <Ionicons
-              name="cart-outline"
-              size={22}
-              color={COLORS.white}
-            />
-          </TouchableOpacity>
         </View>
         
         <View style={styles.moreToLoveInfo}>
@@ -488,7 +436,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
         
         {showLikeButton && (
           <TouchableOpacity
-            style={styles.likeButtonLeft}
+            style={styles.likeButtonRight}
             onPress={handleLikePress}
           >
             <Ionicons
@@ -498,17 +446,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
             />
           </TouchableOpacity>
         )}
-        
-        <TouchableOpacity
-          style={styles.cartButton}
-          onPress={handleCartPress}
-        >
-          <Ionicons
-            name="cart-outline"
-            size={22}
-            color={COLORS.white}
-          />
-        </TouchableOpacity>
       </View>
       
       <View style={styles.productInfo}>
@@ -769,21 +706,7 @@ const styles = StyleSheet.create({
   imageWrapper: {
     position: 'relative',
   },
-  likeButtonLeft: {
-    position: 'absolute',
-    left: 8,
-    bottom: 16,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.white,
-    zIndex: 1,
-  },
-  cartButton: {
+  likeButtonRight: {
     position: 'absolute',
     right: 8,
     bottom: 16,
