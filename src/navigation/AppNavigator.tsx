@@ -37,6 +37,7 @@ import WithdrawScreen from '../screens/lazy/WithdrawScreen.lazy';
 import WithdrawConfirmScreen from '../screens/lazy/WithdrawConfirmScreen.lazy';
 import SellerCategoryScreen from '../screens/lazy/SellerCategoryScreen.lazy';
 import PaymentMethodsScreen from '../screens/lazy/PaymentMethodsScreen.lazy';
+import AddPaymentMethodScreen from '../screens/AddPaymentMethodScreen';
 import OrderHistoryScreen from '../screens/lazy/OrderHistoryScreen.lazy';
 import WishlistScreen from '../screens/lazy/WishlistScreen.lazy';
 import SettingsScreen from '../screens/lazy/SettingsScreen.lazy';
@@ -76,6 +77,15 @@ import ChangePasswordScreen from '../screens/lazy/ChangePasswordScreen.lazy';
 import AffiliateMarketingScreen from '../screens/main/AffiliateMarketingScreen';
 import UnitSettingsScreen from '../screens/main/UnitSettingsScreen';
 import PaymentPasswordScreen from '../screens/main/PaymentPasswordScreen';
+import DepositScreen from '../screens/main/DepositScreen';
+import ChargeScreen from '../screens/main/ChargeScreen';
+import PointDetailScreen from '../screens/main/PointDetailScreen';
+import CouponScreen from '../screens/main/CouponScreen';
+import BuyListScreen from '../screens/main/BuyListScreen';
+import ProblemProductScreen from '../screens/main/ProblemProductScreen';
+import NoteScreen from '../screens/main/NoteScreen';
+import LeaveNoteScreen from '../screens/main/LeaveNoteScreen';
+import ShareAppScreen from '../screens/main/ShareAppScreen';
 // Chat screens
 import ChatScreen from '../screens/lazy/ChatScreen.lazy';
 import ChatErrorBoundary from '../components/ChatErrorBoundary';
@@ -463,6 +473,21 @@ const RootNavigator = () => {
             }}
           />
           <RootStack.Screen 
+            name="AddPaymentMethod" 
+            component={AddPaymentMethodScreen}
+            options={{
+              headerShown: false,
+              title: 'Add Payment Method',
+              headerStyle: {
+                backgroundColor: COLORS.white,
+              },
+              headerTintColor: COLORS.text.primary,
+              headerTitleStyle: {
+                fontWeight: '600',
+              },
+            }}
+          />
+          <RootStack.Screen 
             name="EditAddress" 
             component={EditAddressScreen}
             options={{
@@ -648,6 +673,141 @@ const RootNavigator = () => {
             options={{
               headerShown: false,
               title: 'Language Settings',
+              headerStyle: {
+                backgroundColor: COLORS.white,
+              },
+              headerTintColor: COLORS.text.primary,
+              headerTitleStyle: {
+                fontWeight: '600',
+              },
+            }}
+          />
+          <RootStack.Screen 
+            name="Deposit" 
+            component={DepositScreen}
+            options={{
+              headerShown: false,
+              title: 'Deposit',
+              headerStyle: {
+                backgroundColor: COLORS.white,
+              },
+              headerTintColor: COLORS.text.primary,
+              headerTitleStyle: {
+                fontWeight: '600',
+              },
+            }}
+          />
+          <RootStack.Screen 
+            name="Charge" 
+            component={ChargeScreen}
+            options={{
+              headerShown: false,
+              title: 'Charge',
+              headerStyle: {
+                backgroundColor: COLORS.white,
+              },
+              headerTintColor: COLORS.text.primary,
+              headerTitleStyle: {
+                fontWeight: '600',
+              },
+            }}
+          />
+          <RootStack.Screen 
+            name="PointDetail" 
+            component={PointDetailScreen}
+            options={{
+              headerShown: false,
+              title: 'Point Detail',
+              headerStyle: {
+                backgroundColor: COLORS.white,
+              },
+              headerTintColor: COLORS.text.primary,
+              headerTitleStyle: {
+                fontWeight: '600',
+              },
+            }}
+          />
+          <RootStack.Screen 
+            name="Coupon" 
+            component={CouponScreen}
+            options={{
+              headerShown: false,
+              title: 'Coupon',
+              headerStyle: {
+                backgroundColor: COLORS.white,
+              },
+              headerTintColor: COLORS.text.primary,
+              headerTitleStyle: {
+                fontWeight: '600',
+              },
+            }}
+          />
+          <RootStack.Screen 
+            name="BuyList" 
+            component={BuyListScreen}
+            options={{
+              headerShown: false,
+              title: 'Buy List',
+              headerStyle: {
+                backgroundColor: COLORS.white,
+              },
+              headerTintColor: COLORS.text.primary,
+              headerTitleStyle: {
+                fontWeight: '600',
+              },
+            }}
+          />
+          <RootStack.Screen 
+            name="ProblemProduct" 
+            component={ProblemProductScreen}
+            options={{
+              headerShown: false,
+              title: 'Problem Product',
+              headerStyle: {
+                backgroundColor: COLORS.white,
+              },
+              headerTintColor: COLORS.text.primary,
+              headerTitleStyle: {
+                fontWeight: '600',
+              },
+            }}
+          />
+          <RootStack.Screen 
+            name="Note" 
+            component={NoteScreen}
+            options={{
+              headerShown: false,
+              title: 'Note',
+              headerStyle: {
+                backgroundColor: COLORS.white,
+              },
+              headerTintColor: COLORS.text.primary,
+              headerTitleStyle: {
+                fontWeight: '600',
+              },
+            }}
+          />
+          <RootStack.Screen 
+            name="LeaveNote" 
+            component={LeaveNoteScreen}
+            options={{
+              headerShown: false,
+              title: 'Leave Note',
+              headerStyle: {
+                backgroundColor: COLORS.white,
+              },
+              headerTintColor: COLORS.text.primary,
+              headerTitleStyle: {
+                fontWeight: '600',
+              },
+            }}
+          />
+          <RootStack.Screen 
+            name="ShareApp" 
+            component={ShareAppScreen}
+            options={{
+              headerShown: false,
+              title: 'Share App',
               headerStyle: {
                 backgroundColor: COLORS.white,
               },

@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 
@@ -68,7 +69,7 @@ const LanguageSettingsScreen: React.FC = () => {
   };
 
   const renderHeader = () => (
-    <View style={styles.header}>
+    <LinearGradient colors={['#FFE4E6', '#FFF0F1', '#FFFFFF']} style={styles.header}>
       <TouchableOpacity 
         style={styles.backButton}
         onPress={() => navigation.goBack()}
@@ -77,7 +78,7 @@ const LanguageSettingsScreen: React.FC = () => {
       </TouchableOpacity>
       <Text style={styles.headerTitle}>{t('profile.languageSettings')}</Text>
       <View style={styles.placeholder} />
-    </View>
+    </LinearGradient>
   );
 
   const renderLanguageOptions = () => (
@@ -126,17 +127,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.lg,
-    backgroundColor: COLORS.white,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.gray[100],
   },
   backButton: {
-    padding: SPACING.sm,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   headerTitle: {
-    fontSize: FONTS.sizes.lg,
-    fontWeight: '600',
+    fontSize: FONTS.sizes.xl,
+    fontWeight: '700',
     color: COLORS.text.primary,
+    letterSpacing: 0.5,
   },
   placeholder: {
     width: 40,

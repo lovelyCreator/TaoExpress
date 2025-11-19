@@ -16,6 +16,7 @@ import { useAppSelector } from '../../store/hooks';
 import { translations } from '../../i18n/translations';
 import { ProductCard } from '../../components';
 import { useWishlist } from '../../context/WishlistContext';
+import { useAuth } from '../../context/AuthContext';
 import mockProducts from '../../data/mockProducts.json';
 
 const { width } = Dimensions.get('window');
@@ -217,6 +218,7 @@ const mockMoreToLoveProducts = [
 
 const CartScreen: React.FC = () => {
   const navigation = useNavigation();
+  const { isAuthenticated } = useAuth();
   const { likedProductIds, toggleWishlist } = useWishlist();
   const [cartData, setCartData] = useState(mockCartData);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set(['cart_item_1']));
@@ -232,6 +234,37 @@ const CartScreen: React.FC = () => {
     }
     return value || key;
   };
+
+  // If not authenticated, show login prompt
+  if (!isAuthenticated) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Cart</Text>
+        </View>
+        <View style={styles.emptyCart}>
+          {/* <View style={styles.iconContainer}> */}
+            <Image 
+              source={require('../../assets/icons/cart_image.png')} 
+              style={styles.cartImage}
+              resizeMode="contain"
+            />
+          {/* </View> */}
+          <Text style={styles.welcomeText}>Welcome to TaoExpress!</Text>
+          <Text style={styles.loginPrompt}>
+            Login to access your shopping cart
+          </Text>
+          <TouchableOpacity
+            style={styles.loginButton}
+            onPress={() => (navigation as any).navigate('Auth')}
+          >
+            <Ionicons name="log-in-outline" size={20} color={COLORS.white} />
+            <Text style={styles.loginButtonText}>Login</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   // Calculate totals
   const selectedCartItems = cartData.flatMap(store => 
@@ -790,6 +823,50 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.white,
     textAlign: 'center',
+  },
+  iconContainer: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: '#FFF4E6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SPACING.xl,
+  },
+  cartImage: {
+    width: 160,
+    height: 200,
+  },
+  welcomeText: {
+    fontSize: FONTS.sizes['2xl'],
+    fontWeight: '700',
+    color: COLORS.text.primary,
+    marginBottom: SPACING.sm,
+    textAlign: 'center',
+  },
+  loginPrompt: {
+    fontSize: FONTS.sizes.md,
+    color: COLORS.text.secondary,
+    marginBottom: SPACING.xl,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  loginButton: {
+    flexDirection: 'row',
+    backgroundColor: '#FF0055',
+    borderRadius: 9999,
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.sm,
+    width: '100%',
+  },
+  loginButtonText: {
+    fontSize: FONTS.sizes.xl,
+    fontWeight: '700',
+    color: COLORS.white,
+    letterSpacing: 0.5,
   },
 });
 

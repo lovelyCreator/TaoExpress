@@ -12,12 +12,14 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '../constants';
 import { CustomSwitchProps, RootStackParamList } from '../types';
 import { useCreateAddressMutation } from '../hooks/useAddressMutations';
+import AddressSearchModal from '../components/AddressSearchModal';
 
 type AddNewAddressScreenNavigationProp = StackNavigationProp<RootStackParamList, 'AddNewAddress'>;
 type AddNewAddressScreenRouteProp = RouteProp<RootStackParamList, 'AddNewAddress'>;
@@ -35,6 +37,7 @@ const AddNewAddressScreen: React.FC = () => {
   });
   const [isPrimary, setIsPrimary] = useState(false);
   const [isStoreAddress, setIsStoreAddress] = useState(false);
+  const [showAddressSearch, setShowAddressSearch] = useState(false);
   
   const { 
     mutate: createAddress, 
@@ -62,6 +65,14 @@ const AddNewAddressScreen: React.FC = () => {
   
   // Check if we came from shipping settings
   const fromShippingSettings = route.params?.fromShippingSettings || false;
+
+  const handleSelectAddress = (address: any) => {
+    setFormData(prev => ({
+      ...prev,
+      apiSuiteNumber: address.roadAddress,
+      zipCode: address.postalCode,
+    }));
+  };
 
   const handleSaveAddress = () => {
     if ( !formData.street || !formData.city || !formData.state || !formData.zipCode) {
@@ -93,16 +104,19 @@ const AddNewAddressScreen: React.FC = () => {
   };
 
   const renderHeader = () => (
-    <View style={styles.header}>
+    <LinearGradient
+      colors={['#FFE4E6', '#FFF0F1', '#FFFFFF']}
+      style={styles.header}
+    >
       <TouchableOpacity
         style={styles.backButton}
         onPress={() => navigation.goBack()}
       >
-        <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
+        <Ionicons name="chevron-back" size={24} color={COLORS.text.primary} />
       </TouchableOpacity>
-      <Text style={styles.headerTitle}>New Address</Text>
+      <Text style={styles.headerTitle}>Add Shipping Address</Text>
       <View style={styles.placeholder} />
-    </View>
+    </LinearGradient>
   );
 
   const CustomSwitch: React.FC<CustomSwitchProps> = ({
@@ -165,108 +179,160 @@ const AddNewAddressScreen: React.FC = () => {
       
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.formContainer}>
+          {/* Type Selection */}
+          <View style={styles.typeSection}>
+            <Text style={styles.typeLabel}>
+              Type<Text style={styles.required}>*</Text>
+            </Text>
+            <View style={styles.typeOptions}>
+              <TouchableOpacity
+                style={styles.typeOption}
+                onPress={() => setIsStoreAddress(false)}
+                disabled={isLoading}
+              >
+                <View style={[styles.radioButton, !isStoreAddress && styles.radioButtonSelected]}>
+                  {!isStoreAddress && <View style={styles.radioButtonInner} />}
+                </View>
+                <Text style={styles.typeOptionText}>Personal</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.typeOption}
+                onPress={() => setIsStoreAddress(true)}
+                disabled={isLoading}
+              >
+                <View style={[styles.radioButton, isStoreAddress && styles.radioButtonSelected]}>
+                  {isStoreAddress && <View style={styles.radioButtonInner} />}
+                </View>
+                <Text style={styles.typeOptionText}>Business</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Recipient Name */}
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Address</Text>
+            <Text style={styles.inputLabel}>
+              Recipient<Text style={styles.required}>*</Text>
+            </Text>
             <TextInput
               style={styles.textInput}
               value={formData.street}
               onChangeText={(text) => setFormData(prev => ({ ...prev, street: text }))}
-              placeholder="Enter your street address"
+              placeholder="Please enter the recipient's real name"
               placeholderTextColor={COLORS.gray[400]}
               editable={!isLoading}
             />
           </View>
 
+          {/* Basic Address */}
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Apt or suite number</Text>
+            <View style={styles.labelRow}>
+              <Text style={styles.inputLabel}>
+                Basic Address<Text style={styles.required}>*</Text>
+              </Text>
+              <TouchableOpacity onPress={() => setShowAddressSearch(true)}>
+                <Text style={styles.importLink}>Import</Text>
+              </TouchableOpacity>
+            </View>
             <TextInput
               style={styles.textInput}
               value={formData.apiSuiteNumber}
               onChangeText={(text) => setFormData(prev => ({ ...prev, apiSuiteNumber: text }))}
-              placeholder="Enter your apt or suite number"
+              placeholder="Please enter your address"
               placeholderTextColor={COLORS.gray[400]}
-              keyboardType="numeric"
               editable={!isLoading}
             />
+            <Text style={styles.helperText}>Please enter the recipient's real name</Text>
           </View>
 
+          {/* Detailed Address */}
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>City</Text>
+            <Text style={styles.inputLabel}>Detailed Address</Text>
             <TextInput
               style={styles.textInput}
               value={formData.city}
               onChangeText={(text) => setFormData(prev => ({ ...prev, city: text }))}
-              placeholder="Enter city"
+              placeholder="Detailed Address"
               placeholderTextColor={COLORS.gray[400]}
               editable={!isLoading}
             />
           </View>
 
+          {/* Postal Code */}
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>State</Text>
-            <TextInput
-              style={styles.textInput}
-              value={formData.state}
-              onChangeText={(text) => setFormData(prev => ({ ...prev, state: text }))}
-              placeholder="Enter state"
-              placeholderTextColor={COLORS.gray[400]}
-              editable={!isLoading}
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>ZIP Code</Text>
+            <Text style={styles.inputLabel}>
+              Postal Code<Text style={styles.required}>*</Text>
+            </Text>
             <TextInput
               style={styles.textInput}
               value={formData.zipCode}
               onChangeText={(text) => setFormData(prev => ({ ...prev, zipCode: text }))}
-              placeholder="Enter ZIP code"
+              placeholder="Postal Code"
               placeholderTextColor={COLORS.gray[400]}
               keyboardType="numeric"
               editable={!isLoading}
             />
           </View>
 
+          {/* Contact Number */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>
+              Contact Number<Text style={styles.required}>*</Text>
+            </Text>
+            <TextInput
+              style={styles.textInput}
+              value={formData.state}
+              onChangeText={(text) => setFormData(prev => ({ ...prev, state: text }))}
+              placeholder="Contact Number"
+              placeholderTextColor={COLORS.gray[400]}
+              keyboardType="phone-pad"
+              editable={!isLoading}
+            />
+          </View>
+
+          {/* Unified Number */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>
+              Please enter your unified number<Text style={styles.required}>*</Text>
+            </Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="Please enter your unified number"
+              placeholderTextColor={COLORS.gray[400]}
+              editable={!isLoading}
+            />
+          </View>
+
+          {/* Delivery Note */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Note</Text>
+            <TextInput
+              style={[styles.textInput, styles.textArea]}
+              placeholder="Please enter delivery note."
+              placeholderTextColor={COLORS.gray[400]}
+              multiline
+              numberOfLines={3}
+              textAlignVertical="top"
+              editable={!isLoading}
+            />
+          </View>
+
+          {/* Set as Default */}
           <TouchableOpacity 
-            style={styles.primaryAddressContainer}
+            style={styles.defaultAddressContainer}
             onPress={() => setIsPrimary(!isPrimary)}
             activeOpacity={0.7}
             disabled={isLoading}
           >
-            <View style={styles.primaryAddressRow}>
-              <Text style={styles.primaryAddressText}>Set as Primary Address</Text>
-              <View style={styles.checkbox}>
-                <CustomSwitch
-                  value={isPrimary}
-                  onChange={setIsPrimary}
-                  activeColor={COLORS.accentPink}
-                  inactiveColor={COLORS.gray[300]}
-                />
-              </View>
-            </View>
+            <Text style={styles.defaultAddressText}>Set as Default Address</Text>
+            <CustomSwitch
+              value={isPrimary}
+              onChange={setIsPrimary}
+              activeColor={COLORS.accentPink}
+              inactiveColor={COLORS.gray[300]}
+            />
           </TouchableOpacity>
-          
-          {fromShippingSettings && (
-            <TouchableOpacity 
-              style={styles.primaryAddressContainer}
-              onPress={() => setIsStoreAddress(!isStoreAddress)}
-              activeOpacity={0.7}
-              disabled={isLoading}
-            >
-              <View style={styles.primaryAddressRow}>
-                <View style={styles.checkbox}>
-                  <CustomSwitch
-                    value={isStoreAddress}
-                    onChange={setIsStoreAddress}
-                    activeColor={COLORS.accentPink}
-                    inactiveColor={COLORS.gray[300]}
-                  />
-                </View>
-                <Text style={styles.primaryAddressText}>Set as Store Address</Text>
-              </View>
-            </TouchableOpacity>
-          )}
         </View>
+
         <View style={styles.bottomContainer}>
           <TouchableOpacity 
             style={[styles.saveButton, isLoading && styles.saveButtonDisabled]}
@@ -283,6 +349,11 @@ const AddNewAddressScreen: React.FC = () => {
         </View>
       </ScrollView>
 
+      <AddressSearchModal
+        visible={showAddressSearch}
+        onClose={() => setShowAddressSearch(false)}
+        onSelectAddress={handleSelectAddress}
+      />
     </SafeAreaView>
   );
 };
@@ -325,14 +396,70 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
     paddingTop: SPACING.lg,
   },
-  inputGroup: {
+  typeSection: {
+    marginBottom: SPACING.lg,
+  },
+  typeLabel: {
+    fontSize: FONTS.sizes.sm,
+    fontWeight: '500',
+    color: COLORS.text.primary,
     marginBottom: SPACING.md,
   },
+  required: {
+    color: COLORS.error,
+    marginLeft: 2,
+  },
+  typeOptions: {
+    flexDirection: 'row',
+    gap: SPACING.lg,
+  },
+  typeOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
+  radioButton: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: COLORS.gray[300],
+    backgroundColor: COLORS.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  radioButtonSelected: {
+    borderColor: COLORS.accentPink,
+  },
+  radioButtonInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: COLORS.accentPink,
+  },
+  typeOptionText: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.text.primary,
+  },
+  inputGroup: {
+    marginBottom: SPACING.lg,
+  },
+  labelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.sm,
+  },
   inputLabel: {
-    fontSize: FONTS.sizes.smmd,
+    fontSize: FONTS.sizes.sm,
     fontWeight: '500',
     color: COLORS.text.primary,
     marginBottom: SPACING.sm,
+  },
+  importLink: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.accentPink,
+    fontWeight: '500',
   },
   textInput: {
     borderWidth: 1,
@@ -342,22 +469,31 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: FONTS.sizes.sm,
     color: COLORS.text.primary,
-    backgroundColor: COLORS.gray[50],
+    backgroundColor: COLORS.white,
+  },
+  textArea: {
+    minHeight: 80,
+    paddingTop: 12,
+  },
+  helperText: {
+    fontSize: FONTS.sizes.xs,
+    color: COLORS.success,
+    marginTop: SPACING.xs,
+  },
+  defaultAddressContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: SPACING.md,
+    marginTop: SPACING.sm,
+  },
+  defaultAddressText: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.text.primary,
+    fontWeight: '500',
   },
   row: {
     flexDirection: 'row',
-  },
-  primaryAddressContainer: {
-    borderWidth: 1,
-    borderColor: COLORS.gray[200],
-    borderRadius: BORDER_RADIUS.md,
-    padding: SPACING.smmd,
-    marginBottom: SPACING.md,
-  },
-  primaryAddressRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
   },
   checkbox: {
     width: 20,
@@ -374,19 +510,14 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.accentPink,
     borderColor: COLORS.accentPink,
   },
-  primaryAddressText: {
-    fontSize: FONTS.sizes.sm,
-    color: COLORS.text.primary,
-    fontWeight: '500',
-  },
   bottomContainer: {
     padding: SPACING.md,
     backgroundColor: COLORS.white,
   },
   saveButton: {
-    backgroundColor: COLORS.black,
+    backgroundColor: '#2196F3',
     paddingVertical: SPACING.md,
-    borderRadius: BORDER_RADIUS.lg,
+    borderRadius: BORDER_RADIUS.full,
     alignItems: 'center',
   },
   saveButtonDisabled: {

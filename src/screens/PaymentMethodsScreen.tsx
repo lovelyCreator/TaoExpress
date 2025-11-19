@@ -7,9 +7,11 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 
@@ -33,8 +35,7 @@ const PaymentMethodsScreen: React.FC = () => {
   }, [user]);
 
   const handleAddPaymentMethod = () => {
-    // In a real app, this would navigate to add payment method screen
-    Alert.alert('Add Payment Method', 'This feature will be available soon!');
+    navigation.navigate('AddPaymentMethod' as never);
   };
 
   const handleEditPaymentMethod = (paymentMethod: PaymentMethod) => {
@@ -117,21 +118,19 @@ const PaymentMethodsScreen: React.FC = () => {
   };
 
   const renderHeader = () => (
-    <View style={styles.header}>
+    <LinearGradient
+      colors={['#FFE4E6', '#FFF0F1', '#FFFFFF']}
+      style={styles.header}
+    >
       <TouchableOpacity
         style={styles.backButton}
         onPress={() => navigation.goBack()}
       >
-        <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
+        <Ionicons name="chevron-back" size={24} color={COLORS.text.primary} />
       </TouchableOpacity>
-      <Text style={styles.headerTitle}>Payment Methods</Text>
-      <TouchableOpacity
-        style={styles.addButton}
-        onPress={handleAddPaymentMethod}
-      >
-        <Ionicons name="add" size={24} color={COLORS.primary} />
-      </TouchableOpacity>
-    </View>
+      <Text style={styles.headerTitle}>Add Card</Text>
+      <View style={styles.placeholder} />
+    </LinearGradient>
   );
 
   const renderPaymentMethodItem = ({ item }: { item: PaymentMethod }) => (
@@ -227,18 +226,15 @@ const PaymentMethodsScreen: React.FC = () => {
     <SafeAreaView style={styles.container}>
       {renderHeader()}
       
-      {paymentMethods.length === 0 ? (
-        renderEmptyState()
-      ) : (
-        <FlatList
-          data={paymentMethods}
-          renderItem={renderPaymentMethodItem}
-          keyExtractor={(item) => item.id}
-          style={styles.paymentList}
-          contentContainerStyle={styles.paymentListContent}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {paymentMethods.length === 0 ? (
+          renderEmptyState()
+        ) : (
+          <View style={styles.paymentListContent}>
+            {paymentMethods.map((item) => renderPaymentMethodItem({ item }))}
+          </View>
+        )}
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -246,51 +242,57 @@ const PaymentMethodsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: COLORS.white,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
-    backgroundColor: COLORS.white,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.lg,
+    marginBottom: SPACING.md,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: COLORS.surface,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   headerTitle: {
-    fontSize: FONTS.sizes.lg,
-    fontWeight: '600',
+    fontSize: FONTS.sizes.xl,
+    fontWeight: '700',
     color: COLORS.text.primary,
+    letterSpacing: 0.5,
   },
-  addButton: {
+  placeholder: {
     width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
-  paymentList: {
+  scrollView: {
     flex: 1,
   },
   paymentListContent: {
-    padding: SPACING.md,
+    paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.md,
   },
   paymentCard: {
     backgroundColor: COLORS.white,
-    borderRadius: BORDER_RADIUS.lg,
-    padding: SPACING.md,
+    borderRadius: SPACING.md,
+    padding: SPACING.lg,
     marginBottom: SPACING.md,
-    ...SHADOWS.sm,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   paymentHeader: {
     flexDirection: 'row',
@@ -357,10 +359,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyState: {
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: SPACING.xl,
+    paddingVertical: SPACING['3xl'],
   },
   emptyTitle: {
     fontSize: FONTS.sizes.xl,

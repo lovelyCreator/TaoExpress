@@ -33,42 +33,50 @@ const WishlistScreen: React.FC = () => {
   
   const [refreshing, setRefreshing] = useState(false);
 
-  // Sample wishlist items for testing (when logged out or no items)
-  const sampleWishlistItems = [
-    {
-      id: 'sample-1',
-      name: 'Shoes',
-      price: 5.99,
-      image: 'https://picsum.photos/seed/shoes1/300/300',
-      brand: 'Nike',
-    },
-    {
-      id: 'sample-2', 
-      name: 'Wireless Headphones',
-      price: 89.99,
-      image: 'https://picsum.photos/seed/headphones/300/300',
-      brand: 'Sony',
-    },
-    {
-      id: 'sample-3',
-      name: 'Summer Dress',
-      price: 45.50,
-      image: 'https://picsum.photos/seed/dress/300/300',
-      brand: 'Zara',
-    },
-  ];
-
-  // Use sample items if not authenticated or no wishlist items
-  const displayItems = (!isAuthenticated || wishlistItems.length === 0) ? sampleWishlistItems : wishlistItems;
-
   useEffect(() => {
     // Refresh wishlist data when the screen is focused
-    const unsubscribe = navigation.addListener('focus', () => {
-      refreshWishlist();
-    });
+    if (isAuthenticated) {
+      const unsubscribe = navigation.addListener('focus', () => {
+        refreshWishlist();
+      });
+      return unsubscribe;
+    }
+  }, [navigation, isAuthenticated]);
 
-    return unsubscribe;
-  }, [navigation]);
+  // If not authenticated, show login prompt
+  if (!isAuthenticated) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Wishlist</Text>
+          <View style={styles.placeholder} />
+        </View>
+        <View style={styles.emptyContainer}>
+          {/* <View style={styles.iconContainer}> */}
+            <Image 
+              source={require('../assets/icons/wishlist.png')} 
+              style={styles.wishlistImage}
+              resizeMode="contain"
+            />
+          {/* </View> */}
+          <Text style={styles.welcomeText}>Welcome to TaoExpress!</Text>
+          <Text style={styles.loginPrompt}>
+            Login to access your wishlist
+          </Text>
+          <TouchableOpacity
+            style={styles.loginButton}
+            onPress={() => (navigation as any).navigate('Auth')}
+          >
+            <Ionicons name="log-in-outline" size={20} color={COLORS.white} />
+            <Text style={styles.loginButtonText}>Login</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -214,11 +222,11 @@ const WishlistScreen: React.FC = () => {
       {renderHeader()}
       {renderActionBar()}
       
-      {displayItems.length === 0 ? (
+      {wishlistItems.length === 0 ? (
         renderEmptyState()
       ) : (
         <FlatList
-          data={displayItems}
+          data={wishlistItems}
           renderItem={renderProductItem}
           keyExtractor={(item, index) => (item && item.id ? item.id.toString() : `wishlist-item-${index}`)}
           style={styles.productsList}
@@ -372,6 +380,59 @@ const styles = StyleSheet.create({
     fontSize: FONTS.sizes.base,
     fontWeight: '400',
     color: COLORS.white,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: SPACING.xl,
+  },
+  iconContainer: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: '#FFE4E6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SPACING.xl,
+  },
+  wishlistImage: {
+    width: 160,
+    height: 200,
+  },
+  welcomeText: {
+    fontSize: FONTS.sizes['2xl'],
+    fontWeight: '700',
+    color: COLORS.text.primary,
+    marginBottom: SPACING.sm,
+    textAlign: 'center',
+  },
+  loginPrompt: {
+    fontSize: FONTS.sizes.md,
+    color: COLORS.text.secondary,
+    marginBottom: SPACING.xl,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  loginButton: {
+    flexDirection: 'row',
+    backgroundColor: '#FF0055',
+    borderRadius: 9999,
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.sm,
+    width: '100%',
+  },
+  loginButtonText: {
+    fontSize: FONTS.sizes.xl,
+    fontWeight: '700',
+    color: COLORS.white,
+    letterSpacing: 0.5,
+  },
+  placeholder: {
+    width: 40,
   },
 });
 

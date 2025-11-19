@@ -261,6 +261,7 @@ export type RootStackParamList = {
   EditAddress: { address: Address; fromShippingSettings?: boolean };
   EditFinanceAddress: { address: Address };
   PaymentMethods: undefined;
+  AddPaymentMethod: undefined;
   OrderHistory: undefined;
   Wishlist: undefined;
   Cart: undefined;
@@ -318,6 +319,15 @@ export type RootStackParamList = {
   AffiliateMarketing: undefined;
   UnitSettings: undefined;
   PaymentPassword: undefined;
+  Deposit: undefined;
+  Charge: undefined;
+  PointDetail: undefined;
+  Coupon: undefined;
+  BuyList: undefined;
+  ProblemProduct: undefined;
+  Note: undefined;
+  LeaveNote: undefined;
+  ShareApp: undefined;
   Variations: { variations?: VariationData } | undefined;
   SetUpVariationsInfo: { variations?: Variation[] } | undefined;
   // Chat screens

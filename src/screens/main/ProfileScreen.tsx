@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -25,6 +26,8 @@ const ProfileScreen: React.FC = () => {
   const navigation = useNavigation<ProfileScreenNavigationProp>();
   const { user, isAuthenticated } = useAuth();
   const currentLocale = useAppSelector((state) => state.i18n.locale);
+  const badgePulse = useRef(new Animated.Value(1)).current;
+  const notificationCount = 1; // You can make this dynamic
 
   // Map language codes to flag emojis
   const getLanguageFlag = (locale: string) => {
@@ -35,6 +38,28 @@ const ProfileScreen: React.FC = () => {
     };
     return flags[locale] || '🇺🇸';
   };
+
+  useEffect(() => {
+    if (notificationCount > 0) {
+      // Start pulsing animation
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(badgePulse, {
+            toValue: 1.2,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+          Animated.timing(badgePulse, {
+            toValue: 1,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    } else {
+      badgePulse.setValue(1);
+    }
+  }, [notificationCount]);
 
 
   const handleLogin = () => {
@@ -77,14 +102,29 @@ const ProfileScreen: React.FC = () => {
         >
           <Text style={styles.flagText}>{getLanguageFlag(currentLocale)}</Text>
         </TouchableOpacity>
+        {isAuthenticated && (
+          <TouchableOpacity 
+            style={styles.headerIcon}
+            onPress={() => navigation.navigate('ProfileSettings')}
+          >
+            <Ionicons name="settings-outline" size={24} color={COLORS.text.primary} />
+          </TouchableOpacity>
+        )}
         <TouchableOpacity 
           style={styles.headerIcon}
-          onPress={() => navigation.navigate('ProfileSettings')}
+          onPress={() => navigation.navigate('CustomerService')}
         >
-          <Ionicons name="settings-outline" size={24} color={COLORS.text.primary} />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.headerIcon}>
           <Ionicons name="headset-outline" size={24} color={COLORS.text.primary} />
+          {notificationCount > 0 && (
+            <Animated.View
+              style={[
+                styles.notificationBadge,
+                { transform: [{ scale: badgePulse }] }
+              ]}
+            >
+              <Text style={styles.badgeText}>{notificationCount}</Text>
+            </Animated.View>
+          )}
         </TouchableOpacity>
       </View>
     </LinearGradient>
@@ -144,37 +184,49 @@ const ProfileScreen: React.FC = () => {
   const renderStatsSection = () => (
     <View style={styles.statsSection}>
       <View style={styles.statsCard}>
-        <View style={styles.statItem}>
+        <TouchableOpacity 
+          style={styles.statItem}
+          onPress={() => navigation.navigate('Deposit')}
+        >
           <View style={[styles.statIconContainer, { backgroundColor: '#FFE4E6' }]}>
             <Ionicons name="wallet-outline" size={24} color="#FF6B9D" />
           </View>
           <Text style={styles.statValue}>₩0</Text>
           <Text style={styles.statLabel}>Deposit</Text>
-        </View>
+        </TouchableOpacity>
         <View style={styles.statDivider} />
-        <View style={styles.statItem}>
+        <TouchableOpacity 
+          style={styles.statItem}
+          onPress={() => navigation.navigate('PointDetail')}
+        >
           <View style={[styles.statIconContainer, { backgroundColor: '#E8F4FD' }]}>
             <Ionicons name="diamond-outline" size={24} color="#4A90E2" />
           </View>
           <Text style={styles.statValue}>100</Text>
           <Text style={styles.statLabel}>Points</Text>
-        </View>
+        </TouchableOpacity>
         <View style={styles.statDivider} />
-        <View style={styles.statItem}>
+        <TouchableOpacity 
+          style={styles.statItem}
+          onPress={() => navigation.navigate('Wishlist')}
+        >
           <View style={[styles.statIconContainer, { backgroundColor: '#E8F8F5' }]}>
             <Ionicons name="heart-outline" size={24} color="#26D0CE" />
           </View>
           <Text style={styles.statValue}>0</Text>
           <Text style={styles.statLabel}>Wishlist</Text>
-        </View>
+        </TouchableOpacity>
         <View style={styles.statDivider} />
-        <View style={styles.statItem}>
+        <TouchableOpacity 
+          style={styles.statItem}
+          onPress={() => navigation.navigate('Coupon')}
+        >
           <View style={[styles.statIconContainer, { backgroundColor: '#FFF4E6' }]}>
             <Ionicons name="ticket-outline" size={24} color="#FF9500" />
           </View>
           <Text style={styles.statValue}>1</Text>
           <Text style={styles.statLabel}>Coupons</Text>
-        </View>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -186,7 +238,7 @@ const ProfileScreen: React.FC = () => {
       {
         icon: 'bag-outline',
         title: 'Buy Order',
-        onPress: () => navigation.navigate('Settings'), // You can change this to a specific buy order screen
+        onPress: () => navigation.navigate('BuyList'),
       },
       
       // 2. SETUP: Required for Buying (Address & Payment)
@@ -201,32 +253,11 @@ const ProfileScreen: React.FC = () => {
         onPress: () => navigation.navigate('PaymentMethods'),
       },
       
-      // 3. TRACK: Monitor Current Orders
-      {
-        icon: 'cube-outline',
-        title: 'Order Tracking',
-        onPress: () => navigation.navigate('MyOrders'), // Current orders tracking
-      },
-      
-      // 4. MANAGE: Current Packages/Shipments
-      {
-        icon: 'document-text-outline',
-        title: 'My Package',
-        onPress: () => navigation.navigate('MyOrders'),
-      },
-      
-      // 5. HISTORY: Past Orders
-      {
-        icon: 'time-outline',
-        title: 'Order History',
-        onPress: () => navigation.navigate('OrderHistory'),
-      },
-      
-      // 6. ISSUES: Problems with Orders/Products
+      // 3. ISSUES: Problems with Orders/Products
       {
         icon: 'alert-circle-outline',
         title: 'Problem Product',
-        onPress: () => showComingSoon('Problem Product'),
+        onPress: () => navigation.navigate('ProblemProduct' as never),
       },
     ];
 
@@ -243,14 +274,14 @@ const ProfileScreen: React.FC = () => {
       {
         icon: 'document-text-outline',
         title: 'Note',
-        onPress: () => showComingSoon('Note'),
+        onPress: () => navigation.navigate('Note' as never),
       },
       
       // Social Features
       {
         icon: 'share-outline',
         title: 'Share App',
-        onPress: () => showComingSoon('Share App'),
+        onPress: () => navigation.navigate('ShareApp' as never),
       },
       
 
@@ -342,6 +373,24 @@ const styles = StyleSheet.create({
     padding: SPACING.xs,
     borderRadius: 20,
     backgroundColor: COLORS.gray[100],
+    position: 'relative',
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    backgroundColor: COLORS.primary,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 5,
+  },
+  badgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.white,
   },
   scrollView: {
     flex: 1,

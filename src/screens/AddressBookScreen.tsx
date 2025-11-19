@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 
@@ -121,16 +122,19 @@ const AddressBookScreen: React.FC = () => {
   };
 
   const renderHeader = () => (
-    <View style={styles.header}>
+    <LinearGradient
+      colors={['#FFE4E6', '#FFF0F1', '#FFFFFF']}
+      style={styles.header}
+    >
       <TouchableOpacity
         style={styles.backButton}
         onPress={() => navigation.goBack()}
       >
-        <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
+        <Ionicons name="chevron-back" size={24} color={COLORS.text.primary} />
       </TouchableOpacity>
       <Text style={styles.headerTitle}>Your Address</Text>
       <View style={styles.placeholder} />
-    </View>
+    </LinearGradient>
   );
 
   const renderAddressItem = ({ item }: { item: ApiAddress }) => {
@@ -233,27 +237,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.md,
-    backgroundColor: COLORS.white,
+    paddingVertical: SPACING.lg,
+    marginBottom: SPACING.md,
   },
   backButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: COLORS.white,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
-    ...SHADOWS.small,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   headerTitle: {
-    fontSize: FONTS.sizes.lg,
+    fontSize: FONTS.sizes.xl,
     fontWeight: '700',
     color: COLORS.text.primary,
-    textAlign: 'center',
-    flex: 1,
+    letterSpacing: 0.5,
   },
   placeholder: {
-    width: 24,
+    width: 40,
   },
   scrollView: {
     flex: 1,
@@ -327,20 +334,26 @@ const styles = StyleSheet.create({
   },
   addNewButton: {
     backgroundColor: COLORS.white,
-    paddingVertical: SPACING.sm,
-    paddingHorizontal: SPACING.lg,
-    marginHorizontal: SPACING.md,
+    paddingVertical: SPACING.lg,
+    marginHorizontal: SPACING.lg,
+    marginTop: SPACING.md,
     marginBottom: SPACING.xl,
     alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: SPACING.md,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
     borderWidth: 1,
-    borderColor: COLORS.gray[100],
-    borderRadius: BORDER_RADIUS.md,
+    borderColor: COLORS.border,
   },
   addNewButtonText: {
     fontSize: FONTS.sizes.lg,
-    paddingVertical: SPACING.xs,
-    fontWeight: '500',
+    fontWeight: '600',
     color: COLORS.text.primary,
+    letterSpacing: 0.3,
   },
   loadingContainer: {
     flex: 1,
