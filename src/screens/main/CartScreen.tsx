@@ -582,6 +582,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.md,
+    paddingTop: SPACING['2xl'],
     borderBottomWidth: 1,
     borderBottomColor: COLORS.gray[200],
   },

@@ -206,7 +206,7 @@ const MainTabNavigator = () => {
           backgroundColor: COLORS.white,
           borderTopColor: COLORS.borderLight,
           borderTopWidth: 1,
-          height: 80,
+          // height: 80,
           shadowColor: COLORS.shadow,
           shadowOffset: { width: 0, height: -4 },
           shadowOpacity: 0.1,

@@ -35,9 +35,10 @@ const FACEBOOK_REDIRECT_URI = AuthSession.makeRedirectUri({
 const APPLE_REDIRECT_URI = AuthSession.makeRedirectUri({
   native: 'com.glowmify.app://oauthredirect',
 });
-const TWITTER_CLIENT_ID = 'YOUR_TWITTER_CLIENT_ID';
+// Twitter OAuth 2.0 Configuration (web-based)
+const TWITTER_CLIENT_ID = 'dURqNDZQVDRTQjJYbWt2cUwtOFU6MTpjaQ';
 const TWITTER_REDIRECT_URI = AuthSession.makeRedirectUri({
-  native: 'com.glowmify.app://oauthredirect',
+  native: 'com.app.taoexpress://oauthredirect',
 });
 const KAKAO_CLIENT_ID = 'YOUR_KAKAO_REST_API_KEY';
 const KAKAO_REDIRECT_URI = AuthSession.makeRedirectUri({
@@ -346,56 +347,95 @@ export const useSocialLogin = (options?: SocialLoginOptions): SocialLoginResult 
   };
 };
 
+// Twitter Sign In with expo-auth-session (OAuth 2.0 PKCE)
 export const signInWithTwitter = async () => {
   try {
+    console.log('Twitter Sign-In: Starting OAuth 2.0 authentication');
+    
+    // Generate PKCE codes
     const codeVerifier = await generateRandomString(64);
     const codeChallenge = await generateCodeChallenge(codeVerifier);
+    
+    console.log('Twitter: PKCE codes generated');
+    console.log('Twitter Redirect URI:', TWITTER_REDIRECT_URI);
+    
+    // Twitter OAuth 2.0 endpoints
     const discovery = {
-      authorizationEndpoint: 'https://twitter.com/i/oauth2/authorize',
-      tokenEndpoint: 'https://api.twitter.com/2/oauth2/token',
+      authorizationEndpoint: 'https://x.com/i/oauth2/authorize',
+      tokenEndpoint: 'https://api.xs.com/2/oauth2/token',
     };
+    
+    // Create auth request with PKCE
     const authRequest = new AuthSession.AuthRequest({
       clientId: TWITTER_CLIENT_ID,
       redirectUri: TWITTER_REDIRECT_URI,
-      scopes: ['openid', 'profile', 'email'],
+      scopes: ['tweet.read', 'users.read', 'offline.access'],
       extraParams: {
         code_challenge: codeChallenge,
         code_challenge_method: 'S256',
       },
     });
+    
+    console.log('Twitter: Prompting user for authentication');
+    
+    // Prompt user for authentication
     const response = await authRequest.promptAsync(discovery, {
       windowFeatures: { width: 500, height: 600 },
     });
+    
+    console.log('Twitter: Auth response received:', response.type);
+    
     if (response.type === 'success') {
+      console.log('Twitter: Exchanging code for token');
+      
+      // Exchange code for token
       const tokenResponse = await AuthSession.exchangeCodeAsync(
         {
           code: response.params.code,
           clientId: TWITTER_CLIENT_ID,
           redirectUri: TWITTER_REDIRECT_URI,
-          extraParams: { code_verifier: codeVerifier },
+          extraParams: {
+            code_verifier: codeVerifier,
+          },
         },
         discovery
       );
-      const userInfoResponse = await fetch('https://api.twitter.com/2/users/me', {
-        headers: { Authorization: `Bearer ${tokenResponse.accessToken}` },
+      
+      console.log('Twitter: Token received, fetching user info');
+      
+      // Get user info from Twitter API v2
+      const userInfoResponse = await fetch('https://api.x.com/2/users/me?user.fields=profile_image_url', {
+        headers: {
+          Authorization: `Bearer ${tokenResponse.accessToken}`,
+        },
       });
+      
       const userInfo = await userInfoResponse.json();
+      
+      console.log('Twitter: User info received:', userInfo);
+      
       return {
         success: true,
         data: {
           accessToken: tokenResponse.accessToken,
           refreshToken: tokenResponse.refreshToken,
           userInfo: {
-            id: userInfo.data?.id || userInfo.id,
-            email: userInfo.data?.email || userInfo.email,
-            name: userInfo.data?.name || userInfo.name,
+            id: userInfo.data?.id || '',
+            email: userInfo.data?.email || '',
+            name: userInfo.data?.name || userInfo.data?.username || '',
             picture: userInfo.data?.profile_image_url || null,
           },
         },
       };
     }
-    return { success: false, error: 'Authentication cancelled' };
+    
+    console.log('Twitter: Authentication cancelled by user');
+    return {
+      success: false,
+      error: 'Authentication cancelled',
+    };
   } catch (error) {
+    console.error('Twitter Sign-In Error:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',

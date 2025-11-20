@@ -250,20 +250,20 @@ const LoginScreen: React.FC = () => {
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
+        <View style={styles.header}>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
+          </TouchableOpacity>
+          <Image source={require("../../assets/icons/logo.png")} />
+          <View style={styles.placeholder} />
+        </View>
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.header}>
-            <TouchableOpacity 
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}
-            >
-              <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
-            </TouchableOpacity>
-            <Image source={require("../../assets/icons/logo.png")} />
-            <View style={styles.placeholder} />
-          </View>
           <View style={styles.subHeader}>
             <Text style={styles.title}>Sign In</Text>
             <Text style={styles.subtitle}>Please login to continue</Text>
@@ -443,6 +443,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: SPACING.sm,
     paddingHorizontal: SPACING.xs,
+    paddingTop: SPACING['2xl'],
   },
   backButton: {
     width: 40,

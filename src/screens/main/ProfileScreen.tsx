@@ -245,12 +245,12 @@ const ProfileScreen: React.FC = () => {
       {
         icon: 'location-outline',
         title: 'Address',
-        onPress: () => navigation.navigate('AddressBook' as never),
+        onPress: () => navigation.navigate('AddressBook', { fromShippingSettings: false }),
       },
       {
         icon: 'card-outline',
         title: 'Bank Card',
-        onPress: () => navigation.navigate('PaymentMethods'),
+        onPress: () => navigation.navigate('PaymentMethods' as never),
       },
       
       // 3. ISSUES: Problems with Orders/Products
@@ -343,7 +343,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.lg,
+    paddingTop: SPACING['2xl'],
     marginBottom: SPACING.md,
+    marginTop: -65,
   },
   headerTitle: {
     fontSize: FONTS.sizes.xl,
@@ -394,6 +396,7 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+    minHeight: '100%',
   },
   userSection: {
     paddingHorizontal: SPACING.lg,
@@ -556,7 +559,6 @@ const styles = StyleSheet.create({
     marginHorizontal: SPACING.lg,
     backgroundColor: COLORS.white,
     borderRadius: SPACING.md,
-    marginBottom: SPACING.xl,
     shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -565,6 +567,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: COLORS.border,
+    marginBottom:  100,
   },
   menuItem: {
     flexDirection: 'row',

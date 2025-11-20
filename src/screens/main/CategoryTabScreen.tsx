@@ -332,6 +332,7 @@ const CategoryTabScreen: React.FC = () => {
               keyExtractor={(item) => `category-${item.id || item.name}`}
               scrollEnabled={false}
               showsVerticalScrollIndicator={false}
+              style={{minHeight: '100%'}}
             />
           </ScrollView>
         </View>
@@ -391,7 +392,7 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: COLORS.white,
     paddingHorizontal: SPACING.md,
-    paddingTop: Platform.OS === 'ios' ? 50 : 40,
+    // paddingTop: Platform.OS === 'ios' ? 50 : 40,
     paddingBottom: SPACING.sm,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.gray[200],
@@ -402,9 +403,11 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   mainContent: {
-    flex: 1,
+    // flex: 1,
     flexDirection: 'row',
     gap: SPACING.sm,
+    minHeight: '100%',
+    paddingBottom: 100
   },
   leftColumn: {
     width: 90,

@@ -11,7 +11,11 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to upload images for product variations.",
-        "NSCameraUsageDescription": "This app needs access to your camera to take photos for product variations."
+        "NSCameraUsageDescription": "This app needs access to your camera to take photos for product variations.",
+        "UIViewControllerBasedStatusBarAppearance": false
+      },
+      "statusBar": {
+        "barStyle": "dark-content"
       }
     },
     "android": {
@@ -28,7 +32,12 @@
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.RECORD_AUDIO"
-      ]
+      ],
+      "statusBar": {
+        "translucent": true,
+        "backgroundColor": "#00000000",
+        "barStyle": "dark-content"
+      }
     },
     "scheme": "taoexpress",
     "web": {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { StatusBar } from 'expo-status-bar';
+import { StatusBar, Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider } from './src/context/AuthContext';
@@ -24,9 +24,22 @@ import { store } from './src/store';
 const AppWithToast = () => {
   const { toast, hideToast } = useToast();
   
+  // Set StatusBar to translucent globally
+  React.useEffect(() => {
+    if (Platform.OS === 'android') {
+      StatusBar.setTranslucent(true);
+      StatusBar.setBackgroundColor('transparent');
+      StatusBar.setBarStyle('dark-content');
+    }
+  }, []);
+  
   return (
     <>
-      <StatusBar style="auto" hidden={true} backgroundColor={COLORS.primary} />
+      <StatusBar
+        barStyle="dark-content"
+        backgroundColor="transparent"
+        translucent={true}
+      />
       <AppNavigator />
       <Toast
         message={toast.message}

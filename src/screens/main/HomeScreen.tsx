@@ -112,7 +112,7 @@ const HomeScreen: React.FC = () => {
   const categoryContainerWidthRef = useRef(0);
   const categoryContentWidthRef = useRef(0);
   const scrollY = useRef(new Animated.Value(0)).current;
-  const HEADER_TOP_HEIGHT = 80; // Height of logo and notification row
+  const HEADER_TOP_HEIGHT = 100; // Height of logo and notification row
   const SCROLL_THRESHOLD = 5; // Very fast animated color change
   
   // State for scroll to top button
@@ -584,26 +584,16 @@ const HomeScreen: React.FC = () => {
           
           {/* Search Bar and Platform Menu */}
           <View style={styles.searchRow}>
-            <TouchableOpacity
-              style={styles.platformButton}
-              onPress={() => {
-                // Platform menu logic would go here
-              }}
-            >
-              <Text style={[
-                styles.platformButtonText,
-                {
-                  color: COLORS.white,
-                }
-              ]}>
-                {selectedPlatform.toUpperCase()}
-              </Text>
-              <Ionicons 
-                name="chevron-down" 
-                size={18} 
-                color={COLORS.white}
+            <View style={styles.platformButton}>
+              <PlatformMenu
+                platforms={platforms}
+                selectedPlatform={selectedPlatform}
+                onSelectPlatform={setSelectedPlatform}
+                getLabel={(platform) => platform.toUpperCase()}
+                textColor={COLORS.white}
+                iconColor={COLORS.white}
               />
-            </TouchableOpacity>
+            </View>
             
             <SearchButton
               placeholder="Search products..."
@@ -1283,7 +1273,7 @@ const HomeScreen: React.FC = () => {
         scrollEventThrottle={16}
       >
         <View style={styles.contentWrapper}>
-          {renderQuickCategories()}
+          {/* {renderQuickCategories()} */}
           {renderBrandCarousel()}
           {renderTrendingProducts()}
           {renderNewInCards()}
@@ -1336,11 +1326,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollView: {
-    flex: 1,
+    // flex: 1,
+    minHeight: '100%',
     backgroundColor: 'transparent',
   },
   scrollContent: {
-    paddingTop: 70,
+    paddingTop: 90,
     paddingBottom: 10,
     backgroundColor: 'transparent',
   },
@@ -1354,7 +1345,8 @@ const styles = StyleSheet.create({
   },
   contentWrapper: {
     backgroundColor: 'transparent',
-    minHeight: '100%',
+    // minHeight: '100%',
+    marginBottom: 50,
   },
   loadingContainer: {
     flex: 1,
@@ -1364,7 +1356,7 @@ const styles = StyleSheet.create({
   header: {
     zIndex: 10,
     paddingHorizontal: SPACING.lg,
-    paddingTop: Platform.OS === 'ios' ? 30 : 20,
+    // paddingTop: Platform.OS === 'ios' ? 30 : 20,
     paddingBottom: SPACING.sm,
   },
   headerContent: {
