@@ -100,13 +100,64 @@ const LoginScreen: React.FC = () => {
     }
   });
   
+  // Track which provider is being used for social login
+  const [currentProvider, setCurrentProvider] = React.useState<string>('google');
+  
   const { mutate: socialLoginMutation, isLoading: isSocialLoading, isError: isSocialError, error: socialError } = useSocialLogin({
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       // Handle successful social login
       console.log('Social login successful:', data);
-      // You would typically send this data to your backend to create/update user
-      // For now, we'll just show an alert
-      Alert.alert('Success', `Welcome ${data.userInfo.name || 'User'}!`);
+      
+      // Send social login data to backend
+      try {
+        const { socialLogin: socialLoginApi } = await import('../../services/authApi');
+        const result = await socialLoginApi(
+          currentProvider, // Use the current provider
+          data.accessToken,
+          data.userInfo.email,
+          data.userInfo.name,
+          data.userInfo.id
+        );
+        
+        if (result.success && result.data) {
+          // Update AuthContext with user data
+          const user = {
+            id: result.data.user.id || result.data.user.email || Date.now().toString(),
+            email: result.data.user.email || '',
+            name: result.data.user.name || result.data.user.email?.split('@')[0] || 'User',
+            avatar: result.data.user.avatar || data.userInfo.picture || 'https://via.placeholder.com/150',
+            phone: result.data.user.phone || '',
+            addresses: result.data.user.addresses || [],
+            paymentMethods: result.data.user.paymentMethods || [],
+            wishlist: result.data.user.wishlist || [],
+            followersCount: result.data.user.followersCount || 0,
+            followingsCount: result.data.user.followingsCount || 0,
+            preferences: result.data.user.preferences || {
+              notifications: {
+                email: true,
+                push: true,
+                sms: true,
+              },
+              language: 'en',
+              currency: 'USD',
+            },
+            createdAt: result.data.user.createdAt || new Date(),
+            updatedAt: result.data.user.updatedAt || new Date(),
+          };
+          
+          console.log('LoginScreen: Social login successful, updating AuthContext');
+          setAuthenticatedUser(user);
+          setNavigateToProfile();
+          
+          // Navigate to main app
+          navigation.navigate('Main' as never);
+        } else {
+          Alert.alert('Login Failed', result.error || 'Failed to authenticate with server');
+        }
+      } catch (error) {
+        console.error('Social login API error:', error);
+        Alert.alert('Login Failed', 'Failed to authenticate with server');
+      }
     },
     onError: (error) => {
       // Handle social login error
@@ -209,6 +260,7 @@ const LoginScreen: React.FC = () => {
 
   const handleSocialLogin = async (provider: 'google' | 'facebook' | 'apple' | 'twitter' | 'kakao') => {
     try {
+      setCurrentProvider(provider); // Set the current provider before calling mutation
       await socialLoginMutation(provider);
     } catch (error) {
       console.log('Social login error:', error);
@@ -250,20 +302,20 @@ const LoginScreen: React.FC = () => {
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <View style={styles.header}>
-          <TouchableOpacity 
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
-          </TouchableOpacity>
-          <Image source={require("../../assets/icons/logo.png")} />
-          <View style={styles.placeholder} />
-        </View>
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
+          <View style={styles.header}>
+            <TouchableOpacity 
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
+            >
+              <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
+            </TouchableOpacity>
+            <Image source={require("../../assets/icons/logo.png")} />
+            <View style={styles.placeholder} />
+          </View>
           <View style={styles.subHeader}>
             <Text style={styles.title}>Sign In</Text>
             <Text style={styles.subtitle}>Please login to continue</Text>

@@ -1,250 +1,196 @@
 # Twitter Sign-In Setup Guide
 
-This guide will help you set up Twitter authentication using `@react-native-twitter-signin/twitter-signin`.
+## ✅ Configuration Complete
 
-## Prerequisites
+Your Twitter OAuth 2.0 credentials have been configured in the app.
 
-- Twitter Developer Account
-- Twitter App created in Twitter Developer Portal
+### Credentials Configured:
+- **Client ID**: `dURqNDZQVDRTQjJYbWt2cUwtOFU6MTpjaQ`
+- **Client Secret**: `7KcFO61dXldQA8Em1JQqWJK4VaJqL-DO46e25gObmnPGHbrfgZ`
+- **Redirect URI**: `com.app.taoexpress://oauthredirect`
 
-## Step 1: Install the Package
+## Twitter Developer Portal Setup
 
-```bash
-npm install @react-native-twitter-signin/twitter-signin
-```
+### 1. Configure OAuth 2.0 Settings
 
-or
+Go to your Twitter app settings at: https://developer.twitter.com/en/portal/dashboard
 
-```bash
-yarn add @react-native-twitter-signin/twitter-signin
-```
+1. Navigate to your app → **User authentication settings**
+2. Click **Set up** or **Edit**
+3. Configure the following:
 
-## Step 2: Create Twitter App
+#### App permissions:
+- ✅ Read
 
-1. Go to [Twitter Developer Portal](https://developer.twitter.com/en/portal/dashboard)
-2. Create a new App or use an existing one
-3. Go to your App settings
-4. Note down your:
-   - **API Key** (Consumer Key)
-   - **API Secret Key** (Consumer Secret)
+#### Type of App:
+- ✅ Native App (or Web App, Automated App or Bot)
 
-## Step 3: Configure Twitter App Settings
+#### App info:
+- **Callback URI / Redirect URL**: 
+  ```
+  com.app.taoexpress://oauthredirect
+  ```
+  
+- **Website URL**: (Your app's website or placeholder)
+  ```
+  https://taoexpress.com
+  ```
 
-### Enable OAuth 1.0a
+#### OAuth 2.0 Settings:
+- ✅ Enable OAuth 2.0
+- ✅ Request email from users (optional)
 
-1. In your Twitter App settings, go to "User authentication settings"
-2. Enable "OAuth 1.0a"
-3. Set the following:
-   - **App permissions**: Read and write (or Read only if you don't need write access)
-   - **Callback URL**: `taoexpress://` (or your custom scheme)
-   - **Website URL**: Your app's website URL
+4. Click **Save**
 
-### Request Email Access
+### 2. Verify Scopes
 
-1. In the "Additional permissions" section
-2. Enable "Request email address from users"
+Make sure your app has these scopes enabled:
+- `tweet.read` - Read tweets
+- `users.read` - Read user profile
+- `offline.access` - Refresh tokens
 
-## Step 4: Update Configuration
+## How It Works
 
-### Update `src/services/socialAuth.ts`
+### Authentication Flow:
 
-Replace the placeholder values:
+1. User taps "Sign in with Twitter"
+2. App generates PKCE code challenge
+3. Opens Twitter authorization page in browser
+4. User authorizes the app
+5. Twitter redirects back to app with authorization code
+6. App exchanges code for access token
+7. App fetches user profile from Twitter API v2
+8. Returns user data to your app
+
+### User Data Returned:
 
 ```typescript
-const TWITTER_CONSUMER_KEY = 'YOUR_TWITTER_CONSUMER_KEY'; // Replace with your API Key
-const TWITTER_CONSUMER_SECRET = 'YOUR_TWITTER_CONSUMER_SECRET'; // Replace with your API Secret Key
-```
-
-## Step 5: iOS Configuration
-
-### Update `ios/Podfile`
-
-Add the following to your Podfile:
-
-```ruby
-pod 'TwitterKit', '~> 3.4'
-```
-
-Then run:
-
-```bash
-cd ios && pod install
-```
-
-### Update `Info.plist`
-
-Add the following to `ios/TaoExpress/Info.plist`:
-
-```xml
-<key>CFBundleURLTypes</key>
-<array>
-  <dict>
-    <key>CFBundleURLSchemes</key>
-    <array>
-      <string>twitterkit-YOUR_CONSUMER_KEY</string>
-    </array>
-  </dict>
-</array>
-
-<key>LSApplicationQueriesSchemes</key>
-<array>
-  <string>twitter</string>
-  <string>twitterauth</string>
-</array>
-```
-
-Replace `YOUR_CONSUMER_KEY` with your actual Twitter Consumer Key.
-
-## Step 6: Android Configuration
-
-### Update `android/app/build.gradle`
-
-Add the following to the `defaultConfig` section:
-
-```gradle
-android {
-    defaultConfig {
-        // ... other config
-        
-        manifestPlaceholders = [
-            twitterConsumerKey: "YOUR_CONSUMER_KEY",
-            twitterConsumerSecret: "YOUR_CONSUMER_SECRET"
-        ]
-    }
-}
-```
-
-### Update `AndroidManifest.xml`
-
-Add the following inside the `<application>` tag in `android/app/src/main/AndroidManifest.xml`:
-
-```xml
-<activity
-    android:name="com.twitter.sdk.android.core.identity.OAuthActivity"
-    android:configChanges="orientation|screenSize"
-    android:exported="true">
-    <intent-filter>
-        <action android:name="android.intent.action.VIEW" />
-        <category android:name="android.intent.category.DEFAULT" />
-        <category android:name="android.intent.category.BROWSABLE" />
-        <data
-            android:scheme="twitterkit-${twitterConsumerKey}" />
-    </intent-filter>
-</activity>
-```
-
-## Step 7: Update app.json
-
-Add Twitter to the scheme:
-
-```json
 {
-  "expo": {
-    "scheme": "taoexpress",
-    "android": {
-      "intentFilters": [
-        {
-          "action": "VIEW",
-          "data": [
-            {
-              "scheme": "twitterkit-YOUR_CONSUMER_KEY"
-            }
-          ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ]
-        }
-      ]
-    }
+  accessToken: string,
+  refreshToken: string | null,
+  userInfo: {
+    id: string,           // Twitter user ID
+    email: string,        // Empty (Twitter OAuth 2.0 doesn't provide email by default)
+    name: string,         // Display name or username
+    picture: string | null // Profile image URL
   }
 }
 ```
 
-## Step 8: Build the App
+## Testing
 
-Since this is a native module, you need to rebuild your app:
-
-### For Development
-
+### 1. Build the app:
 ```bash
-# iOS
-npx expo run:ios
-
-# Android
 npx expo run:android
 ```
 
-### For Production
+### 2. Test Twitter Sign-In:
+1. Open the app
+2. Navigate to Login screen
+3. Tap "Sign in with Twitter"
+4. Browser opens with Twitter authorization
+5. Authorize the app
+6. App receives user data
 
-```bash
-# Build with EAS
-eas build --platform ios
-eas build --platform android
-```
+## Important Notes
 
-## Usage
+### Email Address
+- Twitter OAuth 2.0 **does not provide email** by default
+- To get email, you need to:
+  1. Apply for Elevated access in Twitter Developer Portal
+  2. Request additional permissions
+  3. Use OAuth 1.0a instead (requires different implementation)
 
-The Twitter sign-in is already integrated in your `LoginScreen`. When users tap the Twitter button:
+### Redirect URI
+- Must match exactly in Twitter Developer Portal
+- Format: `com.app.taoexpress://oauthredirect`
+- Case-sensitive
 
-1. The native Twitter SDK will open
-2. User authenticates with Twitter
-3. App receives the authentication tokens
-4. User info is fetched from Twitter API
-5. User is logged into your app
-
-## Testing
-
-1. Run the app on a physical device or simulator
-2. Tap the Twitter sign-in button on the login screen
-3. Authenticate with your Twitter account
-4. Verify that you're logged in successfully
+### Token Expiration
+- Access tokens expire after 2 hours
+- Use refresh token to get new access token
+- Implement token refresh logic in your backend
 
 ## Troubleshooting
 
-### "Invalid Consumer Key"
-- Double-check your Consumer Key and Secret in `socialAuth.ts`
-- Make sure they match your Twitter App credentials
+### "Invalid redirect_uri"
+- Check that redirect URI in Twitter Developer Portal matches exactly
+- Verify: `com.app.taoexpress://oauthredirect`
 
-### "Callback URL not approved"
-- Verify the callback URL in Twitter Developer Portal matches your app scheme
-- Make sure OAuth 1.0a is enabled
+### "Invalid client_id"
+- Verify Client ID is correct
+- Make sure OAuth 2.0 is enabled in Twitter Developer Portal
 
-### "Email not provided"
-- Request email permission in Twitter Developer Portal
-- Some Twitter accounts may not have email addresses
+### "Insufficient permissions"
+- Check that required scopes are enabled
+- Verify app permissions in Twitter Developer Portal
 
-### iOS Build Errors
-- Run `cd ios && pod install` again
-- Clean build folder: `cd ios && xcodebuild clean`
+### Browser doesn't redirect back
+- Check AndroidManifest.xml has correct intent filter
+- Verify app scheme matches redirect URI
 
-### Android Build Errors
-- Sync Gradle files
-- Clean build: `cd android && ./gradlew clean`
+## AndroidManifest.xml Configuration
 
-## Security Notes
+The app is already configured with the correct intent filter:
 
-1. **Never commit your Consumer Secret** to version control
-2. Use environment variables for production:
-   ```typescript
-   const TWITTER_CONSUMER_KEY = process.env.TWITTER_CONSUMER_KEY;
-   const TWITTER_CONSUMER_SECRET = process.env.TWITTER_CONSUMER_SECRET;
-   ```
-3. Store secrets securely using EAS Secrets:
-   ```bash
-   eas secret:create --scope project --name TWITTER_CONSUMER_KEY --value your_key
-   eas secret:create --scope project --name TWITTER_CONSUMER_SECRET --value your_secret
-   ```
+```xml
+<intent-filter>
+  <action android:name="android.intent.action.VIEW"/>
+  <category android:name="android.intent.category.DEFAULT"/>
+  <category android:name="android.intent.category.BROWSABLE"/>
+  <data android:scheme="taoexpress"/>
+  <data android:scheme="exp+taoexpress"/>
+</intent-filter>
+```
 
-## Additional Resources
+## Security Best Practices
 
-- [Twitter Developer Documentation](https://developer.twitter.com/en/docs)
-- [@react-native-twitter-signin GitHub](https://github.com/GoldenOwlAsia/react-native-twitter-signin)
-- [Twitter API Reference](https://developer.twitter.com/en/docs/api-reference-index)
+1. **Never commit credentials** to version control
+2. **Use environment variables** for production
+3. **Implement token refresh** on your backend
+4. **Validate tokens** server-side
+5. **Use HTTPS** for all API calls
+
+## Production Checklist
+
+- [ ] Verify redirect URI in Twitter Developer Portal
+- [ ] Test authentication flow end-to-end
+- [ ] Implement token refresh logic
+- [ ] Handle error cases (cancelled, network errors)
+- [ ] Add loading states in UI
+- [ ] Test on multiple devices
+- [ ] Move credentials to environment variables
+- [ ] Set up backend token validation
+
+## API Reference
+
+```typescript
+import { signInWithTwitter } from './services/socialAuth';
+
+// Sign in with Twitter
+const result = await signInWithTwitter();
+
+if (result.success) {
+  console.log('Access Token:', result.data.accessToken);
+  console.log('User Info:', result.data.userInfo);
+  // Handle successful login
+} else {
+  console.error('Error:', result.error);
+  // Handle error
+}
+```
 
 ## Support
 
-If you encounter issues:
-1. Check the package GitHub issues
-2. Verify your Twitter App configuration
-3. Check console logs for detailed error messages
+For Twitter API issues:
+- Twitter Developer Portal: https://developer.twitter.com/en/portal/dashboard
+- Twitter API Documentation: https://developer.twitter.com/en/docs/twitter-api
+- OAuth 2.0 Guide: https://developer.twitter.com/en/docs/authentication/oauth-2-0
+
+## Next Steps
+
+1. Configure redirect URI in Twitter Developer Portal
+2. Build and test the app
+3. Verify authentication works
+4. Implement backend token validation
+5. Add error handling and loading states

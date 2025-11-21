@@ -16,11 +16,11 @@ const GlowmifyLogo: React.FC<GlowmifyLogoProps> = ({
   return (
     <View style={styles.container}>
       <View style={[styles.logo, { width: 200, height: 100 }]}>
-        <Image
+        {/* <Image
           source={require('../assets/icons/splash_logo.png')}
           style={{ width: 250, height: 250}}
           resizeMode="contain"
-        />
+        /> */}
       </View>
       {showText && (
         <View style={styles.appNameContainer}>

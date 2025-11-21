@@ -4,7 +4,7 @@ import * as Crypto from 'expo-crypto';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { Platform } from 'react-native';
 import React from 'react';
-// import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { SocialLoginOptions, SocialLoginResult } from '../types';
 
 // Handle redirect URI for OAuth
@@ -19,12 +19,13 @@ const GOOGLE_REDIRECT_URI = "https://auth.expo.io/@roy_hensley/taoexpress";
 // Configure Google Sign-In
 // Make sure you have created an Android OAuth Client in Google Cloud Console with:
 // - Package name: com.app.taoexpress
-// - SHA-1: 35:2A:B3:C0:06:50:CC:C9:2C:A7:29:D2:7D:23:77:48:5D:0C:06:D0
-// GoogleSignin.configure({
-//   webClientId: GOOGLE_WEB_CLIENT_ID,
-//   offlineAccess: true,
-//   forceCodeForRefreshToken: true,
-// });
+// - SHA-1 #1: 5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25
+// - SHA-1 #2: 35:2A:B3:C0:06:50:CC:C9:2C:A7:29:D2:7D:23:77:48:5D:0C:06:D0
+GoogleSignin.configure({
+  webClientId: GOOGLE_WEB_CLIENT_ID,
+  offlineAccess: true,
+  forceCodeForRefreshToken: true,
+});
 // Facebook OAuth Configuration
 const FACEBOOK_APP_ID = 'YOUR_FACEBOOK_APP_ID';
 const FACEBOOK_REDIRECT_URI = AuthSession.makeRedirectUri({
@@ -35,8 +36,9 @@ const FACEBOOK_REDIRECT_URI = AuthSession.makeRedirectUri({
 const APPLE_REDIRECT_URI = AuthSession.makeRedirectUri({
   native: 'com.glowmify.app://oauthredirect',
 });
-// Twitter OAuth 2.0 Configuration (web-based)
+// Twitter OAuth 2.0 Configuration
 const TWITTER_CLIENT_ID = 'dURqNDZQVDRTQjJYbWt2cUwtOFU6MTpjaQ';
+const TWITTER_CLIENT_SECRET = '7KcFO61dXldQA8Em1JQqWJK4VaJqL-DO46e25gObmnPGHbrfgZ';
 const TWITTER_REDIRECT_URI = AuthSession.makeRedirectUri({
   native: 'com.app.taoexpress://oauthredirect',
 });
@@ -78,29 +80,6 @@ const generateCodeChallenge = async (codeVerifier: string): Promise<string> => {
 // Google Sign In with native modal
 export const signInWithGoogle = async () => {
   try {
-    // MOCK MODE: Return mock Google user data for testing
-    console.log('Google Sign-In: Using MOCK mode for testing');
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Return mock Google user
-    return {
-      success: true,
-      data: {
-        accessToken: `mock_google_token_${Date.now()}`,
-        refreshToken: `mock_google_refresh_${Date.now()}`,
-        userInfo: {
-          id: 'google_user_123',
-          email: 'googleuser@gmail.com',
-          name: 'Google Test User',
-          picture: 'https://via.placeholder.com/150',
-        },
-      },
-    };
-
-    // REAL IMPLEMENTATION (commented out for testing):
-    /*
     // Check if Play Services are available (Android only)
     await GoogleSignin.hasPlayServices();
     console.log("Google Signin Start");
@@ -129,7 +108,6 @@ export const signInWithGoogle = async () => {
         },
       },
     };
-    */
   } catch (error: any) {
     console.error('Google Sign-In Error:', error);
     
@@ -347,22 +325,22 @@ export const useSocialLogin = (options?: SocialLoginOptions): SocialLoginResult 
   };
 };
 
-// Twitter Sign In with expo-auth-session (OAuth 2.0 PKCE)
+// Twitter Sign In with OAuth 2.0 PKCE
 export const signInWithTwitter = async () => {
   try {
     console.log('Twitter Sign-In: Starting OAuth 2.0 authentication');
+    console.log('Twitter Redirect URI:', TWITTER_REDIRECT_URI);
     
     // Generate PKCE codes
     const codeVerifier = await generateRandomString(64);
     const codeChallenge = await generateCodeChallenge(codeVerifier);
     
     console.log('Twitter: PKCE codes generated');
-    console.log('Twitter Redirect URI:', TWITTER_REDIRECT_URI);
     
     // Twitter OAuth 2.0 endpoints
     const discovery = {
-      authorizationEndpoint: 'https://x.com/i/oauth2/authorize',
-      tokenEndpoint: 'https://api.xs.com/2/oauth2/token',
+      authorizationEndpoint: 'https://twitter.com/i/oauth2/authorize',
+      tokenEndpoint: 'https://api.twitter.com/2/oauth2/token',
     };
     
     // Create auth request with PKCE
@@ -404,26 +382,30 @@ export const signInWithTwitter = async () => {
       console.log('Twitter: Token received, fetching user info');
       
       // Get user info from Twitter API v2
-      const userInfoResponse = await fetch('https://api.x.com/2/users/me?user.fields=profile_image_url', {
-        headers: {
-          Authorization: `Bearer ${tokenResponse.accessToken}`,
-        },
-      });
+      const userInfoResponse = await fetch(
+        'https://api.twitter.com/2/users/me?user.fields=profile_image_url,name,username',
+        {
+          headers: {
+            Authorization: `Bearer ${tokenResponse.accessToken}`,
+          },
+        }
+      );
       
-      const userInfo = await userInfoResponse.json();
+      const userInfoData = await userInfoResponse.json();
+      console.log('Twitter: User info received:', userInfoData);
       
-      console.log('Twitter: User info received:', userInfo);
+      const userInfo = userInfoData.data;
       
       return {
         success: true,
         data: {
           accessToken: tokenResponse.accessToken,
-          refreshToken: tokenResponse.refreshToken,
+          refreshToken: tokenResponse.refreshToken || null,
           userInfo: {
-            id: userInfo.data?.id || '',
-            email: userInfo.data?.email || '',
-            name: userInfo.data?.name || userInfo.data?.username || '',
-            picture: userInfo.data?.profile_image_url || null,
+            id: userInfo?.id || '',
+            email: '', // Twitter OAuth 2.0 doesn't provide email by default
+            name: userInfo?.name || userInfo?.username || '',
+            picture: userInfo?.profile_image_url || null,
           },
         },
       };

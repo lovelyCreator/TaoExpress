@@ -592,6 +592,151 @@ export const getStoredUserData = async (): Promise<User | null> => {
   }
 };
 
+// Social Login API (backend)
+export const socialLogin = async (
+  provider: string,
+  accessToken: string,
+  email: string,
+  name: string,
+  providerId: string
+): Promise<{ success: boolean; data?: any; error?: string }> => {
+  try {
+    const guest_ids = await AsyncStorage.getItem(STORAGE_KEYS.GUEST_ID);
+    
+    const requestBody = {
+      provider, // 'google', 'facebook', 'apple', 'twitter', 'kakao'
+      access_token: accessToken,
+      email,
+      name,
+      provider_id: providerId,
+      guest_id: guest_ids || '',
+    };
+    
+    console.log('Social Login Request:', { provider, email, name });
+    
+    // MOCK DATA: Commented out API call
+    // const response = await apiClient.post<AuthResponse>('/auth/social-login', requestBody);
+    
+    // MOCK DATA: Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // MOCK DATA: Return mock response
+    const mockResponse = {
+      data: {
+        token: `mock_token_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        user_id: providerId,
+        email: email,
+        first_name: name || email.split('@')[0] || 'User',
+        follower_count: 0,
+        following_count: 0,
+        image: null,
+      }
+    };
+    const response = { data: mockResponse.data };
+    console.log('Social Login Response (MOCK):', response.data);
+
+    // Validate response data
+    if (!response.data) {
+      return {
+        success: false,
+        error: 'Invalid response from server',
+      };
+    }
+
+    let parsedData = response.data;
+    if (typeof parsedData === 'string') {
+      try {
+        let fixedJson: string = parsedData;
+        if (fixedJson.trim().endsWith(',')) {
+          fixedJson = fixedJson.trim().slice(0, -1);
+        }
+        if (!fixedJson.trim().endsWith('}')) {
+          fixedJson = fixedJson.trim() + '}';
+        }
+        parsedData = JSON.parse(fixedJson);
+      } catch (parseError) {
+        console.error('Error parsing error response:', parseError);
+      }
+    }
+
+    // Create user object from response
+    const userData: Partial<User> = {
+      id: parsedData.user_id,
+      email: parsedData.email,
+      name: parsedData.first_name || 'User',
+      addresses: [],
+      paymentMethods: [],
+      wishlist: [],
+      followersCount: parsedData.follower_count || 0,
+      followingsCount: parsedData.following_count || 0,
+      avatar: (parsedData as any).image || null,
+      preferences: {
+        notifications: {
+          email: true,
+          push: true,
+          sms: true,
+        },
+        language: 'en',
+        currency: 'USD',
+      },
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    // Store token and user data
+    await storeAuthData(parsedData.token, userData);
+
+    return {
+      success: true,
+      data: {
+        token: parsedData.token,
+        user: userData,
+      },
+    };
+  } catch (error) {
+    console.error('Social login error:', error);
+    
+    if (axios.isAxiosError(error)) {
+      const axiosError = error as AxiosError;
+      
+      if (!axiosError.response) {
+        return {
+          success: false,
+          error: 'Network error. Please check your connection and try again.',
+        };
+      }
+      
+      const errorData = axiosError.response.data as any;
+      let parsedErrorData = errorData;
+      
+      if (typeof errorData === 'string') {
+        try {
+          let fixedJson: string = errorData;
+          if (fixedJson.trim().endsWith(',')) {
+            fixedJson = fixedJson.trim().slice(0, -1);
+          }
+          if (!fixedJson.trim().endsWith('}')) {
+            fixedJson = fixedJson.trim() + '}';
+          }
+          parsedErrorData = JSON.parse(fixedJson);
+        } catch (parseError) {
+          console.error('Error parsing error response:', parseError);
+        }
+      }
+      
+      return {
+        success: false,
+        error: parsedErrorData?.errors?.[0]?.message || parsedErrorData?.message || 'Social login failed',
+      };
+    }
+    
+    return {
+      success: false,
+      error: 'An unexpected error occurred. Please try again.',
+    };
+  }
+};
+
 // Change password API
 export const changePassword = async (
   currentPassword: string,
