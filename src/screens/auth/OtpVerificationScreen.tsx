@@ -4,13 +4,14 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  Alert,
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { AuthStackParamList } from '../../types';
-import { COLORS, FONTS, SPACING } from '../../constants';
+import { BORDER_RADIUS, COLORS, FONTS, SPACING } from '../../constants';
 import { Ionicons } from '@expo/vector-icons';
+import { useResendVerificationMutation } from '../../hooks/useAuthMutations';
+import { useToast } from '../../hooks/useToast';
 import {
   CodeField,
   Cursor,
@@ -45,6 +46,7 @@ const OtpVerificationScreen: React.FC<{
     setValue,
   });
   const errorTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const { showToast, ToastComponent } = useToast();
 
   // Function to mask email (show only first letter before @)
   const maskEmail = (email: string) => {
@@ -70,9 +72,10 @@ const OtpVerificationScreen: React.FC<{
     }
   };
 
-  // Set error with 30-second timeout
+  // Set error with Toast notification
   const setErrorWithTimeout = (errorMessage: string) => {
     setError(errorMessage);
+    showToast({ message: errorMessage, type: 'error' });
     
     // Clear any existing timeout
     if (errorTimeoutRef.current) {
@@ -94,36 +97,38 @@ const OtpVerificationScreen: React.FC<{
       return;
     }
     
-    // In a real app, you would validate this against your backend
-    // For demo purposes, let's assume "111111" is valid
-    if (value === '111111') {
-      Alert.alert('Success', 'OTP verified successfully!');
-      navigation.navigate('ResetPassword', { token: 'dummy-token' });
-    } else {
-      setErrorWithTimeout('The OTP you entered is incorrect. Please try again.');
-    }
+    // Navigate to reset password screen with email and code
+    navigation.navigate('ResetPassword', { token: value, email: email });
   };
 
   // Resend OTP
-  const resendOtp = () => {
-    // In a real app, you would call your API to resend OTP
-    Alert.alert('OTP Resent', 'A new OTP has been sent to your email.');
-    
-    // Reset timer
-    setTimeLeft(30);
-    setResendEnabled(false);
-    
-    // Clear existing OTP
-    setValue('');
-    
-    // Clear error message if present
-    setError('');
-    
-    // Clear any existing error timeout
-    if (errorTimeoutRef.current) {
-      clearTimeout(errorTimeoutRef.current);
-      errorTimeoutRef.current = null;
-    }
+  const { mutate: resendOtp } = useResendVerificationMutation({
+    onSuccess: (data) => {
+      showToast({ message: data.message || 'A new OTP has been sent to your email.', type: 'success' });
+      
+      // Reset timer
+      setTimeLeft(30);
+      setResendEnabled(false);
+      
+      // Clear existing OTP
+      setValue('');
+      
+      // Clear error message if present
+      setError('');
+      
+      // Clear any existing error timeout
+      if (errorTimeoutRef.current) {
+        clearTimeout(errorTimeoutRef.current);
+        errorTimeoutRef.current = null;
+      }
+    },
+    onError: (error) => {
+      showToast({ message: error, type: 'error' });
+    },
+  });
+
+  const handleResendOtp = () => {
+    resendOtp({ email });
   };
 
   // Timer effect
@@ -151,12 +156,18 @@ const OtpVerificationScreen: React.FC<{
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity 
-        style={styles.backButton}
-        onPress={() => navigation.goBack()}
-      >
-        <Ionicons name="arrow-back" size={18} color={COLORS.text.primary} />
-      </TouchableOpacity>
+      {ToastComponent}
+      
+      <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>TodayMall</Text>
+        <View style={styles.placeholder} />
+      </View>
       
       <View style={styles.content}>
         <Text style={styles.title}>OTP</Text>
@@ -179,8 +190,8 @@ const OtpVerificationScreen: React.FC<{
             <View
               onLayout={getCellOnLayoutHandler(index)}
               key={index}
-              style={[styles.otpInputContainer, isFocused && styles.focusCell, error ? styles.otpInputError : null]}>
-              <Text style={styles.otpInput}>
+              style={[styles.cell, isFocused && styles.focusCell]}>
+              <Text style={styles.cellText}>
                 {symbol || (isFocused ? <Cursor /> : null)}
               </Text>
             </View>
@@ -199,7 +210,7 @@ const OtpVerificationScreen: React.FC<{
         {/* Resend OTP Button */}
         <TouchableOpacity 
           style={styles.resendButton}
-          onPress={resendOtp}
+          onPress={handleResendOtp}
           disabled={!resendEnabled}
         >
           <Text style={[styles.resendButtonText, !resendEnabled ? styles.resendButtonTextDisabled : null]}>
@@ -210,8 +221,13 @@ const OtpVerificationScreen: React.FC<{
         {/* Verify Button - Only show when all OTP digits are filled and no error */}
         {value.length === CELL_COUNT && !error && (
           <TouchableOpacity 
-            style={styles.verifyButton}
+            style={
+              value.length !== 6
+                ? { ...styles.verifyButton, ...styles.verifyButtonDisabled }
+                : styles.verifyButton
+            }
             onPress={verifyOtp}
+            disabled={value.length !== 6}
           >
             <Text style={styles.verifyButtonText}>Verify</Text>
           </TouchableOpacity>
@@ -226,83 +242,82 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.white,
   },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING['2xl'],
+  },
   backButton: {
-    marginTop: SPACING['3xl'],
-    marginLeft: SPACING.md,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: COLORS.white,
+    width: 40,
+    height: 40,
+    borderRadius: BORDER_RADIUS.full,
+    backgroundColor: COLORS.gray[100],
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: SPACING.lg,
-    shadowColor: COLORS.shadow,
-    shadowOffset: {
-    width: 0,
-    height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
   },
-  backButtonText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#000000',
+  headerTitle: {
+    fontSize: FONTS.sizes['xl'],
+    fontWeight: '700',
+    color: COLORS.text.primary,
+  },
+  placeholder: {
+    width: 40,
   },
   content: {
     flex: 1,
-    paddingHorizontal: SPACING.md,
-    paddingTop: 24,
+    paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.md,
   },
   title: {
-    fontSize: 24,
+    fontSize: FONTS.sizes.xl,
     fontWeight: 'bold',
     color: '#000000',
-    marginBottom: 8,
+    marginBottom: SPACING.sm,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: FONTS.sizes.md,
     color: COLORS.gray[400],
-    marginBottom: 8,
+    marginBottom: SPACING.sm,
   },
   email: {
-    fontSize: 14,
+    fontSize: FONTS.sizes.md,
     color: COLORS.gray[400],
-    marginBottom: 32,
+    marginBottom: SPACING['xl'],
   },
   codeFieldRoot: {
-    marginBottom: 20,
+    marginBottom: SPACING.lg,
+    paddingHorizontal: SPACING.sm,
   },
-  focusCell: {
-    borderColor: COLORS.black,
-  },
-  otpInputContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: 8,
-    backgroundColor: '#F5F5F5',
+  cell: {
+    width: 48,
+    height: 56,
+    lineHeight: 54,
+    borderWidth: 2,
+    borderColor: COLORS.borderLight,
+    borderRadius: 12,
+    textAlign: 'center',
+    backgroundColor: COLORS.white,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    marginHorizontal: 4,
   },
-  otpInput: {
+  focusCell: {
+    borderColor: COLORS.primary,
+  },
+  cellText: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#000000',
+    fontWeight: '600',
+    color: COLORS.text.primary,
     textAlign: 'center',
-  },
-  otpInputError: {
-    borderColor: '#FF3B30',
   },
   errorContainer: {
     marginBottom: 16,
   },
   errorText: {
     fontSize: FONTS.sizes.sm,
-    color: '#FF3B30',
+    color: COLORS.accentPink,
     marginLeft: 8,
   },
   resendButton: {
@@ -310,8 +325,8 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   resendButtonText: {
-    fontSize: 14,
-    color: '#FF3B30',
+    fontSize: FONTS.sizes.md,
+    color: COLORS.accentPink,
     textDecorationLine: 'underline',
   },
   resendButtonTextDisabled: {
@@ -319,16 +334,21 @@ const styles = StyleSheet.create({
     textDecorationLine: 'none',
   },
   verifyButton: {
-    backgroundColor: COLORS.black,
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    borderRadius: 8,
+    backgroundColor: COLORS.error,
+    paddingVertical: SPACING.smmd,
+    borderRadius: BORDER_RADIUS.full,
     alignItems: 'center',
+    width: '100%',
+  },
+  verifyButtonDisabled: {
+    backgroundColor: COLORS.accentPinkLight,
+    opacity: 0.6,
   },
   verifyButtonText: {
-    fontSize: FONTS.sizes.md,
-    fontWeight: 'bold',
+    fontSize: FONTS.sizes.lg,
+    fontWeight: '700',
     color: COLORS.white,
+    letterSpacing: 0.5,
   },
 });
 

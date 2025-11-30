@@ -6,74 +6,65 @@ import { Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { RootStackParamList, AuthStackParamList, MainTabParamList } from '../types';
-import { COLORS } from '../constants';
+import { COLORS, DEMO_MODE } from '../constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+// Demo screens
+import CartScreenDemo from '../screens/demo/CartScreen.demo';
+import WishlistScreenDemo from '../screens/demo/WishlistScreen.demo';
+import ProfileScreenDemo from '../screens/demo/ProfileScreen.demo';
+
 // Import screens
-import SplashScreen from '../screens/lazy/SplashScreen.lazy';
+import SplashScreen from '../screens/SplashScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import SignupScreen from '../screens/auth/SignupScreen';
-import ForgotPasswordScreen from '../screens/lazy/ForgotPasswordScreen.lazy';
-import ResetPasswordScreen from '../screens/lazy/ResetPasswordScreen.lazy';
-import HomeScreen from '../screens/main/HomeScreen.lazy';
-import SearchScreen from '../screens/main/SearchScreen.lazy';
-import CartScreen from '../screens/lazy/CartScreen.lazy';
-import NotificationsScreen from '../screens/lazy/NotificationsScreen.lazy';
-import ProfileScreen from '../screens/lazy/ProfileScreen.lazy';
-import ProductDetailScreen from '../screens/lazy/ProductDetailScreen.lazy';
-import ReviewsScreen from '../screens/lazy/ReviewsScreen.lazy';
-import SellerProfileScreen from '../screens/lazy/SellerProfileScreen.lazy';
-import CheckoutScreen from '../screens/lazy/CheckoutScreen.lazy';
-import OrderConfirmationScreen from '../screens/lazy/OrderConfirmationScreen.lazy';
-import SearchResultsScreen from '../screens/lazy/SearchResultsScreen.lazy';
-import EditProfileScreen from '../screens/lazy/EditProfileScreen.lazy';
-import AddressBookScreen from '../screens/lazy/AddressBookScreen.lazy';
-import AddNewAddressScreen from '../screens/lazy/AddNewAddressScreen.lazy';
-import EditAddressScreen from '../screens/lazy/EditAddressScreen.lazy';
-import EditFinanceAddressScreen from '../screens/lazy/EditFinanceAddressScreen.lazy';
-import BalanceSettingsScreen from '../screens/lazy/BalanceSettingsScreen.lazy';
-import BankAccountScreen from '../screens/lazy/BankAccountScreen.lazy';
-import WithdrawScreen from '../screens/lazy/WithdrawScreen.lazy';
-import WithdrawConfirmScreen from '../screens/lazy/WithdrawConfirmScreen.lazy';
-import SellerCategoryScreen from '../screens/lazy/SellerCategoryScreen.lazy';
-import PaymentMethodsScreen from '../screens/lazy/PaymentMethodsScreen.lazy';
+import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
+import ResetPasswordScreen from '../screens/auth/ResetPasswordScreen';
+import EmailVerificationScreen from '../screens/auth/EmailVerificationScreen';
+import HomeScreen from '../screens/main/HomeScreen';
+import SearchScreen from '../screens/main/SearchScreen';
+import CartScreen from '../screens/main/CartScreen';
+import NotificationsScreen from '../screens/main/NotificationsScreen';
+import ProfileScreen from '../screens/main/ProfileScreen';
+import ProductDetailScreen from '../screens/main/ProductDetailScreen';
+import ReviewsScreen from '../screens/main/ReviewsScreen';
+import SellerProfileScreen from '../screens/SellerProfileScreen';
+import CheckoutScreen from '../screens/CheckoutScreen';
+import OrderConfirmationScreen from '../screens/OrderConfirmationScreen';
+import SearchResultsScreen from '../screens/SearchResultsScreen';
+import EditProfileScreen from '../screens/EditProfileScreen';
+import AddressBookScreen from '../screens/AddressBookScreen';
+import AddNewAddressScreen from '../screens/AddNewAddressScreen';
+import EditAddressScreen from '../screens/EditAddressScreen';
+import EditFinanceAddressScreen from '../screens/EditFinanceAddressScreen';
+import WithdrawConfirmScreen from '../screens/main/WithdrawConfirmScreen';
+import PaymentMethodsScreen from '../screens/PaymentMethodsScreen';
 import AddPaymentMethodScreen from '../screens/AddPaymentMethodScreen';
-import OrderHistoryScreen from '../screens/lazy/OrderHistoryScreen.lazy';
-import WishlistScreen from '../screens/lazy/WishlistScreen.lazy';
-import SettingsScreen from '../screens/lazy/SettingsScreen.lazy';
+import OrderHistoryScreen from '../screens/OrderHistoryScreen';
+import WishlistScreen from '../screens/WishlistScreen';
 import ProfileSettingsScreen from '../screens/main/ProfileSettingsScreen';
 import HelpCenterScreen from '../screens/main/HelpCenterScreen';
 import HelpSearchScreen from '../screens/main/HelpSearchScreen';
 import HelpSectionScreen from '../screens/main/HelpSectionScreen';
 import HelpArticleScreen from '../screens/main/HelpArticleScreen';
 import LanguageSettingsScreen from '../screens/main/LanguageSettingsScreen';
-import FollowersScreen from '../screens/lazy/FollowersScreen.lazy';
-import FollowingScreen from '../screens/lazy/FollowingScreen.lazy';
 import OrderSuccessScreen from '../screens/OrderSuccessScreen';
 import PaymentScreen from '../screens/main/PaymentScreen';
 import AddAddressScreen from '../screens/main/AddAddressScreen';
 
 // Seller screens
-import MyStoreScreen from '../screens/lazy/MyStoreScreen.lazy';
-import MyStoreSettingsScreen from '../screens/lazy/MyStoreSettingsScreen.lazy';
-import StoreInformationScreen from '../screens/lazy/StoreInformationScreen.lazy';
-import StorePerformanceScreen from '../screens/lazy/StorePerformanceScreen.lazy';
-import ShippingSettingsScreen from '../screens/lazy/ShippingSettingsScreen.lazy';
-import ShippingServiceScreen from '../screens/lazy/ShippingServiceScreen.lazy';
-import MyProductsScreen from '../screens/lazy/MyProductsScreen.lazy';
-import AddProductScreen from '../screens/lazy/AddProductScreen.lazy';
+import StoreInformationScreen from '../screens/main/StoreInformationScreen';
+import StorePerformanceScreen from '../screens/main/StorePerformanceScreen';
 // import EditProductScreen from '../screens/main/EditProductScreen'; // Temporarily removed due to missing module
 // Order screens
-import MyOrdersScreen from '../screens/lazy/MyOrdersScreen.lazy';
-import DetailOrderScreen from '../screens/lazy/DetailOrderScreen.lazy';
-import LeaveFeedbackScreen from '../screens/lazy/LeaveFeedbackScreen.lazy';
+import MyOrdersScreen from '../screens/main/MyOrdersScreen';
+import DetailOrderScreen from '../screens/main/DetailOrderScreen';
+import LeaveFeedbackScreen from '../screens/main/LeaveFeedbackScreen';
 // Settings screens
-import LocationScreen from '../screens/lazy/LocationScreen.lazy';
-import NotificationsSettingsScreen from '../screens/lazy/NotificationsSettingsScreen.lazy';
-import SellerNotificationSettingsScreen from '../screens/lazy/SellerNotificationSettingsScreen.lazy';
-import PrivacyPolicyScreen from '../screens/lazy/PrivacyPolicyScreen.lazy';
-import AboutUsScreen from '../screens/lazy/AboutUsScreen.lazy';
-import ChangePasswordScreen from '../screens/lazy/ChangePasswordScreen.lazy';
+import LocationScreen from '../screens/main/LocationScreen';
+import NotificationsSettingsScreen from '../screens/main/NotificationsSettingsScreen';
+import PrivacyPolicyScreen from '../screens/main/PrivacyPolicyScreen';
+import ChangePasswordScreen from '../screens/main/ChangePasswordScreen';
 import AffiliateMarketingScreen from '../screens/main/AffiliateMarketingScreen';
 import UnitSettingsScreen from '../screens/main/UnitSettingsScreen';
 import PaymentPasswordScreen from '../screens/main/PaymentPasswordScreen';
@@ -87,32 +78,27 @@ import NoteScreen from '../screens/main/NoteScreen';
 import LeaveNoteScreen from '../screens/main/LeaveNoteScreen';
 import ShareAppScreen from '../screens/main/ShareAppScreen';
 // Chat screens
-import ChatScreen from '../screens/lazy/ChatScreen.lazy';
+import ChatScreen from '../screens/main/ChatScreen';
 import ChatErrorBoundary from '../components/ChatErrorBoundary';
-import ChatProductsScreen from '../screens/lazy/ChatProductsScreen.lazy';
-import ChatOrdersScreen from '../screens/lazy/ChatOrdersScreen.lazy';
-import ChatSettingsScreen from '../screens/lazy/ChatSettingsScreen.lazy';
+import ChatProductsScreen from '../screens/main/ChatProductsScreen';
+import ChatOrdersScreen from '../screens/main/ChatOrdersScreen';
+import ChatSettingsScreen from '../screens/main/ChatSettingsScreen';
 // import EditProductScreen from '../screens/main/EditProductScreen';
-import StoryViewScreen from '../screens/lazy/StoryViewScreen.lazy';
-import CategoryTabScreen from '../screens/lazy/CategoryTabScreen.lazy';
-import CategoryScreen from '../screens/lazy/CategoryScreen.lazy';
-import SubCategoryScreen from '../screens/lazy/SubCategoryScreen.lazy';
-import Sub2CategoryScreen from '../screens/lazy/Sub2CategoryScreen.lazy';
-import ProductDiscoveryScreen from '../screens/lazy/ProductDiscoveryScreen.lazy';
-import LikeScreen from '../screens/lazy/LikeScreen.lazy';
-import AddShippingServiceScreen from '../screens/lazy/AddShippingServiceScreen.lazy';
-import SellingHistoryScreen from '../screens/lazy/SellingHistoryScreen.lazy';
-import FinanceScreen from '../screens/lazy/FinanceScreen.lazy';
-import VariationsScreen from '../screens/lazy/VariationsScreen.lazy';
-import SetUpVariationsInfoScreen from '../screens/lazy/SetUpVariationsInfoScreen.lazy';
-import OtpVerificationScreen from '../screens/lazy/OtpVerificationScreen.lazy';
-import ComponentDemoScreen from '../screens/lazy/ComponentDemoScreen.lazy';
-import ExtendedComponentDemoScreen from '../screens/lazy/ExtendedComponentDemoScreen.lazy';
-import WithdrawSuccessScreen from '../screens/lazy/WithdrawSuccessScreen.lazy';
+import CategoryTabScreen from '../screens/main/CategoryTabScreen';
+import CategoryScreen from '../screens/CategoryScreen';
+import SubCategoryScreen from '../screens/main/SubCategoryScreen';
+import Sub2CategoryScreen from '../screens/main/Sub2CategoryScreen';
+import ProductDiscoveryScreen from '../screens/main/ProductDiscoveryScreen';
+import LikeScreen from '../screens/main/LikeScreen';
+import AddShippingServiceScreen from '../screens/AddShippingServiceScreen';
+import FinanceScreen from '../screens/main/FinanceScreen';
+import OtpVerificationScreen from '../screens/auth/OtpVerificationScreen';
+import WithdrawSuccessScreen from '../screens/main/WIthDrawSuccessScreen';
 import ChattingMemeberScreen from '../screens/main/ChattingMemberScreen';
-import ChatSearchScreenWithSuspense from '../screens/lazy/ChatSearchScreen.lazy';
+import ChatSearchScreen from '../screens/main/ChatSearchScreen';
 import PusherTestScreen from '../screens/main/PusherTestScreen';
 import CustomerServiceScreen from '../screens/main/CustomerServiceScreen';
+import OrderInquiryScreen from '../screens/main/OrderInquiryScreen';
 import ImageSearchScreen from '../screens/main/ImageSearchScreen';
 
 const RootStack = createStackNavigator<RootStackParamList>();
@@ -151,6 +137,7 @@ const AuthNavigator = React.memo(() => {
       <AuthStack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
       <AuthStack.Screen name="ResetPassword" component={ResetPasswordScreen} />
       <AuthStack.Screen name="OtpVerification" component={OtpVerificationScreen} />
+      <AuthStack.Screen name="EmailVerification" component={EmailVerificationScreen} />
     </AuthStack.Navigator>
   );
 });
@@ -221,9 +208,9 @@ const MainTabNavigator = () => {
     >
       <MainTab.Screen name="Home" component={HomeScreen} />
       <MainTab.Screen name="Category" component={CategoryTabScreen} />
-      <MainTab.Screen name="Cart" component={CartScreen} />
-      <MainTab.Screen name="Like" component={WishlistScreen} />
-      <MainTab.Screen name="Profile" component={ProfileScreen} />
+      <MainTab.Screen name="Cart" component={DEMO_MODE ? CartScreenDemo : CartScreen} />
+      <MainTab.Screen name="Like" component={DEMO_MODE ? WishlistScreenDemo : WishlistScreen} />
+      <MainTab.Screen name="Profile" component={DEMO_MODE ? ProfileScreenDemo : ProfileScreen} />
     </MainTab.Navigator>
   );
 };
@@ -288,21 +275,6 @@ const RootNavigator = () => {
             }}
           />
           <RootStack.Screen 
-            name="SellerProfile" 
-            component={SellerProfileScreen}
-            options={{
-              headerShown: false,
-              title: 'Seller Profile',
-              headerStyle: {
-                backgroundColor: COLORS.white,
-              },
-              headerTintColor: COLORS.text.primary,
-              headerTitleStyle: {
-                fontWeight: '600',
-              },
-            }}
-          />
-          <RootStack.Screen 
             name="Checkout" 
             component={CheckoutScreen}
             options={{
@@ -348,6 +320,21 @@ const RootNavigator = () => {
             }}
           />
           <RootStack.Screen 
+            name="SellerProfile" 
+            component={SellerProfileScreen}
+            options={{
+              headerShown: false,
+              title: 'Seller Profile',
+              headerStyle: {
+                backgroundColor: COLORS.white,
+              },
+              headerTintColor: COLORS.text.primary,
+              headerTitleStyle: {
+                fontWeight: '600',
+              },
+            }}
+          />
+          <RootStack.Screen 
             name="AddShippingService" 
             component={AddShippingServiceScreen}
             options={{
@@ -363,26 +350,6 @@ const RootNavigator = () => {
             }}
           />
           <RootStack.Screen 
-            name="Search" 
-            component={SearchScreen}
-            options={{
-              headerShown: false,
-              title: 'Search Results',
-              headerStyle: {
-                backgroundColor: COLORS.white,
-              },
-              headerTintColor: COLORS.text.primary,
-              headerTitleStyle: {
-                fontWeight: '600',
-              },
-            }}
-          />
-          <RootStack.Screen 
-            name="StoryView"
-            component={StoryViewScreen}
-            options={{ headerShown: false }}
-          />
-          <RootStack.Screen 
             name="SubCategory"
             component={SubCategoryScreen}
             options={{ headerShown: false }}
@@ -393,23 +360,23 @@ const RootNavigator = () => {
             options={{ headerShown: false }}
           />
           <RootStack.Screen 
-            name="ComponentDemo"
-            component={ComponentDemoScreen}
-            options={{ headerShown: false }}
-          />
-          <RootStack.Screen 
-            name="ExtendedComponentDemo"
-            component={ExtendedComponentDemoScreen}
-            options={{ headerShown: false }}
-          />
-          <RootStack.Screen 
             name="CustomerService"
             component={CustomerServiceScreen}
             options={{ headerShown: false }}
           />
           <RootStack.Screen 
+            name="OrderInquiry"
+            component={OrderInquiryScreen}
+            options={{ headerShown: false }}
+          />
+          <RootStack.Screen 
             name="ImageSearch"
             component={ImageSearchScreen}
+            options={{ headerShown: false }}
+          />
+          <RootStack.Screen 
+            name="Search"
+            component={SearchScreen}
             options={{ headerShown: false }}
           />
           <RootStack.Screen 
@@ -568,21 +535,6 @@ const RootNavigator = () => {
             options={{
               headerShown: false,
               title: 'Wishlist',
-              headerStyle: {
-                backgroundColor: COLORS.white,
-              },
-              headerTintColor: COLORS.text.primary,
-              headerTitleStyle: {
-                fontWeight: '600',
-              },
-            }}
-          />
-          <RootStack.Screen 
-            name="Settings" 
-            component={SettingsScreen}
-            options={{
-              headerShown: false,
-              title: 'Settings',
               headerStyle: {
                 backgroundColor: COLORS.white,
               },
@@ -819,20 +771,6 @@ const RootNavigator = () => {
           />
           {/* Seller screens */}
           <RootStack.Screen 
-            name="MyStore" 
-            component={MyStoreScreen}
-            options={{
-              headerShown: false,
-            }}
-          />
-          <RootStack.Screen 
-            name="MyStoreSettings" 
-            component={MyStoreSettingsScreen}
-            options={{
-              headerShown: false,
-            }}
-          />
-          <RootStack.Screen 
             name="StoreInformation" 
             component={StoreInformationScreen}
             options={{
@@ -846,92 +784,6 @@ const RootNavigator = () => {
               headerShown: false,
             }}
           />
-          <RootStack.Screen 
-            name="Variations" 
-            component={VariationsScreen}
-            options={{
-              headerShown: false,
-            }}
-          />
-          <RootStack.Screen 
-            name="SetUpVariationsInfo" 
-            component={SetUpVariationsInfoScreen}
-            options={{
-              headerShown: false,
-            }}
-          />
-          <RootStack.Screen 
-            name="ShippingSettings" 
-            component={ShippingSettingsScreen}
-            options={{
-              headerShown: false,
-            }}
-          />
-          <RootStack.Screen 
-            name="ShippingService" 
-            component={ShippingServiceScreen}
-            options={{
-              headerShown: false,
-            }}
-          />
-          <RootStack.Screen 
-            name="Following" 
-            component={FollowingScreen}
-            options={{
-              headerShown: false,
-            }}
-          />
-          <RootStack.Screen 
-            name="Followers" 
-            component={FollowersScreen}
-            options={{
-              headerShown: false,
-            }}
-          />
-          <RootStack.Screen 
-            name="MyProducts" 
-            component={MyProductsScreen}
-            options={{
-              headerShown: false,
-            }}
-          />
-          <RootStack.Screen 
-            name="AddProduct" 
-            component={AddProductScreen}
-            options={{
-              headerShown: false,
-            }}
-          />
-          <RootStack.Screen 
-            name="SellerCategory" 
-            component={SellerCategoryScreen}
-            options={{
-              headerShown: false,
-              title: 'Category',
-              headerStyle: {
-                backgroundColor: COLORS.white,
-              },
-              headerTintColor: COLORS.text.primary,
-              headerTitleStyle: {
-                fontWeight: '600',
-              },
-            }}
-          />
-          {/* <RootStack.Screen 
-            name="EditProduct" 
-            component={EditProductScreen}
-            options={{
-              headerShown: false,
-              title: 'Edit Product',
-              headerStyle: {
-                backgroundColor: COLORS.white,
-              },
-              headerTintColor: COLORS.text.primary,
-              headerTitleStyle: {
-                fontWeight: '600',
-              },
-            }}
-          /> */}
           {/* Order screens */}
           <RootStack.Screen 
             name="MyOrders" 
@@ -978,36 +830,6 @@ const RootNavigator = () => {
               },
             }}
           />
-          <RootStack.Screen 
-            name="BalanceSettings" 
-            component={BalanceSettingsScreen}
-            options={{
-              headerShown: false,
-              title: 'Balance Settings',
-              headerStyle: {
-                backgroundColor: COLORS.white,
-              },
-              headerTintColor: COLORS.text.primary,
-              headerTitleStyle: {
-                fontWeight: '600',
-              },
-            }}
-          />
-          <RootStack.Screen 
-            name="BankAccount" 
-            component={BankAccountScreen}
-            options={{
-              headerShown: false,
-              title: 'Bank Account',
-              headerStyle: {
-                backgroundColor: COLORS.white,
-              },
-              headerTintColor: COLORS.text.primary,
-              headerTitleStyle: {
-                fontWeight: '600',
-              },
-            }}
-          />
           {/* Settings screens */}
           <RootStack.Screen 
             name="Location" 
@@ -1030,21 +852,6 @@ const RootNavigator = () => {
             options={{
               headerShown: false,
               title: 'Finance',
-              headerStyle: {
-                backgroundColor: COLORS.white,
-              },
-              headerTintColor: COLORS.text.primary,
-              headerTitleStyle: {
-                fontWeight: '600',
-              },
-            }}
-          />
-          <RootStack.Screen 
-            name="Withdraw" 
-            component={WithdrawScreen}
-            options={{
-              headerShown: false,
-              title: 'Withdraw',
               headerStyle: {
                 backgroundColor: COLORS.white,
               },
@@ -1115,38 +922,8 @@ const RootNavigator = () => {
             }}
           />
           <RootStack.Screen 
-            name="SellingHistory" 
-            component={SellingHistoryScreen}
-            options={{
-              headerShown: false,
-              title: 'Selling History',
-              headerStyle: {
-                backgroundColor: COLORS.white,
-              },
-              headerTintColor: COLORS.text.primary,
-              headerTitleStyle: {
-                fontWeight: '600',
-              },
-            }}
-          />
-          <RootStack.Screen 
             name="NotificationsSettings" 
             component={NotificationsSettingsScreen}
-            options={{
-              headerShown: false,
-              title: 'NotificationsSettings',
-              headerStyle: {
-                backgroundColor: COLORS.white,
-              },
-              headerTintColor: COLORS.text.primary,
-              headerTitleStyle: {
-                fontWeight: '600',
-              },
-            }}
-          />
-          <RootStack.Screen 
-            name="SellerNotificationsSettings" 
-            component={SellerNotificationSettingsScreen}
             options={{
               headerShown: false,
               title: 'NotificationsSettings',
@@ -1165,21 +942,6 @@ const RootNavigator = () => {
             options={{
               headerShown: false,
               title: 'Privacy Policy',
-              headerStyle: {
-                backgroundColor: COLORS.white,
-              },
-              headerTintColor: COLORS.text.primary,
-              headerTitleStyle: {
-                fontWeight: '600',
-              },
-            }}
-          />
-          <RootStack.Screen 
-            name="AboutUs" 
-            component={AboutUsScreen}
-            options={{
-              headerShown: false,
-              title: 'About Us',
               headerStyle: {
                 backgroundColor: COLORS.white,
               },
@@ -1263,7 +1025,7 @@ const RootNavigator = () => {
           />
           <RootStack.Screen 
             name="ChatSearch" 
-            component={ChatSearchScreenWithSuspense}
+            component={ChatSearchScreen}
             options={{
               headerShown: false,
             }}

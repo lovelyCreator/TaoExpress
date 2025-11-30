@@ -575,7 +575,7 @@ const styles = StyleSheet.create({
     marginRight: SPACING.md,
   },
   gridName: {
-    fontSize: FONTS.sizes.md,
+    fontSize: FONTS.sizes.smmd,
     fontWeight: '500',
     color: COLORS.text.primary,
     marginBottom: 6,
@@ -586,12 +586,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   gridPrice: {
-    fontSize: FONTS.sizes.lg,
+    fontSize: FONTS.sizes.md,
     fontWeight: '700',
     color: COLORS.accentPink,
   },
   gridOriginalPrice: {
-    fontSize: FONTS.sizes.md,
+    fontSize: FONTS.sizes.smmd,
     color: COLORS.gray[500],
     textDecorationLine: 'line-through',
   },
@@ -611,7 +611,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   horizontalName: {
-    fontSize: FONTS.sizes.md,
+    fontSize: FONTS.sizes.smmd,
     fontWeight: '500',
     color: COLORS.text.primary,
     marginBottom: 6,
@@ -622,12 +622,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   horizontalPrice: {
-    fontSize: FONTS.sizes.lg,
+    fontSize: FONTS.sizes.md,
     fontWeight: '700',
     color: COLORS.accentPink,
   },
   horizontalOriginalPrice: {
-    fontSize: FONTS.sizes.md,
+    fontSize: FONTS.sizes.smmd,
     color: COLORS.gray[500],
     textDecorationLine: 'line-through',
   },
@@ -647,14 +647,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   moreToLoveName: {
-    fontSize: FONTS.sizes.md,
+    fontSize: FONTS.sizes.smmd,
     fontWeight: '500',
     color: COLORS.text.primary,
     marginBottom: 2,
     lineHeight: 18,
   },
   moreToLovePrice: {
-    fontSize: FONTS.sizes.lg,
+    fontSize: FONTS.sizes.md,
     fontWeight: '700',
     color: COLORS.error,
     marginRight: 8,

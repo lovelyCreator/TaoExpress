@@ -37,8 +37,9 @@ const UnitSettingsScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       {/* Header with Gradient */}
-      <LinearGradient
-        colors={['#FFE4E6', '#FFF0F1', '#FFFFFF']}
+      {/* <LinearGradient
+        colors={['#FFE4E6', '#FFF0F1', '#FFFFFF']} */}
+      <View
         style={styles.header}
       >
         <TouchableOpacity 
@@ -49,7 +50,8 @@ const UnitSettingsScreen = () => {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Unit Settings</Text>
         <View style={styles.placeholder} />
-      </LinearGradient>
+      {/* </LinearGradient> */}
+      </View>
 
       <ScrollView 
         style={styles.scrollView} 
@@ -133,7 +135,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.lg,
-    marginBottom: SPACING.md,
+    marginBottom: SPACING.md,    
+    paddingTop: SPACING['2xl'],
   },
   backButton: {
     width: 40,

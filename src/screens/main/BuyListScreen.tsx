@@ -7,16 +7,15 @@ import {
   TouchableOpacity,
   Image,
   FlatList,
+  SafeAreaView,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { COLORS, FONTS, SPACING } from '../../constants';
 import { RootStackParamList, Product } from '../../types';
 import { ProductCard } from '../../components';
-import OrderFilterModal from '../../components/OrderFilterModal';
+import { OrderFilterModal } from '../../components';
 
 type BuyListScreenNavigationProp = StackNavigationProp<RootStackParamList>;
 
@@ -106,7 +105,7 @@ const BuyListScreen = () => {
   ];
 
   // Sample products for "More to love" section
-  const recommendedProducts: Product[] = [
+  const recommendedProducts: Partial<Product>[] = [
     {
       id: '1',
       name: 'Summer Floral Dress',
@@ -114,12 +113,8 @@ const BuyListScreen = () => {
       originalPrice: 65.99,
       discount: 30,
       rating: 4.5,
-      ratingCount: 128,
-      image: 'https://picsum.photos/seed/dress1/400/500',
+      rating_count: 128,
       images: ['https://picsum.photos/seed/dress1/400/500'],
-      company: '1688',
-      category: '1688_women',
-      subcategory: '1688_women_dresses',
       orderCount: 456,
     },
     {
@@ -129,12 +124,8 @@ const BuyListScreen = () => {
       originalPrice: 129.99,
       discount: 31,
       rating: 4.8,
-      ratingCount: 256,
-      image: 'https://picsum.photos/seed/headphones/400/500',
+      rating_count: 256,
       images: ['https://picsum.photos/seed/headphones/400/500'],
-      company: '1688',
-      category: '1688_electronics',
-      subcategory: '1688_electronics_audio',
       orderCount: 789,
     },
     {
@@ -144,12 +135,8 @@ const BuyListScreen = () => {
       originalPrice: 299.99,
       discount: 33,
       rating: 4.7,
-      ratingCount: 512,
-      image: 'https://picsum.photos/seed/watch/400/500',
+      rating_count: 512,
       images: ['https://picsum.photos/seed/watch/400/500'],
-      company: '1688',
-      category: '1688_electronics',
-      subcategory: '1688_electronics_wearables',
       orderCount: 1234,
     },
     {
@@ -159,12 +146,8 @@ const BuyListScreen = () => {
       originalPrice: 49.99,
       discount: 28,
       rating: 4.6,
-      ratingCount: 89,
-      image: 'https://picsum.photos/seed/stand/400/500',
+      rating_count: 89,
       images: ['https://picsum.photos/seed/stand/400/500'],
-      company: '1688',
-      category: '1688_home',
-      subcategory: '1688_home_office',
       orderCount: 345,
     },
     {
@@ -174,12 +157,8 @@ const BuyListScreen = () => {
       originalPrice: 24.99,
       discount: 36,
       rating: 4.9,
-      ratingCount: 678,
-      image: 'https://picsum.photos/seed/case/400/500',
+      rating_count: 678,
       images: ['https://picsum.photos/seed/case/400/500'],
-      company: '1688',
-      category: '1688_accessories',
-      subcategory: '1688_accessories_phone',
       orderCount: 2345,
     },
     {
@@ -189,12 +168,8 @@ const BuyListScreen = () => {
       originalPrice: 19.99,
       discount: 35,
       rating: 4.4,
-      ratingCount: 234,
-      image: 'https://picsum.photos/seed/cable/400/500',
+      rating_count: 234,
       images: ['https://picsum.photos/seed/cable/400/500'],
-      company: '1688',
-      category: '1688_electronics',
-      subcategory: '1688_electronics_cables',
       orderCount: 567,
     },
   ];
@@ -209,16 +184,13 @@ const BuyListScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header with Gradient */}
-      <LinearGradient
-        colors={['#FFE4E6', '#FFF0F1', '#FFFFFF']}
-        style={styles.header}
-      >
+      {/* Header */}
+      <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="chevron-back" size={24} color={COLORS.text.primary} />
+          <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Buy List</Text>
         <TouchableOpacity 
@@ -227,7 +199,7 @@ const BuyListScreen = () => {
         >
           <Ionicons name="filter" size={24} color={COLORS.text.primary} />
         </TouchableOpacity>
-      </LinearGradient>
+      </View>
 
       <ScrollView 
         style={styles.scrollView} 
@@ -327,11 +299,11 @@ const BuyListScreen = () => {
               data={recommendedProducts}
               renderItem={({ item }) => (
                 <ProductCard
-                  product={item}
+                  product={item as Product}
                   variant="grid"
                 />
               )}
-              keyExtractor={(item) => item.id}
+              keyExtractor={(item) => item.id!}
               numColumns={2}
               scrollEnabled={false}
               columnWrapperStyle={styles.productRow}
@@ -361,40 +333,30 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.lg,
-    marginBottom: SPACING.md,
+    paddingVertical: SPACING.sm,
+    paddingTop: SPACING['2xl'],
+    backgroundColor: COLORS.white,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: COLORS.gray[100],
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
   },
   headerTitle: {
     fontSize: FONTS.sizes.xl,
     fontWeight: '700',
     color: COLORS.text.primary,
-    letterSpacing: 0.5,
   },
   filterButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: COLORS.gray[100],
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
   },
   scrollView: {
     flex: 1,

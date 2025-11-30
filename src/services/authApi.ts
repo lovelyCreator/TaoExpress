@@ -3,16 +3,52 @@ import { STORAGE_KEYS } from '../constants';
 import { User, AuthResponse, GuestResponse, LoginRequest, RegisterRequest, GustLoginRequest } from '../types';
 import axios, { AxiosError } from 'axios';
 
-// API base URL - using the provided local endpoint
-const API_BASE_URL = 'https://semistiff-vance-doctorly.ngrok-free.dev/api/v1';
+// API base URL - using environment variable or fallback
+// const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || process.env.API_BASE_URL || 'http://10.0.2.2:5000/api/v1';
+const API_BASE_URL = 'http://221.138.36.200:5000/api/v1';
+
+console.log('🌐 API Base URL:', API_BASE_URL);
 
 // Create axios instance with default config
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
+    'ngrok-skip-browser-warning': 'true', // Skip ngrok browser warning
   },
-});
+  timeout: 10000, // 10 second timeout
+})
+
+// Add request interceptor for debugging
+apiClient.interceptors.request.use(
+  (config) => {
+    console.log('📤 API Request:', config.method?.toUpperCase(), config.url);
+    return config;
+  },
+  (error) => {
+    console.error('❌ Request Error:', error);
+    return Promise.reject(error);
+  }
+);
+
+// Add response interceptor for debugging
+apiClient.interceptors.response.use(
+  (response) => {
+    console.log('✅ API Response:', response.status, response.config.url);
+    return response;
+  },
+  (error) => {
+    if (error.code === 'ECONNABORTED') {
+      console.error('⏱️ Request Timeout:', error.config?.url);
+    } else if (error.code === 'ERR_NETWORK') {
+      console.error('🔌 Network Error - Cannot reach server:', error.config?.url);
+      console.error('   Make sure backend is running and accessible from emulator');
+    } else {
+      console.error('❌ API Error:', error.response?.status, error.message);
+    }
+    return Promise.reject(error);
+  }
+);
 
 // In-memory storage for frontend-only mode with pre-configured test users
 let frontendUsers: { [key: string]: { password: string; user: Partial<User> } } = {
@@ -218,77 +254,70 @@ export const registerFrontendOnly = async (
 // Login API (backend)
 export const login = async (email: string, password: string): Promise<{ success: boolean; data?: any; error?: string }> => {
   try {
-    const guest_ids = await AsyncStorage.getItem(STORAGE_KEYS.GUEST_ID);
-    // console.log("Guest Id", guest_ids);
-    const requestBody: LoginRequest = {
-      email_or_phone: email,
+    const requestBody = {
+      email: email,
       password: password,
-      login_type: 'manual',
-      field_type: 'email',
-      guest_id: guest_ids || '', // Using the provided guest_id
-      
     };
-    // console.log("Login Request Body", requestBody);
+    console.log("Login Request Body", requestBody);
     
-    // MOCK DATA: Commented out API call
-    // const response = await apiClient.post<AuthResponse>('/auth/login', requestBody);
-    // console.log("Login Response", response.data);
-    
-    // MOCK DATA: Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // MOCK DATA: Return mock response
-    const mockResponse = {
-      data: {
-        token: `mock_token_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        user_id: '1',
-        email: email,
-        first_name: email.split('@')[0] || 'User',
-        follower_count: 0,
-        following_count: 0,
-        image: null,
-      }
-    };
-    const response = { data: mockResponse.data };
-    console.log("Login Response (MOCK)", response.data);
+    // Use fetch instead of axios
+    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true', // Skip ngrok browser warning
+      },
+      body: JSON.stringify(requestBody),
+    });
 
-    // Validate response data
-    if (!response.data) {
+    console.log("Login Response Status:", response.status);
+    
+    // Get response text first to check if it's JSON
+    const responseText = await response.text();
+    console.log("Login Response Text:", responseText.substring(0, 200));
+    
+    // Try to parse as JSON
+    let responseData;
+    try {
+      responseData = JSON.parse(responseText);
+      console.log("Login Response", responseData);
+    } catch (parseError) {
+      console.error("Failed to parse response as JSON:", parseError);
       return {
         success: false,
-        error: 'Invalid response from server',
+        error: 'Invalid response from server. Please check your network connection.',
       };
     }
 
-    let parsedData = response.data;
-    if (typeof parsedData === 'string') {
-      try {
-        // Try to fix malformed JSON by adding closing brace if missing
-        let fixedJson: string = parsedData;
-        if (fixedJson.trim().endsWith(',')) {
-          fixedJson = fixedJson.trim().slice(0, -1);
-        }
-        if (!fixedJson.trim().endsWith('}')) {
-          fixedJson = fixedJson.trim() + '}';
-        }
-        parsedData = JSON.parse(fixedJson);
-      } catch (parseError) {
-        // If parsing fails, use the original string
-        console.error('Error parsing error response:', parseError);
-      }
+    // Check if request was successful
+    if (!response.ok) {
+      return {
+        success: false,
+        error: responseData?.message || responseData?.error || `Request failed with status ${response.status}`,
+      };
     }
+
+    // Validate response data
+    if (!responseData || responseData.status !== 'success') {
+      return {
+        success: false,
+        error: responseData?.message || 'Invalid response from server',
+      };
+    }
+
+    const { user, token, refreshToken } = responseData.data;
+    
     // Create user object from response
     const userData: Partial<User> = {
-      id: parsedData.user_id, // Use email as ID for now, or extract from token if possible
-      email: parsedData.email,
-      name: parsedData.first_name || 'User', // Use email prefix as name
-      // Add default values for other required fields
+      id: user.id,
+      email: user.email,
+      name: user.user_id || 'User',
       addresses: [],
       paymentMethods: [],
       wishlist: [],
-      followersCount: parsedData.follower_count || 0,
-      followingsCount: parsedData.following_count || 0,
-      avatar: (parsedData as any).image || null,
+      followersCount: 0,
+      followingsCount: 0,
+      avatar: undefined,
       preferences: {
         notifications: {
           email: true,
@@ -301,64 +330,38 @@ export const login = async (email: string, password: string): Promise<{ success:
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-    console.log("LOGIN USER TOKEN", parsedData.token);
+    
+    console.log("LOGIN USER TOKEN", token);
+    
     // Store token and user data
-    await storeAuthData(parsedData.token, userData);
+    await storeAuthData(token, userData);
+    
+    // Store refresh token
+    await AsyncStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
 
     return {
       success: true,
       data: {
-        token: parsedData.token,
+        token,
+        refreshToken,
         user: userData,
       },
     };
   } catch (error) {
     console.error('Login error:', error);
     
-    // Handle axios errors
-    if (axios.isAxiosError(error)) {
-      const axiosError = error as AxiosError;
-      
-      // Handle network errors
-      if (!axiosError.response) {
-        return {
-          success: false,
-          error: 'Network error. Please check your connection and try again.',
-        };
-      }
-      
-      // Handle response errors
-      const errorData = axiosError.response.data as any;
-      
-      // Try to parse error data if it's a string
-      let parsedErrorData = errorData;
-      if (typeof errorData === 'string') {
-        try {
-          // Try to fix malformed JSON by adding closing brace if missing
-          let fixedJson: string = errorData;
-          if (fixedJson.trim().endsWith(',')) {
-            fixedJson = fixedJson.trim().slice(0, -1);
-          }
-          if (!fixedJson.trim().endsWith('}')) {
-            fixedJson = fixedJson.trim() + '}';
-          }
-          parsedErrorData = JSON.parse(fixedJson);
-        } catch (parseError) {
-          // If parsing fails, use the original string
-          console.error('Error parsing error response:', parseError);
-        }
-      }
-      
+    // Handle fetch errors
+    if (error instanceof TypeError && error.message.includes('Network request failed')) {
       return {
         success: false,
-        error: parsedErrorData?.errors?.[0]?.message || parsedErrorData?.message || 'Login failed',
+        error: 'Network error. Please check your connection and try again.',
       };
     }
     
     // Handle other errors
     return {
       success: false,
-      error: 'An unexpected error occurred. Please try again.',
+      error: error instanceof Error ? error.message : 'An unexpected error occurred. Please try again.',
     };
   }
 };
@@ -368,107 +371,123 @@ export const register = async (
   email: string,
   password: string,
   name: string,
-  gender: string
+  phone: string,
+  isBusiness: boolean = false
 ): Promise<{ success: boolean; data?: any; error?: string }> => {
+  console.log("Registration attempt:", { email, name, phone, isBusiness });
+  
   try {
-    const requestBody: RegisterRequest = {
+    const requestBody = {
       email,
       password,
-      name,
-      gender,
+      user_id: name,
+      phone,
+      isBusiness,
     };
-    // console.log("Signup Request:" + requestBody.email + requestBody.password + requestBody.name + requestBody.gender);
+    console.log("Signup Request:", requestBody);
 
-    // MOCK DATA: Commented out API call
-    // const response = await apiClient.post<AuthResponse>('/auth/sign-up', requestBody);
-    
-    // MOCK DATA: Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // MOCK DATA: Return mock response
-    const mockResponse = {
-      data: {
-        token: `mock_token_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        email: email,
-      }
-    };
-    const response = { data: mockResponse.data };
+    // Use fetch instead of axios
+    const response = await fetch(`${API_BASE_URL}/auth/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true', // Skip ngrok browser warning
+      },
+      body: JSON.stringify(requestBody),
+    });
 
-    // console.log("Signup Response:" + response.data);
+    console.log("Signup Response Status:", response.status);
+    console.log("Signup Response Headers:", response.headers);
     
-    // Validate response data
-    if (!response.data) {
+    // Get response text first to check if it's JSON
+    const responseText = await response.text();
+    console.log("Signup Response Text:", responseText.substring(0, 200));
+    
+    // Try to parse as JSON
+    let responseData;
+    try {
+      responseData = JSON.parse(responseText);
+      console.log("Signup Response:", responseData);
+    } catch (parseError) {
+      console.error("Failed to parse response as JSON:", parseError);
       return {
         success: false,
-        error: 'Invalid response from server',
+        error: 'Invalid response from server. Please check your network connection.',
       };
     }
     
+    // Check if request was successful
+    if (!response.ok) {
+      return {
+        success: false,
+        error: responseData?.message || responseData?.error || `Request failed with status ${response.status}`,
+      };
+    }
+    
+    // Validate response data
+    if (!responseData || responseData.status !== 'success') {
+      return {
+        success: false,
+        error: responseData?.message || 'Invalid response from server',
+      };
+    }
+    
+    const { user, token, refreshToken } = responseData.data;
+    
     // Create user object from response
     const userData: Partial<User> = {
-      id: email, // Use email as ID for now
-      email: response.data.email,
-      name: name,
+      id: user.id,
+      email: user.email,
+      name: user.user_id,
+      phone: user.phone,
+      addresses: [],
+      paymentMethods: [],
+      wishlist: [],
+      followersCount: 0,
+      followingsCount: 0,
+      preferences: {
+        notifications: {
+          email: true,
+          push: true,
+          sms: true,
+        },
+        language: 'en',
+        currency: 'USD',
+      },
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
 
     // Store token and user data
-    await storeAuthData(response.data.token, userData);
+    await storeAuthData(token, userData);
+    
+    // Store refresh token
+    await AsyncStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
 
     return {
       success: true,
       data: {
-        token: response.data.token,
+        token,
+        refreshToken,
         user: userData,
+        message: responseData.message,
       },
     };
   } catch (error) {
     console.error('Registration error:', error);
     
-    // Handle axios errors
-    if (axios.isAxiosError(error)) {
-      const axiosError = error as AxiosError;
-      
-      // Handle network errors
-      if (!axiosError.response) {
-        return {
-          success: false,
-          error: 'Network error. Please check your connection and try again.',
-        };
-      }
-      
-      // Handle response errors
-      const errorData = axiosError.response.data as any;
-      
-      // Try to parse error data if it's a string
-      let parsedErrorData = errorData;
-      if (typeof errorData === 'string') {
-        try {
-          // Try to fix malformed JSON by adding closing brace if missing
-          let fixedJson: string = errorData;
-          if (fixedJson.trim().endsWith(',')) {
-            fixedJson = fixedJson.trim().slice(0, -1);
-          }
-          if (!fixedJson.trim().endsWith('}')) {
-            fixedJson = fixedJson.trim() + '}';
-          }
-          parsedErrorData = JSON.parse(fixedJson);
-        } catch (parseError) {
-          // If parsing fails, use the original string
-          console.error('Error parsing error response:', parseError);
-        }
-      }
-      
-      // console.log("Signup Error: " + axiosError.response.status + "/" + errorData?.errors?.[0]?.message);
+    // Handle fetch errors
+    if (error instanceof TypeError && error.message.includes('Network request failed')) {
       return {
         success: false,
-        error: parsedErrorData?.errors?.[0]?.message || parsedErrorData?.message || 'Registration failed',
+        error: 'Network error. Please check your connection and try again.',
       };
     }
     
     // Handle other errors
     return {
       success: false,
-      error: 'An unexpected error occurred. Please try again.',
+      error: error instanceof Error ? error.message : 'An unexpected error occurred. Please try again.',
     };
   }
 };
@@ -843,6 +862,241 @@ export const changePassword = async (
     return {
       success: false,
       error: 'An unexpected error occurred. Please try again.',
+    };
+  }
+};
+
+// Verify Email API
+export const verifyEmail = async (
+  email: string,
+  code: string
+): Promise<{ success: boolean; data?: any; error?: string }> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/verify-email`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true',
+      },
+      body: JSON.stringify({ email, code }),
+    });
+
+    console.log('Verify Email Response Status:', response.status);
+    
+    const responseText = await response.text();
+    console.log('Verify Email Response Text:', responseText.substring(0, 200));
+    
+    let responseData;
+    try {
+      responseData = JSON.parse(responseText);
+      console.log('Verify Email Response:', responseData);
+    } catch (parseError) {
+      console.error('Failed to parse response as JSON:', parseError);
+      return {
+        success: false,
+        error: 'Invalid response from server',
+      };
+    }
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: responseData?.message || responseData?.error || `Request failed with status ${response.status}`,
+      };
+    }
+
+    if (responseData.status !== 'success') {
+      return {
+        success: false,
+        error: responseData?.message || 'Email verification failed',
+      };
+    }
+
+    return {
+      success: true,
+      data: responseData,
+    };
+  } catch (error) {
+    console.error('Verify Email Error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Network error occurred',
+    };
+  }
+};
+
+// Resend Verification Code API
+export const resendVerificationCode = async (
+  email: string
+): Promise<{ success: boolean; data?: any; error?: string }> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/resend-verification-code`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true',
+      },
+      body: JSON.stringify({ email }),
+    });
+
+    console.log('Resend Code Response Status:', response.status);
+    
+    const responseText = await response.text();
+    console.log('Resend Code Response Text:', responseText.substring(0, 200));
+    
+    let responseData;
+    try {
+      responseData = JSON.parse(responseText);
+      console.log('Resend Code Response:', responseData);
+    } catch (parseError) {
+      console.error('Failed to parse response as JSON:', parseError);
+      return {
+        success: false,
+        error: 'Invalid response from server',
+      };
+    }
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: responseData?.message || responseData?.error || `Request failed with status ${response.status}`,
+      };
+    }
+
+    if (responseData.status !== 'success') {
+      return {
+        success: false,
+        error: responseData?.message || 'Failed to resend code',
+      };
+    }
+
+    return {
+      success: true,
+      data: responseData,
+    };
+  } catch (error) {
+    console.error('Resend Code Error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Network error occurred',
+    };
+  }
+};
+
+// Forgot Password API
+export const forgotPassword = async (
+  email: string
+): Promise<{ success: boolean; data?: any; error?: string }> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true',
+      },
+      body: JSON.stringify({ email }),
+    });
+
+    console.log('Forgot Password Response Status:', response.status);
+    
+    const responseText = await response.text();
+    console.log('Forgot Password Response Text:', responseText.substring(0, 200));
+    
+    let responseData;
+    try {
+      responseData = JSON.parse(responseText);
+      console.log('Forgot Password Response:', responseData);
+    } catch (parseError) {
+      console.error('Failed to parse response as JSON:', parseError);
+      return {
+        success: false,
+        error: 'Invalid response from server',
+      };
+    }
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: responseData?.message || responseData?.error || `Request failed with status ${response.status}`,
+      };
+    }
+
+    if (responseData.status !== 'success') {
+      return {
+        success: false,
+        error: responseData?.message || 'Failed to send reset link',
+      };
+    }
+
+    return {
+      success: true,
+      data: responseData,
+    };
+  } catch (error) {
+    console.error('Forgot Password Error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Network error occurred',
+    };
+  }
+};
+
+// Reset Password API
+export const resetPassword = async (
+  email: string,
+  code: string,
+  password: string
+): Promise<{ success: boolean; data?: any; error?: string }> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/reset-password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true',
+      },
+      body: JSON.stringify({ email, code, password }),
+    });
+
+    console.log('Reset Password Response Status:', response.status);
+    
+    const responseText = await response.text();
+    console.log('Reset Password Response Text:', responseText.substring(0, 200));
+    
+    let responseData;
+    try {
+      responseData = JSON.parse(responseText);
+      console.log('Reset Password Response:', responseData);
+    } catch (parseError) {
+      console.error('Failed to parse response as JSON:', parseError);
+      return {
+        success: false,
+        error: 'Invalid response from server',
+      };
+    }
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: responseData?.message || responseData?.error || `Request failed with status ${response.status}`,
+      };
+    }
+
+    if (responseData.status !== 'success') {
+      return {
+        success: false,
+        error: responseData?.message || 'Failed to reset password',
+      };
+    }
+
+    return {
+      success: true,
+      data: responseData,
+    };
+  } catch (error) {
+    console.error('Reset Password Error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Network error occurred',
     };
   }
 };

@@ -68,7 +68,7 @@ const WithdrawScreen: React.FC = () => {
                 autoFocus={true}
               />
             </View>
-            <Text style={styles.balanceInfo}>TaoExpress balance: ${availableBalance} USD (available)</Text>
+            <Text style={styles.balanceInfo}>TodayMall balance: ${availableBalance} USD (available)</Text>
             
             {/* Show error message if amount is invalid */}
             {!isAmountValid() && withdrawAmount !== '' && (

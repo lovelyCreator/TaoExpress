@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "TaoExpress",
-    "slug": "taoexpress",
+    "name": "TodayMall",
+    "slug": "todaymall",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -25,7 +25,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.app.taoexpress",
+      "package": "com.app.todaymall",
       "networkSecurityConfig": "@xml/network_security_config",
       "permissions": [
         "android.permission.CAMERA",
@@ -39,7 +39,7 @@
         "barStyle": "dark-content"
       }
     },
-    "scheme": "taoexpress",
+    "scheme": "todaymall",
     "web": {
       "favicon": "./assets/favicon.png"
     },

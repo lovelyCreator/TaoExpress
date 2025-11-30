@@ -18,8 +18,8 @@ import { COLORS, FONTS, SPACING } from '../../constants';
 import { RootStackParamList } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import ImagePickerModal from '../../components/ImagePickerModal';
-import DeleteAccountModal from '../../components/DeleteAccountModal';
-import InviteCodeBindingModal from '../../components/InviteCodeBindingModal';
+import { DeleteAccountModal } from '../../components';
+import { InviteCodeBindingModal } from '../../components';
 
 type ProfileSettingsScreenNavigationProp = StackNavigationProp<RootStackParamList, 'ProfileSettings'>;
 
@@ -161,8 +161,9 @@ const ProfileSettingsScreen: React.FC = () => {
   };
 
   const renderHeader = () => (
-    <LinearGradient
-      colors={['#FFE4E6', '#FFF0F1', '#FFFFFF']}
+    // <LinearGradient
+    //   colors={['#FFE4E6', '#FFF0F1', '#FFFFFF']}
+    <View
       style={styles.header}
     >
       <TouchableOpacity 
@@ -173,7 +174,8 @@ const ProfileSettingsScreen: React.FC = () => {
       </TouchableOpacity>
       <Text style={styles.headerTitle}>My Page</Text>
       <View style={styles.placeholder} />
-    </LinearGradient>
+    {/* </LinearGradient> */}
+    </View>
   );
 
   const renderUserSection = () => (
@@ -317,8 +319,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.lg,
-    marginBottom: SPACING.md,
+    paddingBottom: SPACING.lg,
+    // marginBottom: SPACING.md,
+    paddingTop: SPACING['2xl'],
   },
   backButton: {
     width: 40,
@@ -459,7 +462,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: COLORS.white,
     marginHorizontal: SPACING.lg,
-    marginBottom: SPACING.xl,
+    marginBottom: 100,
     paddingVertical: SPACING.lg,
     borderRadius: SPACING.md,
     shadowColor: COLORS.shadow,

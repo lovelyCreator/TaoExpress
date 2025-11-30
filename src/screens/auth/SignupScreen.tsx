@@ -4,27 +4,26 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   SafeAreaView,
   BackHandler,
-  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import CheckIcon from '../../assets/icons/CheckIcon';
-import GoogleIcon from '../../assets/icons/GoogleIcon';
 import { Button, TextInput } from '../../components';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
 import { useRegisterMutation } from '../../hooks/useAuthMutations';
 import { useSocialLogin } from '../../services/socialAuth';
+import { useToast } from '../../hooks/useToast';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS, VALIDATION_RULES, ERROR_MESSAGES } from '../../constants';
 
 const SignupScreen: React.FC = () => {
   const navigation = useNavigation();
   const { socialLogin, signupError, clearSignupError } = useAuth();
+  const { showToast, ToastComponent } = useToast();
+  
   const { mutate: register, isLoading, isError, error, isSuccess, data } = useRegisterMutation({
     onSuccess: (data) => {
       // The AuthContext will handle updating the global state
@@ -42,14 +41,12 @@ const SignupScreen: React.FC = () => {
     onSuccess: (data) => {
       // Handle successful social login
       console.log('Social login successful:', data);
-      // You would typically send this data to your backend to create/update user
-      // For now, we'll just show an alert
-      Alert.alert('Success', `Welcome ${data.userInfo.name || 'User'}!`);
+      showToast({ message: `Welcome ${data.userInfo.name || 'User'}!`, type: 'success' });
     },
     onError: (error) => {
       // Handle social login error
       console.log('Social signup error:', error);
-      Alert.alert('Signup Failed', error);
+      showToast({ message: error, type: 'error' });
     }
   });
   
@@ -58,6 +55,7 @@ const SignupScreen: React.FC = () => {
     password: '',
     confirmPassword: '',
     name: '',
+    phone: '',
     referralCode: '',
     gender: 'woman',
   });
@@ -71,14 +69,14 @@ const SignupScreen: React.FC = () => {
   // Watch for signup success and navigate to profile
   useEffect(() => {
     if (isSuccess && data) {
-      // Navigate to main app (which will show profile by default)
-      // navigation.reset({
-      //   index: 3,
-      //   routes: [{ name: 'Main' as never }],
-      // });
-      navigation.navigate('Login' as never);
+      // Navigate to email verification screen
+      (navigation as any).navigate('EmailVerification', {
+        email: data?.user?.email || formData.email,
+        token: data?.token,
+        userData: data?.user,
+      });
     }
-  }, [isSuccess, data, navigation]);
+  }, [isSuccess, data, navigation, formData.email]);
 
   // Watch for signup errors and handle them appropriately
   useEffect(() => {
@@ -142,6 +140,13 @@ const SignupScreen: React.FC = () => {
       newErrors.email = ERROR_MESSAGES.INVALID_EMAIL;
     }
 
+    // Phone number is optional
+    // if (!formData.phone) {
+    //   newErrors.phone = ERROR_MESSAGES.REQUIRED_FIELD;
+    // } else if (formData.phone.length < 10) {
+    //   newErrors.phone = 'Phone number must be at least 10 digits';
+    // }
+
     if (!formData.password) {
       newErrors.password = ERROR_MESSAGES.REQUIRED_FIELD;
     } else if (formData.password.length < VALIDATION_RULES.PASSWORD_MIN_LENGTH) {
@@ -173,12 +178,18 @@ const SignupScreen: React.FC = () => {
       return;
     }
 
-    console.log('SignupScreen: Calling signup function');
+    console.log('SignupScreen: Calling signup function with data:', {
+      email: formData.email,
+      name: formData.name,
+      phone: formData.phone || '',
+      isBusiness: isBusinessAccount,
+    });
     await register({
       email: formData.email,
       password: formData.password,
       name: formData.name,
-      gender: formData.gender,
+      phone: formData.phone || '', // Optional phone number
+      isBusiness: isBusinessAccount,
     });
     console.log('SignupScreen: Signup function completed');
   };
@@ -195,19 +206,21 @@ const SignupScreen: React.FC = () => {
       name: 'Demo User',
       email: 'demo@example.com',
       password: 'Demo123!',
+      confirmPassword: 'Demo123!',
+      referralCode: '',
       gender: 'woman',
     };
     
     // Update form data to show demo credentials
-    setFormData(demoData);
+    // setFormData(demoData);
     
-    // Perform signup with demo credentials
-    await register({
-      email: demoData.email,
-      password: demoData.password,
-      name: demoData.name,
-      gender: demoData.gender,
-    });
+    // // Perform signup with demo credentials
+    // await register({
+    //   email: demoData.email,
+    //   password: demoData.password,
+    //   name: demoData.name,
+    //   gender: demoData.gender,
+    // });
   };
 
   const handleSocialSignup = async (provider: 'google' | 'facebook' | 'apple') => {
@@ -215,7 +228,7 @@ const SignupScreen: React.FC = () => {
       await socialLoginMutation(provider);
     } catch (error) {
       console.log('Social signup error:', error);
-      Alert.alert('Signup Failed', error as string);
+      showToast({ message: error as string, type: 'error' });
     }
   };
 
@@ -253,32 +266,33 @@ const SignupScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      {ToastComponent}
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
+        <View style={styles.header}>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
+          </TouchableOpacity>
+          <Text style={styles.title}>TodayMall</Text>
+          <View style={styles.placeholder} />
+        </View>
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.header}>
-            <TouchableOpacity 
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}
-            >
-              <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
-            </TouchableOpacity>
-            <Image source={require("../../assets/icons/logo.png")} />
-            <View style={styles.placeholder} />
-          </View>
           <View style={styles.subHeader}>
-            <Text style={styles.title}>Sign Up</Text>
-            <Text style={styles.subtitle}>Please register to continue</Text>
+            <Text style={styles.subtitle}>Sign Up</Text>
+            {/* <Text style={styles.subtitle}>Please register to continue</Text> */}
           </View>
 
           <View style={styles.form}>
             <TextInput
-              label="Email"
+              label="Email *"
               placeholder="Enter your email"
               value={formData.email}
               onChangeText={(text) => {
@@ -301,8 +315,53 @@ const SignupScreen: React.FC = () => {
               labelStyle={styles.signupLabel}
             />
 
+            {/* Phone Number field hidden - optional value */}
+            {/* <TextInput
+              label="Phone Number"
+              placeholder="Enter your phone number"
+              value={formData.phone}
+              onChangeText={(text) => {
+                setFormData({ ...formData, phone: text });
+                if (errors.phone) {
+                  setErrors({ ...errors, phone: '' });
+                }
+                if (signupError) {
+                  clearSignupError();
+                  setHasSignupError(false);
+                }
+              }}
+              keyboardType="phone-pad"
+              autoCapitalize="none"
+              autoCorrect={false}
+              error={errors.phone}
+              labelStyle={styles.signupLabel}
+            /> */}
+
             <TextInput
-              label="Password"
+              label="Name *"
+              placeholder="Enter your name"
+              value={formData.name}
+              onChangeText={(text) => {
+                setFormData({ ...formData, name: text });
+                if (errors.name) {
+                  setErrors({ ...errors, name: '' });
+                }
+                if (signupError) {
+                  clearSignupError();
+                  setHasSignupError(false);
+                }
+                if (isError) {
+                  setErrors({ ...errors, name: '' });
+                }
+              }}
+              autoCapitalize="words"
+              autoCorrect={false}
+              error={errors.name}
+              labelStyle={styles.signupLabel}
+            />
+
+            <TextInput
+              label="Password *"
               placeholder="Enter your password"
               value={formData.password}
               onChangeText={(text) => {
@@ -328,7 +387,7 @@ const SignupScreen: React.FC = () => {
             />
 
             <TextInput
-              label="Confirm Password"
+              label="Confirm Password *"
               placeholder="Re-enter your password"
               value={formData.confirmPassword}
               onChangeText={(text) => {
@@ -347,30 +406,7 @@ const SignupScreen: React.FC = () => {
             />
 
             <TextInput
-              label="Name"
-              placeholder="Enter your name"
-              value={formData.name}
-              onChangeText={(text) => {
-                setFormData({ ...formData, name: text });
-                if (errors.name) {
-                  setErrors({ ...errors, name: '' });
-                }
-                if (signupError) {
-                  clearSignupError();
-                  setHasSignupError(false);
-                }
-                if (isError) {
-                  setErrors({ ...errors, name: '' });
-                }
-              }}
-              autoCapitalize="words"
-              autoCorrect={false}
-              error={errors.name}
-              labelStyle={styles.signupLabel}
-            />
-
-            <TextInput
-              label="Referral Code (Optional)"
+              label="Referral Code"
               placeholder="Enter referral code"
               value={formData.referralCode}
               onChangeText={(text) => {
@@ -450,7 +486,11 @@ const SignupScreen: React.FC = () => {
               disabled={isLoading || !formData.email || !formData.password || !formData.confirmPassword || !formData.name || !agreeToTerms}
               loading={isLoading}
               variant="danger"
-              style={styles.registerButton}
+              style={
+                (isLoading || !formData.email || !formData.password || !formData.confirmPassword || !formData.name || !agreeToTerms)
+                  ? { ...styles.registerButton, ...styles.registerButtonDisabled }
+                  : styles.registerButton
+              }
               textStyle={styles.registerButtonText}
             />
 
@@ -485,7 +525,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: SPACING.sm,
-    paddingHorizontal: SPACING.xs,
+    paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING['2xl'],
   },
   backButton: {
     width: 40,
@@ -494,6 +535,11 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.gray[100],
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: FONTS.sizes['xl'],
+    fontWeight: '700',
+    color: COLORS.text.primary,
   },
   placeholder: {
     width: 40,
@@ -504,19 +550,21 @@ const styles = StyleSheet.create({
     paddingBottom: SPACING.md,
   },
   title: {
-    fontSize: FONTS.sizes['3xl'],
+    fontSize: FONTS.sizes['2xl'],
     fontWeight: '700',
     color: COLORS.text.primary,
     marginBottom: SPACING.xs,
   },
   subtitle: {
-    fontSize: FONTS.sizes.md,
-    color: COLORS.text.secondary,
-    lineHeight: 20,
+    fontSize: FONTS.sizes.xl,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+    marginBottom: SPACING.xs,
   },
   form: {
     flex: 1,
     paddingHorizontal: SPACING.xs,
+    paddingBottom: SPACING['3xl']
   },
   inputContainer: {
     marginBottom: SPACING.lg,
@@ -528,7 +576,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.sm,
   },
   signupLabel: {
-    color: COLORS.accentPink,
+    color: COLORS.black,
   },
   inputWrapper: {
     flexDirection: 'row',
@@ -644,19 +692,23 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   linkText: {
-    color: '#FE1583',
+    color: COLORS.accentPink,
     fontWeight: '500',
   },
   registerButton: {
     backgroundColor: COLORS.error,
     borderRadius: BORDER_RADIUS.full,
-    paddingVertical: SPACING.md,
+    paddingVertical: SPACING.smmd,
     alignItems: 'center',
     marginBottom: SPACING.md,
     ...SHADOWS.sm,
   },
+  registerButtonDisabled: {
+    backgroundColor: COLORS.accentPinkLight,
+    opacity: 0.6,
+  },
   registerButtonText: {
-    fontSize: FONTS.sizes['2xl'],
+    fontSize: FONTS.sizes.lg,
     fontWeight: '700',
     color: COLORS.white,
     letterSpacing: 0.5,

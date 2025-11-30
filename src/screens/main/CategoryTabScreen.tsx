@@ -171,13 +171,13 @@ const CategoryTabScreen: React.FC = () => {
           onCameraPress={handleImageSearch}
         />
         
-        <NotificationBadge
+        {/* <NotificationBadge
           icon="headset-outline"
           iconSize={28}
           iconColor={COLORS.text.primary}
           count={unreadCount}
           onPress={() => navigation.navigate('CustomerService' as never)}
-        />
+        /> */}
       </View>
     </View>
   );
@@ -392,7 +392,7 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: COLORS.white,
     paddingHorizontal: SPACING.md,
-    // paddingTop: Platform.OS === 'ios' ? 50 : 40,
+    paddingTop: SPACING.xl,
     paddingBottom: SPACING.sm,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.gray[200],

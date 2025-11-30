@@ -6,10 +6,9 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
+  SafeAreaView,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 
@@ -80,15 +79,15 @@ const NoteScreen: React.FC = () => {
   };
 
   const renderHeader = () => (
-    <LinearGradient colors={['#FFE4E6', '#FFF0F1', '#FFFFFF']} style={styles.header}>
+    <View style={styles.header}>
       <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-        <Ionicons name="chevron-back" size={24} color={COLORS.text.primary} />
+        <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
       </TouchableOpacity>
       <Text style={styles.headerTitle}>In-site Message</Text>
       <TouchableOpacity style={styles.addButton} onPress={handleAddNote}>
         <Ionicons name="add" size={24} color={COLORS.white} />
       </TouchableOpacity>
-    </LinearGradient>
+    </View>
   );
 
   const renderTabs = () => (
@@ -191,26 +190,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.lg,
+    paddingVertical: SPACING.sm,
+    paddingTop: SPACING['2xl'],
+    backgroundColor: COLORS.white,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: COLORS.gray[100],
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
   },
   headerTitle: {
     fontSize: FONTS.sizes.xl,
     fontWeight: '700',
     color: COLORS.text.primary,
-    letterSpacing: 0.5,
   },
   addButton: {
     width: 40,

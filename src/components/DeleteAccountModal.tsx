@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,9 +8,15 @@ import {
   TextInput,
   ActivityIndicator,
   Alert,
+  Animated,
+  Dimensions,
+  TouchableWithoutFeedback,
+  PanResponder,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, FONTS, SPACING } from '../constants';
+import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '../constants';
+
+const { height } = Dimensions.get('window');
 
 interface DeleteAccountModalProps {
   visible: boolean;
@@ -26,6 +32,69 @@ const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
+  const slideAnim = useRef(new Animated.Value(height)).current;
+  const panY = useRef(new Animated.Value(0)).current;
+  const isDismissing = useRef(false);
+
+  useEffect(() => {
+    if (visible) {
+      isDismissing.current = false;
+      panY.setValue(0);
+      slideAnim.setValue(height);
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        useNativeDriver: true,
+        tension: 65,
+        friction: 11,
+      }).start();
+    } else {
+      setTimeout(() => {
+        panY.setValue(0);
+      }, 300);
+    }
+  }, [visible]);
+
+  const dismissModal = () => {
+    if (isDismissing.current) return;
+    isDismissing.current = true;
+    
+    Animated.timing(slideAnim, {
+      toValue: height,
+      duration: 250,
+      useNativeDriver: true,
+    }).start(() => {
+      panY.setValue(0);
+      onClose();
+    });
+  };
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return Math.abs(gestureState.dy) > 5;
+      },
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dy > 0) {
+          panY.setValue(gestureState.dy);
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dy > 150 || gestureState.vy > 0.5) {
+          if (isDismissing.current) return;
+          isDismissing.current = true;
+          onClose();
+        } else {
+          Animated.spring(panY, {
+            toValue: 0,
+            useNativeDriver: true,
+            tension: 65,
+            friction: 11,
+          }).start();
+        }
+      },
+    })
+  ).current;
 
   const handleConfirmDelete = async () => {
     if (!password) {
@@ -48,7 +117,7 @@ const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({
   const handleClose = () => {
     if (!isDeleting) {
       setPassword('');
-      onClose();
+      dismissModal();
     }
   };
 
@@ -58,13 +127,28 @@ const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({
       transparent
       animationType="fade"
       onRequestClose={handleClose}
+      statusBarTranslucent
     >
-      <View style={styles.overlay}>
-        <View style={styles.modalContainer}>
+      <TouchableWithoutFeedback onPress={handleClose}>
+        <View style={styles.overlay}>
+          <TouchableWithoutFeedback>
+            <Animated.View
+              style={[
+                styles.modalContainer,
+                {
+                  transform: [
+                    { translateY: Animated.add(slideAnim, panY) }
+                  ],
+                },
+              ]}
+            >
+              <View {...panResponder.panHandlers} style={styles.handleContainer}>
+                <View style={styles.handle} />
+              </View>
           {/* Warning Icon */}
           <View style={styles.iconContainer}>
             <View style={styles.iconCircle}>
-              <Ionicons name="warning" size={40} color="#FF6B6B" />
+              <Ionicons name="warning" size={40} color="#FF6B9D" />
             </View>
           </View>
 
@@ -80,15 +164,15 @@ const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({
           {/* Warning List */}
           <View style={styles.warningList}>
             <View style={styles.warningItem}>
-              <Ionicons name="close-circle" size={18} color="#FF6B6B" />
+              <Ionicons name="close-circle" size={18} color="#FF6B9D" />
               <Text style={styles.warningText}>All personal data will be lost</Text>
             </View>
             <View style={styles.warningItem}>
-              <Ionicons name="close-circle" size={18} color="#FF6B6B" />
+              <Ionicons name="close-circle" size={18} color="#FF6B9D" />
               <Text style={styles.warningText}>Order history will be deleted</Text>
             </View>
             <View style={styles.warningItem}>
-              <Ionicons name="close-circle" size={18} color="#FF6B6B" />
+              <Ionicons name="close-circle" size={18} color="#FF6B9D" />
               <Text style={styles.warningText}>Cannot recover your account</Text>
             </View>
           </View>
@@ -143,12 +227,14 @@ const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({
               {isDeleting ? (
                 <ActivityIndicator size="small" color={COLORS.white} />
               ) : (
-                <Text style={styles.deleteButtonText}>Delete Account</Text>
+                <Text style={styles.deleteButtonText}>Delete</Text>
               )}
             </TouchableOpacity>
           </View>
+            </Animated.View>
+          </TouchableWithoutFeedback>
         </View>
-      </View>
+      </TouchableWithoutFeedback>
     </Modal>
   );
 };
@@ -157,55 +243,64 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: SPACING.lg,
+    justifyContent: 'flex-end',
   },
   modalContainer: {
     backgroundColor: COLORS.white,
-    borderRadius: SPACING.lg,
-    padding: SPACING.xl,
-    width: '100%',
-    maxWidth: 400,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingBottom: SPACING['3xl'],
+    ...SHADOWS.lg,
+  },
+  handleContainer: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+  },
+  handle: {
+    width: 40,
+    height: 4,
+    backgroundColor: COLORS.gray[300],
+    borderRadius: 2,
   },
   iconContainer: {
     alignItems: 'center',
     marginBottom: SPACING.lg,
+    paddingHorizontal: SPACING.lg,
+    marginTop: SPACING.xs,
   },
   iconCircle: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#FFE8E8',
+    backgroundColor: '#FFE4E6',
     alignItems: 'center',
     justifyContent: 'center',
   },
   title: {
-    fontSize: FONTS.sizes.xxl,
+    fontSize: 24,
     fontWeight: '700',
     color: COLORS.text.primary,
     textAlign: 'center',
     marginBottom: SPACING.md,
+    paddingHorizontal: SPACING.lg,
   },
   description: {
     fontSize: FONTS.sizes.md,
-    color: COLORS.text.secondary,
+    color: COLORS.gray[600],
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: SPACING.lg,
+    paddingHorizontal: SPACING.lg,
   },
   warningList: {
-    backgroundColor: '#FFF5F5',
-    borderRadius: SPACING.md,
+    backgroundColor: '#FFF0F1',
+    borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.md,
     marginBottom: SPACING.lg,
     borderWidth: 1,
-    borderColor: '#FFE0E0',
+    borderColor: '#FFE4E6',
+    marginHorizontal: SPACING.lg,
   },
   warningItem: {
     flexDirection: 'row',
@@ -214,12 +309,13 @@ const styles = StyleSheet.create({
   },
   warningText: {
     fontSize: FONTS.sizes.sm,
-    color: '#D32F2F',
+    color: '#FF6B9D',
     marginLeft: SPACING.sm,
     flex: 1,
   },
   inputContainer: {
     marginBottom: SPACING.lg,
+    paddingHorizontal: SPACING.lg,
   },
   inputLabel: {
     fontSize: FONTS.sizes.sm,
@@ -249,11 +345,13 @@ const styles = StyleSheet.create({
   buttonContainer: {
     flexDirection: 'row',
     gap: SPACING.md,
+    paddingHorizontal: SPACING.lg,
+    marginBottom: SPACING.lg,
   },
   button: {
     flex: 1,
     paddingVertical: SPACING.md,
-    borderRadius: 12,
+    borderRadius: BORDER_RADIUS.lg,
     alignItems: 'center',
     justifyContent: 'center',
     height: 50,
@@ -267,8 +365,8 @@ const styles = StyleSheet.create({
     color: COLORS.text.primary,
   },
   deleteButton: {
-    backgroundColor: '#FF6B6B',
-    shadowColor: '#FF6B6B',
+    backgroundColor: '#FF6B9D',
+    shadowColor: '#FF6B9D',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

@@ -15,11 +15,11 @@ import { useRoute, useNavigation } from '@react-navigation/native';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '../../constants';
 import { useAppSelector } from '../../store/hooks';
 import { translations } from '../../i18n/translations';
-import PhotoCaptureModal from '../../components/PhotoCaptureModal';
-import InputCheckServiceModal from '../../components/InputCheckServiceModal';
-import OrderServiceModal from '../../components/OrderServiceModal';
-import TransferMethodModal from '../../components/TransferMethodModal';
-import CouponModal from '../../components/CouponModal';
+import { PhotoCaptureModal } from '../../components';
+import { InputCheckServiceModal } from '../../components';
+import { OrderServiceModal } from '../../components';
+import { TransferMethodModal } from '../../components';
+import { CouponModal } from '../../components';
 import { useToast } from '../../context/ToastContext';
 
 interface PaymentScreenParams {
@@ -522,6 +522,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.white,
+    paddingBottom: 100,
   },
   header: {
     flexDirection: 'row',
@@ -529,6 +530,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.md,
+    paddingTop: SPACING['2xl'],
     borderBottomWidth: 1,
     borderBottomColor: COLORS.gray[200],
   },

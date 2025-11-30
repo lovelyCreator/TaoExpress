@@ -1,5 +1,5 @@
 import React from 'react';
-import { StatusBar, Platform } from 'react-native';
+import { StatusBar, Platform, LogBox } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider } from './src/context/AuthContext';
@@ -19,6 +19,19 @@ import { useToast } from './src/context/ToastContext';
 import { COLORS } from './src/constants';
 import { Provider } from 'react-redux';
 import { store } from './src/store';
+
+// Disable console.error alerts in development mode
+// This prevents React Native from showing Alert dialogs for console.error
+// We handle errors with Toast notifications instead
+if (__DEV__) {
+  LogBox.ignoreAllLogs(false); // Keep logs visible in console
+  const originalConsoleError = console.error;
+  console.error = (...args) => {
+    // Still log to console for debugging
+    originalConsoleError(...args);
+    // But don't trigger React Native's Alert dialog
+  };
+}
 
 // Component that renders the main app content with toast
 const AppWithToast = () => {

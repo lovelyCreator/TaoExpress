@@ -25,8 +25,7 @@ import { useSearch } from '../../context/SearchContext';
 import { useCategoriesMutation } from '../../hooks/useCategories';
 import { useSortProductsMutation } from '../../hooks/useSearchMutations';
 import { useStoresMutation } from '../../hooks/useHomeScreenMutations';
-import { SortModal, FilterModal, ProductCard, Button } from '../../components';
-import { SubFilterModal, SearchInput, FilterItem } from '../../components';
+import { SortModal, ProductCard, Button } from '../../components';
 import { usePlatformStore } from '../../store/platformStore';
 
 const { width } = Dimensions.get('window');
@@ -1015,7 +1014,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.xl,
+    paddingTop: SPACING['2xl'],
     paddingBottom: SPACING.sm,
     backgroundColor: COLORS.white,
   },
@@ -1236,7 +1235,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.lg,
   },
   confirmButton: {
-    backgroundColor: '#00BCD4',
+    backgroundColor: COLORS.transparent,
     borderRadius: 50,
     paddingVertical: SPACING.md + 2,
   },

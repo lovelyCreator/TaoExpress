@@ -17,7 +17,7 @@ const PrivacyPolicyScreen: React.FC = () => {
   const navigation = useNavigation();
 
   const handleContactSupport = () => {
-    Linking.openURL('mailto:support@taoexpress.com');
+    Linking.openURL('mailto:support@todaymall.com');
   };
 
   return (
@@ -36,7 +36,7 @@ const PrivacyPolicyScreen: React.FC = () => {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
           <Text style={styles.introText}>
-            At TaoExpress, your privacy is important to us. This Privacy Policy explains how we collect, use, and protect your information when you use our app and services.
+            At TodayMall, your privacy is important to us. This Privacy Policy explains how we collect, use, and protect your information when you use our app and services.
           </Text>
 
           <View style={styles.section}>
@@ -130,7 +130,7 @@ const PrivacyPolicyScreen: React.FC = () => {
             <Text style={styles.sectionTitle}>7. Contact Us</Text>
             <Text style={styles.description}>If you have questions about this Privacy Policy, please contact us at:</Text>
             <TouchableOpacity onPress={handleContactSupport}>
-              <Text style={styles.emailLink}>📧 support@taoexpress.com</Text>
+              <Text style={styles.emailLink}>📧 support@todaymall.com</Text>
             </TouchableOpacity>
           </View>
         </View>

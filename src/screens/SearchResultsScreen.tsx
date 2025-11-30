@@ -330,6 +330,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.md,
     backgroundColor: COLORS.white,
+    
   },
   backButton: {
     padding: SPACING.sm,

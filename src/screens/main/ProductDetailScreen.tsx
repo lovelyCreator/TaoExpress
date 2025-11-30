@@ -23,7 +23,7 @@ import { useCart } from '../../context/CartContext';
 import { useToast } from '../../context/ToastContext';
 
 import { ProductCard } from '../../components';
-import PhotoCaptureModal from '../../components/PhotoCaptureModal';
+import { PhotoCaptureModal } from '../../components';
 import mockProducts from '../../data/mockProducts.json';
 
 const { width } = Dimensions.get('window');
@@ -157,8 +157,8 @@ const ProductDetailScreen: React.FC = () => {
   const handleShare = async () => {
     try {
       const shareContent = {
-        message: `Check out this amazing product: ${product.name}\nPrice: $${product.price.toFixed(2)}\n\nShared from TaoExpress`,
-        url: `https://taoexpress.com/product/${productId}`, // Replace with your actual app URL
+        message: `Check out this amazing product: ${product.name}\nPrice: $${product.price.toFixed(2)}\n\nShared from TodayMall`,
+        url: `https://todaymall.com/product/${productId}`, // Replace with your actual app URL
       };
       
       await Share.share(shareContent);
@@ -220,6 +220,7 @@ const ProductDetailScreen: React.FC = () => {
                 source={{ uri: img }}
                 style={styles.productImage}
                 resizeMode="cover"
+                fadeDuration={300}
               />
             </TouchableOpacity>
           ))}
@@ -731,6 +732,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
+    paddingTop: SPACING['2xl'],
   },
   headerButton: {
     width: 40,

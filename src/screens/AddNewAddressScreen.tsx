@@ -9,17 +9,16 @@ import {
   Animated,
   Alert,
   ActivityIndicator,
+  SafeAreaView,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '../constants';
 import { CustomSwitchProps, RootStackParamList } from '../types';
 import { useCreateAddressMutation } from '../hooks/useAddressMutations';
-import AddressSearchModal from '../components/AddressSearchModal';
+import { AddressSearchModal } from '../components';
 
 type AddNewAddressScreenNavigationProp = StackNavigationProp<RootStackParamList, 'AddNewAddress'>;
 type AddNewAddressScreenRouteProp = RouteProp<RootStackParamList, 'AddNewAddress'>;
@@ -104,19 +103,16 @@ const AddNewAddressScreen: React.FC = () => {
   };
 
   const renderHeader = () => (
-    <LinearGradient
-      colors={['#FFE4E6', '#FFF0F1', '#FFFFFF']}
-      style={styles.header}
-    >
+    <View style={styles.header}>
       <TouchableOpacity
         style={styles.backButton}
         onPress={() => navigation.goBack()}
       >
-        <Ionicons name="chevron-back" size={24} color={COLORS.text.primary} />
+        <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
       </TouchableOpacity>
       <Text style={styles.headerTitle}>Add Shipping Address</Text>
       <View style={styles.placeholder} />
-    </LinearGradient>
+    </View>
   );
 
   const CustomSwitch: React.FC<CustomSwitchProps> = ({
@@ -367,27 +363,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: SPACING.md,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.sm,
+    paddingTop: SPACING['2xl'],
     backgroundColor: COLORS.white,
   },
   backButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: COLORS.white,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.gray[100],
     justifyContent: 'center',
     alignItems: 'center',
-    ...SHADOWS.small,
   },
   headerTitle: {
-    fontSize: FONTS.sizes.lg,
-    fontWeight: '600',
+    fontSize: FONTS.sizes.xl,
+    fontWeight: '700',
     color: COLORS.text.primary,
-    textAlign: 'center',
-    flex: 1,
   },
   placeholder: {
-    width: 24,
+    width: 40,
   },
   scrollView: {
     flex: 1,
@@ -511,22 +506,26 @@ const styles = StyleSheet.create({
     borderColor: COLORS.accentPink,
   },
   bottomContainer: {
-    padding: SPACING.md,
+    padding: SPACING.lg,
     backgroundColor: COLORS.white,
+    paddingBottom: SPACING['3xl'],
   },
   saveButton: {
-    backgroundColor: '#2196F3',
-    paddingVertical: SPACING.md,
+    backgroundColor: COLORS.error,
+    paddingVertical: SPACING.smmd,
     borderRadius: BORDER_RADIUS.full,
     alignItems: 'center',
+    ...SHADOWS.sm,
   },
   saveButtonDisabled: {
-    backgroundColor: COLORS.gray[300],
+    backgroundColor: COLORS.accentPinkLight,
+    opacity: 0.6,
   },
   saveButtonText: {
-    fontSize: FONTS.sizes.md,
-    fontWeight: '600',
+    fontSize: FONTS.sizes.lg,
+    fontWeight: '700',
     color: COLORS.white,
+    letterSpacing: 0.5,
   },
   switchBackground: {
     width: SPACING['2xl'],

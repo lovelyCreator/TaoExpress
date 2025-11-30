@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: FONTS.sizes.md,
     fontWeight: '600',
-    color: COLORS.accentPink,
+    color: COLORS.black,
     marginBottom: SPACING.sm,
   },
   inputWrapper: {

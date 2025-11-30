@@ -53,7 +53,7 @@ export const translations = {
           'Shop confidently with real ratings, reviews, and product details at a glance.',
       },
       slide4: {
-        title: 'TaoExpress Marketplace',
+        title: 'TodayMall Marketplace',
         description:
           'A premium destination for discovering, exploring, and shopping your next favorite style.',
       },
@@ -144,23 +144,23 @@ export const translations = {
         privacyPolicyDesc: 'How we handle and protect your personal information',
         returnRefundPolicyDesc: 'Our policies for returns, exchanges, and refunds',
         termsOfUseContent: `Article 1 (Purpose)
-These Terms of Service aim to define the rights, obligations, responsibilities, terms of use, procedures, and other necessary matters between the Company and Users regarding the use of services provided through the cyber mall operated by TaoExpress Co., Ltd. (hereinafter referred to as "Company") through its website (https://taoexpress.kr, hereinafter referred to as "Site") and other ancillary services (hereinafter referred to as "Services").
+These Terms of Service aim to define the rights, obligations, responsibilities, terms of use, procedures, and other necessary matters between the Company and Users regarding the use of services provided through the cyber mall operated by TodayMall Co., Ltd. (hereinafter referred to as "Company") through its website (https://TodayMall.kr, hereinafter referred to as "Site") and other ancillary services (hereinafter referred to as "Services").
 
 These Terms include basic matters of the service use agreement concluded between the Company and Users, and present standards to prevent various legal issues that may arise between the Company and Users regarding service use and to promote fair and smooth service use.
 
 Article 2 (Definitions)
 The definitions of terms used in these Terms are as follows. Terms not separately defined in these Terms shall follow relevant laws and general commercial practices.
 
-1. "Company" means TaoExpress (https://taoexpress.kr) and refers to the entity that provides international cyber mall services and all related ancillary services to Users.
-2. "Site" means the website operated by the Company to provide services to Users, with the domain https://taoexpress.kr.
+1. "Company" means TodayMall (https://TodayMall.kr) and refers to the entity that provides international cyber mall services and all related ancillary services to Users.
+2. "Site" means the website operated by the Company to provide services to Users, with the domain https://TodayMall.kr.
 3. "Services" means product purchase agency, shipping agency, logistics support, customs clearance support, and other related ancillary services provided through the Site operated by the Company.
 4. "User" means a person who uses the services provided by the Company in accordance with these Terms, including both Members and Non-members.
 5. "Member" means a person who has concluded a service use agreement with the Company and registered an account according to the procedures established by the Company.
 
 For complete terms and conditions, please visit our website or contact customer service.`,
-        serviceIntroductionContent: `TaoExpress Service Introduction
+        serviceIntroductionContent: `TodayMall Service Introduction
 
-Welcome to TaoExpress, your trusted partner for international shopping and shipping services.
+Welcome to TodayMall, your trusted partner for international shopping and shipping services.
 
 Our Services:
 • International shipping and delivery services
@@ -183,7 +183,7 @@ How It Works:
 For more information about our services, please contact our customer support team.`,
         privacyPolicyContent: `Privacy Policy
 
-TaoExpress is committed to protecting your personal information and privacy.
+TodayMall is committed to protecting your personal information and privacy.
 
 Information We Collect:
 • Personal identification information (name, email, phone number)
@@ -212,7 +212,7 @@ Your Rights:
 For questions about our privacy practices, please contact our privacy team.`,
         returnRefundPolicyContent: `Return and Refund Policy
 
-We want you to be completely satisfied with your TaoExpress experience.
+We want you to be completely satisfied with your TodayMall experience.
 
 Return Eligibility:
 • Items must be returned within 30 days of delivery
@@ -244,7 +244,7 @@ For return assistance, please contact our customer service team with your order 
         affiliateMarketing: 'Affiliate Marketing Rules Guide',
         sizeGuide: 'Pre-purchase Size Guide',
         customerProtection: 'Customer Service Protection Measures',
-        freeMembership: 'TaoExpress Free Membership Terms (Required)',
+        freeMembership: 'TodayMall Free Membership Terms (Required)',
         marketingConsent: 'Personal Information Collection and Use Consent (Marketing Purpose)',
         prepurchaseTerms: 'Pre-purchase Required Terms',
         registrationProtocol: 'Terms of Use and Registration Protocol',
@@ -263,13 +263,13 @@ For return assistance, please contact our customer service team with your order 
         affiliateMarketingGuide: 'Affiliate Marketing Rules Guide',
         prepurchaseSizeGuide: 'Pre-purchase Size Guide',
         customerServiceProtection: 'Customer Service Protection Measures',
-        taoExpressFreeMembership: 'TaoExpress Free Membership Terms (Required)',
+        TodayMallFreeMembership: 'TodayMall Free Membership Terms (Required)',
         personalInfoMarketingConsent: 'Personal Information Collection and Use Consent (Marketing Purpose)',
         memberGradeDesc: 'Learn about different membership levels and benefits',
         affiliateMarketingDesc: 'Rules and guidelines for affiliate marketing programs',
         sizeGuideDesc: 'Important sizing information before making a purchase',
         customerProtectionDesc: 'Customer service protection measures and policies',
-        freeMembershipDesc: 'Terms and conditions for TaoExpress free membership',
+        freeMembershipDesc: 'Terms and conditions for TodayMall free membership',
         marketingConsentDesc: 'Information about marketing consent and data usage',
         prepurchaseTermsDesc: 'Essential terms to read before making any purchase',
         registrationProtocolDesc: 'User registration process and protocols',
@@ -288,7 +288,7 @@ For return assistance, please contact our customer service team with your order 
         affiliateMarketingGuideDesc: 'Detailed rules and guidelines for affiliate marketing programs',
         prepurchaseSizeGuideDesc: 'Essential sizing information to check before purchasing',
         customerServiceProtectionDesc: 'Comprehensive customer service protection measures',
-        taoExpressFreeMembershipDesc: 'Required terms for TaoExpress free membership program',
+        TodayMallFreeMembershipDesc: 'Required terms for TodayMall free membership program',
         personalInfoMarketingConsentDesc: 'Personal information collection and usage consent for marketing purposes',
       },
       faqItems: {
@@ -381,7 +381,7 @@ For return assistance, please contact our customer service team with your order 
           '真实评分、评价与产品细节，一目了然，放心购物',
       },
       slide4: {
-        title: 'TaoExpress 市集',
+        title: 'TodayMall 市集',
         description:
           '发掘、探索并购买你心仪风格的优选平台',
       },
@@ -467,7 +467,7 @@ For return assistance, please contact our customer service team with your order 
         affiliateMarketing: '联盟营销规则指南',
         sizeGuide: '购买前尺寸指南',
         customerProtection: '客户服务保护措施',
-        freeMembership: 'TaoExpress免费会员条款（必需）',
+        freeMembership: 'TodayMall免费会员条款（必需）',
         marketingConsent: '个人信息收集及使用同意（营销目的）',
         prepurchaseTerms: '购买前必读条款',
         registrationProtocol: '使用条款及注册协议',
@@ -486,13 +486,13 @@ For return assistance, please contact our customer service team with your order 
         affiliateMarketingGuide: '联盟营销规则指南',
         prepurchaseSizeGuide: '购买前尺寸相关指南',
         customerServiceProtection: '客服中心保护措施',
-        taoExpressFreeMembership: 'TaoExpress免费会员使用条款（必需）',
+        TodayMallFreeMembership: 'TodayMall免费会员使用条款（必需）',
         personalInfoMarketingConsent: '个人信息收集及使用同意（营销目的）',
         memberGradeDesc: '了解不同会员等级和福利',
         affiliateMarketingDesc: '联盟营销计划规则和指导原则',
         sizeGuideDesc: '购买前重要的尺寸信息',
         customerProtectionDesc: '客户服务保护措施和政策',
-        freeMembershipDesc: 'TaoExpress免费会员条款和条件',
+        freeMembershipDesc: 'TodayMall免费会员条款和条件',
         marketingConsentDesc: '营销同意和数据使用信息',
         prepurchaseTermsDesc: '购买前必须阅读的基本条款',
         registrationProtocolDesc: '用户注册流程和协议',
@@ -511,7 +511,7 @@ For return assistance, please contact our customer service team with your order 
         affiliateMarketingGuideDesc: '联盟营销计划的详细规则和指导原则',
         prepurchaseSizeGuideDesc: '购买前需要检查的基本尺寸信息',
         customerServiceProtectionDesc: '全面的客户服务保护措施',
-        taoExpressFreeMembershipDesc: 'TaoExpress免费会员计划必需条款',
+        TodayMallFreeMembershipDesc: 'TodayMall免费会员计划必需条款',
         personalInfoMarketingConsentDesc: '营销目的个人信息收集和使用同意',
       },
       faqItems: {
@@ -534,15 +534,15 @@ For return assistance, please contact our customer service team with your order 
         privacyPolicyDesc: '我们如何处理和保护您的个人信息',
         returnRefundPolicyDesc: '我们的退货、换货和退款政策',
         termsOfUseContent: `第1条 (目的)
-本条款旨在规定淘快递股份有限公司（以下简称"公司"）通过其运营的网站（https://taoexpress.kr，以下简称"网站"）提供的网上商城服务及其附属服务（以下简称"服务"）的使用相关的公司与用户之间的权利、义务及责任事项、使用条件及程序、其他必要事项。
+本条款旨在规定淘快递股份有限公司（以下简称"公司"）通过其运营的网站（https://TodayMall.kr，以下简称"网站"）提供的网上商城服务及其附属服务（以下简称"服务"）的使用相关的公司与用户之间的权利、义务及责任事项、使用条件及程序、其他必要事项。
 
 本条款包含公司与用户之间签订的服务使用合同的基本事项，并提出标准以预防服务使用相关的公司与用户之间可能发生的各种法律问题，促进公正顺畅的服务使用。
 
 第2条 (定义)
 本条款中使用的术语定义如下。本条款中未单独定义的术语按照相关法令及一般商业惯例执行。
 
-1. "公司"是指淘快递（https://taoexpress.kr），指向用户提供国际网上商城服务及其附属全部服务的主体。
-2. "网站"是指公司为向用户提供服务而运营的网站，域名为https://taoexpress.kr。
+1. "公司"是指淘快递（https://TodayMall.kr），指向用户提供国际网上商城服务及其附属全部服务的主体。
+2. "网站"是指公司为向用户提供服务而运营的网站，域名为https://TodayMall.kr。
 3. "服务"是指通过公司运营的网站提供的商品购买代理、配送代理、物流支持、通关支持及其附属的其他相关全部服务。
 
 如需查看完整条款和条件，请访问我们的网站或联系客户服务。`,
@@ -793,7 +793,7 @@ For return assistance, please contact our customer service team with your order 
         affiliateMarketing: '제휴 마케팅 규칙안내',
         sizeGuide: '구매전 사이즈 관련 안내',
         customerProtection: '고객센터 보호조치',
-        freeMembership: 'TaoExpress 무료멤버십 이용약관 (필수)',
+        freeMembership: 'TodayMall 무료멤버십 이용약관 (필수)',
         marketingConsent: '개인정보 수집 및 이용동의(마케팅 목적)',
         prepurchaseTerms: '구매전 필수 약관',
         registrationProtocol: '이용약관 및 가입 프로토콜',
@@ -812,13 +812,13 @@ For return assistance, please contact our customer service team with your order 
         affiliateMarketingGuide: '제휴 마케팅 규칙안내',
         prepurchaseSizeGuide: '구매전 사이즈 관련 안내',
         customerServiceProtection: '고객센터 보호조치',
-        taoExpressFreeMembership: 'TaoExpress 무료멤버십 이용약관 (필수)',
+        TodayMallFreeMembership: 'TodayMall 무료멤버십 이용약관 (필수)',
         personalInfoMarketingConsent: '개인정보 수집 및 이용동의(마케팅 목적)',
         memberGradeDesc: '다양한 회원 등급과 혜택에 대해 알아보세요',
         affiliateMarketingDesc: '제휴 마케팅 프로그램 규칙 및 가이드라인',
         sizeGuideDesc: '구매 전 확인해야 할 중요한 사이즈 정보',
         customerProtectionDesc: '고객 서비스 보호 조치 및 정책',
-        freeMembershipDesc: 'TaoExpress 무료 멤버십 약관 및 조건',
+        freeMembershipDesc: 'TodayMall 무료 멤버십 약관 및 조건',
         marketingConsentDesc: '마케팅 동의 및 데이터 사용에 대한 정보',
         prepurchaseTermsDesc: '구매 전 반드시 읽어야 할 필수 약관',
         registrationProtocolDesc: '사용자 등록 과정 및 프로토콜',
@@ -837,7 +837,7 @@ For return assistance, please contact our customer service team with your order 
         affiliateMarketingGuideDesc: '제휴 마케팅 프로그램에 대한 상세한 규칙 및 가이드라인',
         prepurchaseSizeGuideDesc: '구매 전 확인해야 할 필수 사이즈 정보',
         customerServiceProtectionDesc: '종합적인 고객 서비스 보호 조치',
-        taoExpressFreeMembershipDesc: 'TaoExpress 무료 멤버십 프로그램 필수 약관',
+        TodayMallFreeMembershipDesc: 'TodayMall 무료 멤버십 프로그램 필수 약관',
         personalInfoMarketingConsentDesc: '마케팅 목적의 개인정보 수집 및 이용 동의',
       },
       articles: {
@@ -850,15 +850,15 @@ For return assistance, please contact our customer service team with your order 
         privacyPolicyDesc: '개인정보 처리 및 보호 방침',
         returnRefundPolicyDesc: '반품, 교환 및 환불 정책',
         termsOfUseContent: `제1조 (목적)
-본 약관은 (주)타오익스프레스(이하 "회사"라 함)가 운영하는 웹사이트(https://taoexpress.kr, 이하 "사이트"라 함)를 통해 제공하는 사이버몰에서 제공하는 서비스 및 이에 부수하는 기타 서비스(이하 "서비스"라 함)의 이용과 관련하여 회사와 이용자 간의 권리, 의무 및 책임사항, 이용조건 및 절차, 기타 필요한 사항을 규정함을 목적으로 합니다.
+본 약관은 (주)타오익스프레스(이하 "회사"라 함)가 운영하는 웹사이트(https://TodayMall.kr, 이하 "사이트"라 함)를 통해 제공하는 사이버몰에서 제공하는 서비스 및 이에 부수하는 기타 서비스(이하 "서비스"라 함)의 이용과 관련하여 회사와 이용자 간의 권리, 의무 및 책임사항, 이용조건 및 절차, 기타 필요한 사항을 규정함을 목적으로 합니다.
 
 본 약관은 회사와 이용자 간에 체결되는 서비스 이용계약의 기본적인 사항을 포함하고 있으며, 서비스 이용과 관련하여 회사와 이용자 간에 발생할 수 있는 제반 법적 문제를 사전에 예방하고 공정하고 원활한 서비스 이용을 도모하기 위한 기준을 제시합니다.
 
 제2조 (정의)
 이 약관에서 사용하는 용어의 정의는 다음과 같습니다. 본 약관에서 별도로 정의하지 아니한 용어는 관련 법령 및 일반적인 상관례에 따릅니다.
 
-1. "회사"란 타오익스프레스(https://taoexpress.kr)를 의미하며, 이용자에게 국제사이버몰 서비스 및 이에 부수하는 제반 서비스를 제공하는 자를 말합니다.
-2. "사이트"란 회사가 서비스를 이용자에게 제공하기 위하여 운영하는 웹사이트를 의미하며, 도메인은 https://taoexpress.kr입니다.
+1. "회사"란 타오익스프레스(https://TodayMall.kr)를 의미하며, 이용자에게 국제사이버몰 서비스 및 이에 부수하는 제반 서비스를 제공하는 자를 말합니다.
+2. "사이트"란 회사가 서비스를 이용자에게 제공하기 위하여 운영하는 웹사이트를 의미하며, 도메인은 https://TodayMall.kr입니다.
 3. "서비스"란 회사가 운영하는 사이트를 통해 제공하는 상품 구매대행, 배송대행, 물류지원, 통관지원 및 이에 부수되는 기타 관련 제반 서비스를 의미합니다.
 4. "이용자"란 회사가 제공하는 서비스를 약관에 따라 이용하는 자로서, 회원 및 비회원을 모두 포함합니다.
 5. "회원"이란 회사와 서비스 이용계약을 체결하고, 회사가 정한 절차에 따라 계정을 등록한 자를 말합니다.

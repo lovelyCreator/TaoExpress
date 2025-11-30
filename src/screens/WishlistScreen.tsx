@@ -62,7 +62,7 @@ const WishlistScreen: React.FC = () => {
               resizeMode="contain"
             />
           {/* </View> */}
-          <Text style={styles.welcomeText}>Welcome to TaoExpress!</Text>
+          <Text style={styles.welcomeText}>Welcome to TodayMall!</Text>
           <Text style={styles.loginPrompt}>
             Login to access your wishlist
           </Text>

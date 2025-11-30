@@ -6,10 +6,9 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
+  SafeAreaView,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { COLORS, FONTS, SPACING } from '../../constants';
 
@@ -95,20 +94,17 @@ const CouponScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header with Gradient */}
-      <LinearGradient
-        colors={['#FFE4E6', '#FFF0F1', '#FFFFFF']}
-        style={styles.header}
-      >
+      {/* Header */}
+      <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="chevron-back" size={24} color={COLORS.text.primary} />
+          <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Coupon</Text>
         <View style={styles.placeholder} />
-      </LinearGradient>
+      </View>
 
       <ScrollView 
         style={styles.scrollView} 
@@ -222,27 +218,22 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.lg,
-    marginBottom: SPACING.md,
+    paddingVertical: SPACING.sm,
+    paddingTop: SPACING['2xl'],
+    backgroundColor: COLORS.white,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: COLORS.gray[100],
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
   },
   headerTitle: {
-    fontSize: FONTS.sizes.xl,
+    fontSize: FONTS.sizes['xl'],
     fontWeight: '700',
     color: COLORS.text.primary,
-    letterSpacing: 0.5,
   },
   placeholder: {
     width: 40,
@@ -254,7 +245,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.lg,
     paddingTop: SPACING.md,
     paddingBottom: SPACING.xl,
-    marginTop: -20,
   },
   tabContainer: {
     flexDirection: 'row',

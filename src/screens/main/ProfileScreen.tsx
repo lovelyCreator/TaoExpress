@@ -90,14 +90,15 @@ const ProfileScreen: React.FC = () => {
   };
 
   const renderHeader = () => (
-    <LinearGradient
-      colors={['#FFE4E6', '#FFF0F1', '#FFFFFF']}
+    // <LinearGradient
+    //   colors={['#FFE4E6', '#FFF0F1', '#FFFFFF']}
+    <View
       style={styles.header}
     >
       <Text style={styles.headerTitle}>My Profile</Text>
       <View style={styles.headerIcons}>
         <TouchableOpacity 
-          style={styles.flagCircle}
+          style={styles.headerIcon}
           onPress={() => navigation.navigate('LanguageSettings')}
         >
           <Text style={styles.flagText}>{getLanguageFlag(currentLocale)}</Text>
@@ -127,7 +128,8 @@ const ProfileScreen: React.FC = () => {
           )}
         </TouchableOpacity>
       </View>
-    </LinearGradient>
+    {/* </LinearGradient> */}
+    </View>
   );
 
   const renderUserSection = () => (
@@ -166,7 +168,7 @@ const ProfileScreen: React.FC = () => {
         ) : (
           <View style={styles.authSection}>
             <Text style={styles.welcomeText}>
-              Welcome to TaoExpress!
+              Welcome to TodayMall!
             </Text>
             <Text style={styles.loginPrompt}>
               Login to access more services
@@ -184,7 +186,7 @@ const ProfileScreen: React.FC = () => {
   const renderStatsSection = () => (
     <View style={styles.statsSection}>
       <View style={styles.statsCard}>
-        <TouchableOpacity 
+        {/* <TouchableOpacity 
           style={styles.statItem}
           onPress={() => navigation.navigate('Deposit')}
         >
@@ -194,7 +196,7 @@ const ProfileScreen: React.FC = () => {
           <Text style={styles.statValue}>₩0</Text>
           <Text style={styles.statLabel}>Deposit</Text>
         </TouchableOpacity>
-        <View style={styles.statDivider} />
+        <View style={styles.statDivider} /> */}
         <TouchableOpacity 
           style={styles.statItem}
           onPress={() => navigation.navigate('PointDetail')}
@@ -342,10 +344,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.lg,
-    paddingTop: SPACING['2xl'],
     marginBottom: SPACING.md,
-    marginTop: -65,
   },
   headerTitle: {
     fontSize: FONTS.sizes.xl,
@@ -368,7 +367,7 @@ const styles = StyleSheet.create({
     height: 36,
   },
   flagText: {
-    fontSize: 20,
+    fontSize: 24,
   },
   headerIcon: {
     marginLeft: SPACING.md,
@@ -379,8 +378,8 @@ const styles = StyleSheet.create({
   },
   notificationBadge: {
     position: 'absolute',
-    top: 0,
-    right: 0,
+    top: -5,
+    right: -5,
     backgroundColor: COLORS.primary,
     borderRadius: 10,
     minWidth: 20,

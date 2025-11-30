@@ -3,26 +3,40 @@ import {
   View,
   Text,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
   BackHandler,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { TextInput } from '../../components';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { AuthStackParamList } from '../../types';
-import { useAuth } from '../../context/AuthContext';
-import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS, VALIDATION_RULES, ERROR_MESSAGES, SUCCESS_MESSAGES } from '../../constants';
+import { useForgotPasswordMutation } from '../../hooks/useAuthMutations';
+import { useToast } from '../../hooks/useToast';
+import { COLORS, FONTS, SPACING, BORDER_RADIUS, VALIDATION_RULES, ERROR_MESSAGES } from '../../constants';
 
 type ForgotPasswordScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'ForgotPassword'>;
 
 const ForgotPasswordScreen: React.FC = () => {
   const navigation = useNavigation<ForgotPasswordScreenNavigationProp>();
-  const { forgotPassword, isLoading } = useAuth();
+  const { showToast, ToastComponent } = useToast();
+  
+  const { mutate: forgotPassword, isLoading } = useForgotPasswordMutation({
+    onSuccess: (data) => {
+      console.log('ForgotPassword: Success callback called');
+      showToast({ message: data?.message || 'Reset code sent to your email', type: 'success' });
+      setTimeout(() => {
+        navigation.navigate('OtpVerification', { email });
+      }, 1000);
+    },
+    onError: (error) => {
+      console.log('ForgotPassword: Error callback called with:', error);
+      showToast({ message: error || 'Failed to send reset link', type: 'error' });
+    },
+  });
   
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
@@ -43,19 +57,7 @@ const ForgotPasswordScreen: React.FC = () => {
   const handleForgotPassword = async () => {
     if (!validateEmail()) return;
 
-    try {
-      // Navigate to OTP verification screen with email parameter
-      navigation.navigate('OtpVerification', { email });
-      // await forgotPassword(email);
-      // Alert.alert('Success', SUCCESS_MESSAGES.PASSWORD_RESET, [
-      //   {
-      //     text: 'OK',
-      //     onPress: () => navigation.navigate('Login' as never),
-      //   },
-      // ]);
-    } catch (error) {
-      Alert.alert('Error', error as string);
-    }
+    await forgotPassword({ email });
   };
 
   useFocusEffect(
@@ -77,6 +79,7 @@ const ForgotPasswordScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      {ToastComponent}
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -89,47 +92,43 @@ const ForgotPasswordScreen: React.FC = () => {
             >
               <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
             </TouchableOpacity>
+            <Text style={styles.title}>TodayMall</Text>
+            <View style={styles.placeholder} />
           </View>
 
           <View style={styles.form}>
-            <Text style={styles.title}>Forgot Password</Text>
-            <Text style={styles.subtitle}>
+            <Text style={styles.subtitle}>Forgot Password</Text>
+            {/* <Text style={styles.subtitle}>
               Enter your email to reset your password.
-            </Text>
+            </Text> */}
 
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Email</Text>
-              <View style={[styles.inputWrapper, error && styles.inputError]}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter your email"
-                  placeholderTextColor={COLORS.gray[400]}
-                  value={email}
-                  onChangeText={(text) => {
-                    setEmail(text);
-                    if (error) setError('');
-                  }}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-              </View>
-              {error && (
-                <View style={styles.errorMessageContainer}>
-                  <Ionicons name="alert-circle" size={16} color={COLORS.error} />
-                  <Text style={styles.errorText}>{error}</Text>
-                </View>
-              )}
-            </View>
+            <TextInput
+              label="Email"
+              placeholder="Enter your email"
+              value={email}
+              onChangeText={(text) => {
+                setEmail(text);
+                if (error) setError('');
+              }}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              error={error}
+              labelStyle={{ color: COLORS.black }}
+            />
 
             <TouchableOpacity
-              style={styles.resetButton}
+              style={
+                (isLoading || !email)
+                  ? { ...styles.resetButton, ...styles.resetButtonDisabled }
+                  : styles.resetButton
+              }
               onPress={handleForgotPassword}
-              disabled={isLoading}
+              disabled={isLoading || !email}
               activeOpacity={0.8}
             >
               <Text style={styles.resetButtonText}>
-                {isLoading ? 'Sending...' : 'Forgot Password'}
+                {isLoading ? 'Sending...' : 'Send Reset Link'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -152,8 +151,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.lg,
   },
   header: {
-    paddingTop: SPACING['3xl'],
-    paddingBottom: SPACING.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.xs,
+    paddingTop: SPACING['2xl'],
+    marginBottom: SPACING.lg,
   },
   backButton: {
     width: 30,
@@ -162,7 +166,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: SPACING.lg,
     shadowColor: COLORS.shadow,
     shadowOffset: {
       width: 0,
@@ -172,68 +175,41 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
+  placeholder: {
+    width: 32,
+  },
   form: {
     flex: 1
   },
   title: {
-    fontSize: FONTS.sizes['2lgxl'],
+    fontSize: FONTS.sizes['xl'],
     fontWeight: 'bold',
     color: COLORS.text.primary,
     marginBottom: SPACING.xs,
   },
   subtitle: {
-    fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
-    paddingBottom: SPACING.lg,
-  },
-  inputContainer: {
+    fontSize: FONTS.sizes.xl,
+    fontWeight: '700',
+    color: COLORS.text.primary,
     marginBottom: SPACING.lg,
   },
-  label: {
-    fontSize: FONTS.sizes.sm,
-    fontWeight: '600',
-    color: COLORS.text.primary,
-    marginBottom: SPACING.sm,
-  },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F9FAFB',
-    borderRadius: 8,
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: SPACING.xs,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  inputError: {
-    borderColor: '#FF6B9D',
-  },
-  input: {
-    flex: 1,
-    fontSize: FONTS.sizes.sm,
-    color: COLORS.text.primary,
-  },
-  errorMessageContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: SPACING.xs,
-  },
-  errorText: {
-    fontSize: FONTS.sizes.sm,
-    color: COLORS.error,
-    marginLeft: SPACING.xs,
-  },
+
   resetButton: {
-    backgroundColor: COLORS.black,
-    borderRadius: 12,
+    backgroundColor: COLORS.error,
+    borderRadius: BORDER_RADIUS.full,
     paddingVertical: SPACING.smmd,
     alignItems: 'center',
     marginBottom: SPACING.lg,
   },
+  resetButtonDisabled: {
+    backgroundColor: COLORS.accentPinkLight,
+    opacity: 0.6,
+  },
   resetButtonText: {
-    fontSize: FONTS.sizes.base,
-    fontWeight: '400',
+    fontSize: FONTS.sizes.lg,
+    fontWeight: '700',
     color: COLORS.white,
+    letterSpacing: 0.5,
   },
 });
 

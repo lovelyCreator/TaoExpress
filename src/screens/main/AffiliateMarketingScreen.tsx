@@ -52,7 +52,7 @@ const AffiliateMarketingScreen = () => {
   const handleShareLink = async () => {
     try {
       const result = await Share.share({
-        message: `Join TaoExpress! Use my invitation code: ${affiliateCode}`,
+        message: `Join TodayMall! Use my invitation code: ${affiliateCode}`,
         title: 'Share Invitation Code',
       });
 
@@ -68,8 +68,9 @@ const AffiliateMarketingScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       {/* Header with Gradient */}
-      <LinearGradient
-        colors={['#FFE4E6', '#FFF0F1', '#FFFFFF']}
+      {/* <LinearGradient
+        colors={['#FFE4E6', '#FFF0F1', '#FFFFFF']} */}
+      <View
         style={styles.header}
       >
         <TouchableOpacity 
@@ -82,7 +83,8 @@ const AffiliateMarketingScreen = () => {
         <TouchableOpacity style={styles.eventRuleButton}>
           <Text style={styles.eventRuleText}>Event Rule</Text>
         </TouchableOpacity>
-      </LinearGradient>
+      {/* </LinearGradient> */}
+      </View>
 
       <ScrollView 
         style={styles.scrollView} 
@@ -175,6 +177,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.lg,
     marginBottom: SPACING.md,
+    paddingTop: SPACING['2xl'],
   },
   backButton: {
     width: 40,

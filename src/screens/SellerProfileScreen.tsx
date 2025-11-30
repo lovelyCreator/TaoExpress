@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.xl,
+    paddingTop: SPACING['2xl'],
     paddingBottom: SPACING.sm,
     backgroundColor: COLORS.white,
   },

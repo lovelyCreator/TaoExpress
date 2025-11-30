@@ -1,141 +1,148 @@
-# Google Sign-In Setup Guide
+# Google Sign-In Setup Guide - Fix DEVELOPER_ERROR
 
-## Error: DEVELOPER_ERROR
+## Problem
+You're getting `DEVELOPER_ERROR` because the SHA-1 certificate fingerprint is not properly configured in Google Cloud Console.
 
-This error occurs because you need BOTH a Web OAuth Client AND an Android OAuth Client in Google Cloud Console.
+## Solution Steps
 
-## Your Configuration Details
+### Step 1: Get Your SHA-1 Fingerprints
 
-- **Package Name**: `com.app.taoexpress`
-- **SHA-1 Fingerprint**: `35:2A:B3:C0:06:50:CC:C9:2C:A7:29:D2:7D:23:77:48:5D:0C:06:D0`
-- **Web Client ID**: `504835766110-u1kq6htjoenjum17a9g7k27j7ui4q2u7.apps.googleusercontent.com`
+Run these commands in your project root:
 
-## Steps to Fix:
-
-### 1. Get Your SHA-1 Certificate Fingerprint
-
-Open a new Command Prompt (not PowerShell) and run:
-
-```cmd
-cd %USERPROFILE%\.android
-"C:\Program Files\Android\Android Studio\jbr\bin\keytool.exe" -list -v -keystore debug.keystore -alias androiddebugkey -storepass android -keypass android
+#### For Debug Build (Development)
+```bash
+cd android
+./gradlew signingReport
 ```
 
-Look for the **SHA1** line in the output. It will look like:
-```
-SHA1: AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD
+Or on Windows:
+```bash
+cd android
+gradlew.bat signingReport
 ```
 
-Copy this SHA-1 fingerprint.
+Look for the **debug** variant and copy the **SHA1** fingerprint.
 
-### 2. Add SHA-1 to Google Cloud Console
+#### For Release Build (Production)
+If you have a keystore file (`@roy_hensley__Glowmify.jks`), get its SHA-1:
+
+```bash
+keytool -list -v -keystore @roy_hensley__Glowmify.jks -alias glowmify
+```
+
+Enter your keystore password when prompted.
+
+### Step 2: Add SHA-1 to Firebase Console
+
+1. Go to [Firebase Console](https://console.firebase.google.com/)
+2. Select your project
+3. Go to **Project Settings** (gear icon)
+4. Scroll down to **Your apps** section
+5. Click on your Android app (`com.app.todaymall`)
+6. Click **Add fingerprint**
+7. Paste your SHA-1 fingerprint
+8. Click **Save**
+
+**Important:** Add BOTH debug and release SHA-1 fingerprints!
+
+### Step 3: Download Updated google-services.json
+
+1. After adding SHA-1 fingerprints, download the updated `google-services.json`
+2. Replace the file at: `android/app/google-services.json`
+
+### Step 4: Verify Google Cloud Console OAuth Client
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
 2. Select your project
-3. Go to **APIs & Services** → **Credentials**
-4. Find your OAuth 2.0 Client ID (the one with ID: `504835766110-u1kq6htjoenjum17a9g7k27j7ui4q2u7`)
-5. Click on it to edit
-6. Scroll down to **SHA-1 certificate fingerprints**
-7. Click **+ ADD FINGERPRINT**
-8. Paste your SHA-1 fingerprint
-9. Add your package name: `com.app.taoexpress`
-10. Click **SAVE**
+3. Go to **APIs & Services** > **Credentials**
+4. Find your **Android OAuth Client**
+5. Verify it has:
+   - **Package name:** `com.app.todaymall`
+   - **SHA-1 fingerprints:** Both debug and release
 
-### 3. **REQUIRED**: Create Android OAuth Client
+If the Android OAuth Client doesn't exist, create one:
+- Click **Create Credentials** > **OAuth client ID**
+- Select **Android**
+- Enter package name: `com.app.todaymall`
+- Add your SHA-1 fingerprints
+- Click **Create**
 
-You MUST have a separate Android OAuth Client (in addition to the Web client):
+### Step 5: Clean and Rebuild
 
-1. Go to **APIs & Services** → **Credentials**
-2. Click **+ CREATE CREDENTIALS** → **OAuth client ID**
-3. Select **Android** as application type
-4. Enter:
-   - **Name**: TaoExpress Android
-   - **Package name**: `com.app.taoexpress`
-   - **SHA-1 certificate fingerprint**: `35:2A:B3:C0:06:50:CC:C9:2C:A7:29:D2:7D:23:77:48:5D:0C:06:D0`
-5. Click **CREATE**
+```bash
+cd android
+./gradlew clean
+cd ..
+npx react-native run-android
+```
 
-**IMPORTANT**: You need BOTH:
-- ✅ Web OAuth Client (for webClientId in code)
-- ✅ Android OAuth Client (for native sign-in to work)
-
-### 4. Wait and Test
-
-- Wait 5-10 minutes for Google to propagate the changes
-- Rebuild your app: `npx expo run:android`
-- Test the Google Sign-In button
+Or on Windows:
+```bash
+cd android
+gradlew.bat clean
+cd ..
+npx react-native run-android
+```
 
 ## Current Configuration
 
-- **Package Name**: `com.app.taoexpress`
-- **Web Client ID**: `504835766110-u1kq6htjoenjum17a9g7k27j7ui4q2u7.apps.googleusercontent.com`
+Your current setup:
+- **Package Name:** `com.app.todaymall`
+- **Web Client ID:** `504835766110-u1kq6htjoenjum17a9g7k27j7ui4q2u7.apps.googleusercontent.com`
+- **SHA-1 #1:** `5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25`
+- **SHA-1 #2:** `35:2A:B3:C0:06:50:CC:C9:2C:A7:29:D2:7D:23:77:48:5D:0C:06:D0`
+
+## Quick Fix Command
+
+Run this to get your current debug SHA-1:
+
+**Windows:**
+```bash
+cd android && gradlew.bat signingReport && cd ..
+```
+
+**Mac/Linux:**
+```bash
+cd android && ./gradlew signingReport && cd ..
+```
+
+Look for output like:
+```
+Variant: debug
+Config: debug
+Store: C:\Users\YourName\.android\debug.keystore
+Alias: androiddebugkey
+MD5: XX:XX:XX:...
+SHA1: 5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25  <-- Copy this
+SHA-256: XX:XX:XX:...
+```
 
 ## Troubleshooting
 
-If you still get the error:
+### If error persists:
 
-1. Make sure you're using the **Web Client ID** (not Android Client ID) in the code
-2. Verify the package name matches exactly: `com.app.taoexpress`
-3. Check that SHA-1 is added to the correct OAuth client
-4. Try clearing app data and cache
-5. Rebuild the app completely: `npx expo prebuild --clean && npx expo run:android`
+1. **Check package name matches everywhere:**
+   - `android/app/build.gradle` → `applicationId`
+   - Firebase Console → Android app package name
+   - Google Cloud Console → OAuth client package name
 
-## Quick SHA-1 Command (Copy-Paste)
+2. **Verify Web Client ID:**
+   - Make sure you're using the **Web Client ID** (not Android Client ID) in your code
+   - Current: `504835766110-u1kq6htjoenjum17a9g7k27j7ui4q2u7.apps.googleusercontent.com`
 
-```cmd
-"C:\Program Files\Android\Android Studio\jbr\bin\keytool.exe" -list -v -keystore %USERPROFILE%\.android\debug.keystore -alias androiddebugkey -storepass android -keypass android | findstr SHA1
-```
-
-This will show only the SHA-1 line.
-
-
-## Checklist - Make Sure You Have:
-
-- [ ] **Web OAuth Client** created with Client ID: `504835766110-u1kq6htjoenjum17a9g7k27j7ui4q2u7`
-- [ ] **Android OAuth Client** created with:
-  - Package name: `com.app.taoexpress`
-  - SHA-1: `35:2A:B3:C0:06:50:CC:C9:2C:A7:29:D2:7D:23:77:48:5D:0C:06:D0`
-- [ ] Waited 5-10 minutes after creating/updating credentials
-- [ ] Rebuilt the app: `npx expo run:android`
-- [ ] Cleared app data on device/emulator
-
-## How to Verify Your Setup
-
-1. Go to Google Cloud Console → Credentials
-2. You should see TWO OAuth 2.0 Client IDs:
-   - One with type "Web application"
-   - One with type "Android"
-3. Click on the Android one and verify:
-   - Package name matches: `com.app.taoexpress`
-   - SHA-1 is listed: `35:2A:B3:C0:06:50:CC:C9:2C:A7:29:D2:7D:23:77:48:5D:0C:06:D0`
-
-## Still Not Working?
-
-Try these additional steps:
-
-1. **Uninstall and reinstall the app**:
+3. **Clear app data:**
    ```bash
-   adb uninstall com.app.taoexpress
-   npx expo run:android
+   adb shell pm clear com.app.todaymall
    ```
 
-2. **Check Google Play Services** on your emulator/device is up to date
+4. **Reinstall the app:**
+   ```bash
+   npx react-native run-android
+   ```
 
-3. **Verify the Web Client ID** in your code matches the one in Google Cloud Console
+## Need Help?
 
-4. **Enable Google Sign-In API**:
-   - Go to APIs & Services → Library
-   - Search for "Google Sign-In API"
-   - Make sure it's enabled
-
-5. **Check OAuth consent screen**:
-   - Go to APIs & Services → OAuth consent screen
-   - Make sure it's configured with your app details
-   - Add test users if in testing mode
-
-## Common Mistakes
-
-❌ Only creating a Web OAuth Client (you need Android too)
-❌ Wrong package name (must be exactly `com.app.taoexpress`)
-❌ Wrong SHA-1 fingerprint
-❌ Not waiting for Google to propagate changes (5-10 minutes)
-❌ Using release keystore SHA-1 instead of debug keystore
+If you're still getting the error, share:
+1. Output from `gradlew signingReport`
+2. Screenshot of Firebase Console SHA-1 configuration
+3. Screenshot of Google Cloud Console OAuth client configuration

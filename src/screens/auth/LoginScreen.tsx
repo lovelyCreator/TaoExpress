@@ -4,21 +4,19 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   SafeAreaView,
   BackHandler,
-  Image
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import GoogleIcon from '../../assets/icons/GoogleIcon';
 import { Button, TextInput } from '../../components';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
-import { useLoginMutation } from '../../hooks/useAuthMutations';
-import { useSocialLogin } from '../../services/socialAuth';
+import { useLoginMutation, useSocialLoginMutation } from '../../hooks/useAuthMutations';
+import { useToast } from '../../hooks/useToast';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS, VALIDATION_RULES, ERROR_MESSAGES } from '../../constants';
 
 // GoogleSignin.configure({
@@ -56,7 +54,9 @@ const LoginScreen: React.FC = () => {
   // };
 
   const navigation = useNavigation();
-  const { socialLogin, loginError, clearLoginError, isGuest, setAuthenticatedUser, clearNavigateToProfile, setNavigateToProfile } = useAuth();
+  const { loginError, clearLoginError, isGuest, setAuthenticatedUser, clearNavigateToProfile, setNavigateToProfile } = useAuth();
+  const { showToast, ToastComponent } = useToast();
+  
   const { mutate: login, isLoading, isError, error, isSuccess, data } = useLoginMutation({
     onSuccess: (data) => {
       // The AuthContext will handle updating the global state
@@ -101,68 +101,47 @@ const LoginScreen: React.FC = () => {
   });
   
   // Track which provider is being used for social login
-  const [currentProvider, setCurrentProvider] = React.useState<string>('google');
-  
-  const { mutate: socialLoginMutation, isLoading: isSocialLoading, isError: isSocialError, error: socialError } = useSocialLogin({
+  const { mutate: socialLoginMutation, isLoading: isSocialLoading, isError: isSocialError, error: socialError } = useSocialLoginMutation({
     onSuccess: async (data) => {
-      // Handle successful social login
+      // Handle successful social login - data already contains token, refreshToken, and user from backend
       console.log('Social login successful:', data);
       
-      // Send social login data to backend
-      try {
-        const { socialLogin: socialLoginApi } = await import('../../services/authApi');
-        const result = await socialLoginApi(
-          currentProvider, // Use the current provider
-          data.accessToken,
-          data.userInfo.email,
-          data.userInfo.name,
-          data.userInfo.id
-        );
-        
-        if (result.success && result.data) {
-          // Update AuthContext with user data
-          const user = {
-            id: result.data.user.id || result.data.user.email || Date.now().toString(),
-            email: result.data.user.email || '',
-            name: result.data.user.name || result.data.user.email?.split('@')[0] || 'User',
-            avatar: result.data.user.avatar || data.userInfo.picture || 'https://via.placeholder.com/150',
-            phone: result.data.user.phone || '',
-            addresses: result.data.user.addresses || [],
-            paymentMethods: result.data.user.paymentMethods || [],
-            wishlist: result.data.user.wishlist || [],
-            followersCount: result.data.user.followersCount || 0,
-            followingsCount: result.data.user.followingsCount || 0,
-            preferences: result.data.user.preferences || {
-              notifications: {
-                email: true,
-                push: true,
-                sms: true,
-              },
-              language: 'en',
-              currency: 'USD',
-            },
-            createdAt: result.data.user.createdAt || new Date(),
-            updatedAt: result.data.user.updatedAt || new Date(),
-          };
-          
-          console.log('LoginScreen: Social login successful, updating AuthContext');
-          setAuthenticatedUser(user);
-          setNavigateToProfile();
-          
-          // Navigate to main app
-          navigation.navigate('Main' as never);
-        } else {
-          Alert.alert('Login Failed', result.error || 'Failed to authenticate with server');
-        }
-      } catch (error) {
-        console.error('Social login API error:', error);
-        Alert.alert('Login Failed', 'Failed to authenticate with server');
-      }
+      // Update AuthContext with user data
+      const user = {
+        id: data.user.id || data.user.email || Date.now().toString(),
+        email: data.user.email || '',
+        name: data.user.name || data.user.email?.split('@')[0] || 'User',
+        avatar: data.user.avatar || 'https://via.placeholder.com/150',
+        phone: data.user.phone || '',
+        addresses: data.user.addresses || [],
+        paymentMethods: data.user.paymentMethods || [],
+        wishlist: data.user.wishlist || [],
+        followersCount: data.user.followersCount || 0,
+        followingsCount: data.user.followingsCount || 0,
+        preferences: data.user.preferences || {
+          notifications: {
+            email: true,
+            push: true,
+            sms: true,
+          },
+          language: 'en',
+          currency: 'USD',
+        },
+        createdAt: data.user.createdAt || new Date(),
+        updatedAt: data.user.updatedAt || new Date(),
+      };
+      
+      console.log('LoginScreen: Social login successful, updating AuthContext');
+      setAuthenticatedUser(user);
+      setNavigateToProfile();
+      
+      // Navigate to main app
+      navigation.navigate('Main' as never);
     },
     onError: (error) => {
       // Handle social login error
       console.log('Social login error:', error);
-      Alert.alert('Login Failed', error);
+      showToast({ message: error, type: 'error' });
     }
   });
   
@@ -260,11 +239,10 @@ const LoginScreen: React.FC = () => {
 
   const handleSocialLogin = async (provider: 'google' | 'facebook' | 'apple' | 'twitter' | 'kakao') => {
     try {
-      setCurrentProvider(provider); // Set the current provider before calling mutation
       await socialLoginMutation(provider);
     } catch (error) {
       console.log('Social login error:', error);
-      Alert.alert('Login Failed', error as string);
+      showToast({ message: error as string, type: 'error' });
     }
   };
 
@@ -298,6 +276,7 @@ const LoginScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      {ToastComponent}
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -313,12 +292,13 @@ const LoginScreen: React.FC = () => {
             >
               <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
             </TouchableOpacity>
-            <Image source={require("../../assets/icons/logo.png")} />
+            {/* <Image source={require("../../assets/icons/logo.png")} /> */}
+            <Text style={styles.title}>TodayMall</Text>
             <View style={styles.placeholder} />
           </View>
           <View style={styles.subHeader}>
-            <Text style={styles.title}>Sign In</Text>
-            <Text style={styles.subtitle}>Please login to continue</Text>
+            <Text style={styles.subtitle}>Sign In</Text>
+            {/* <Text style={styles.subtitle}>Please login to continue</Text> */}
           </View>
 
 
@@ -343,6 +323,7 @@ const LoginScreen: React.FC = () => {
               autoCapitalize="none"
               autoCorrect={false}
               error={errors.email}
+              labelStyle={{ color: COLORS.black }}
             />
 
             <TextInput
@@ -367,6 +348,7 @@ const LoginScreen: React.FC = () => {
               autoCapitalize="none"
               autoCorrect={false}
               error={errors.password}
+              labelStyle={{ color: COLORS.black }}
             />
 
             <TouchableOpacity
@@ -382,7 +364,11 @@ const LoginScreen: React.FC = () => {
               disabled={isLoading || !formData.email || !formData.password}
               loading={isLoading}
               variant="danger"
-              style={styles.loginButton}
+              style={
+                (isLoading || !formData.email || !formData.password)
+                  ? { ...styles.loginButton, ...styles.loginButtonDisabled }
+                  : styles.loginButton
+              }
               textStyle={styles.loginButtonText}
             />
 
@@ -405,63 +391,45 @@ const LoginScreen: React.FC = () => {
             </View>
 
             <View style={styles.socialButtons}>
-              <Button
-                title="Apple"
+              <TouchableOpacity
+                style={styles.socialButton}
                 onPress={() => handleSocialLogin('apple')}
                 disabled={isSocialLoading}
-                variant="outline"
-                size="small"
-                leftIcon="logo-apple"
-                iconColor={COLORS.black}
-                style={styles.socialButton}
-                textStyle={styles.socialButtonText}
-              />
+              >
+                <Ionicons name="logo-apple" size={24} color={COLORS.black} />
+              </TouchableOpacity>
 
-              <Button
-                title="Google"
+              <TouchableOpacity
+                style={styles.socialButton}
                 onPress={() => handleSocialLogin('google')}
                 disabled={isSocialLoading}
-                variant="outline"
-                size="small"
-                leftElement={<GoogleIcon width={20} height={20} />}
-                style={styles.socialButton}
-                textStyle={styles.socialButtonText}
-              />
+              >
+                <GoogleIcon width={24} height={24} />
+              </TouchableOpacity>
 
-              <Button
-                title="Facebook"
+              <TouchableOpacity
+                style={styles.socialButton}
                 onPress={() => handleSocialLogin('facebook')}
                 disabled={isSocialLoading}
-                variant="outline"
-                size="small"
-                leftIcon="logo-facebook"
-                iconColor="#1877F2"
-                style={styles.socialButton}
-                textStyle={styles.socialButtonText}
-              />
+              >
+                <Ionicons name="logo-facebook" size={24} color="#1877F2" />
+              </TouchableOpacity>
 
-              <Button
-                title="Twitter"
+              <TouchableOpacity
+                style={styles.socialButton}
                 onPress={() => handleSocialLogin('twitter')}
                 disabled={isSocialLoading}
-                variant="outline"
-                size="small"
-                leftIcon="logo-twitter"
-                iconColor="#1DA1F2"
-                style={styles.socialButton}
-                textStyle={styles.socialButtonText}
-              />
+              >
+                <Ionicons name="logo-twitter" size={24} color="#1DA1F2" />
+              </TouchableOpacity>
 
-              <Button
-                title="Kakao"
+              <TouchableOpacity
+                style={styles.socialButton}
                 onPress={() => handleSocialLogin('kakao')}
                 disabled={isSocialLoading}
-                variant="outline"
-                size="small"
-                leftElement={<View style={{ width: 20, height: 20, backgroundColor: '#FEE500', borderRadius: 4 }} />}
-                style={styles.socialButton}
-                textStyle={styles.socialButtonText}
-              />
+              >
+                <View style={{ width: 24, height: 24, backgroundColor: '#FEE500', borderRadius: 4 }} />
+              </TouchableOpacity>
             </View>
 
             <View style={styles.signupContainer}>
@@ -520,23 +488,25 @@ const styles = StyleSheet.create({
   },
   subHeader: {
     paddingHorizontal: SPACING.xs,
-    paddingTop: SPACING.sm,
+    paddingTop: SPACING.md,
     paddingBottom: SPACING.md,
   },
   title: {
-    fontSize: FONTS.sizes['3xl'],
+    fontSize: FONTS.sizes['xl'],
     fontWeight: '700',
     color: COLORS.text.primary,
     marginBottom: SPACING.xs,
   },
   subtitle: {
-    fontSize: FONTS.sizes.md,
-    color: COLORS.text.secondary,
-    lineHeight: 20,
+    fontSize: FONTS.sizes.xl,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+    marginBottom: SPACING.xs,
   },
   form: {
     flex: 1,
     paddingHorizontal: SPACING.xs,
+    paddingBottom: SPACING['2xl'],
   },
   inputContainer: {
     marginBottom: SPACING.lg,
@@ -606,13 +576,17 @@ const styles = StyleSheet.create({
   loginButton: {
     backgroundColor: COLORS.error,
     borderRadius: BORDER_RADIUS.full,
-    paddingVertical: SPACING.md,
+    paddingVertical: SPACING.smmd,
     alignItems: 'center',
     marginBottom: SPACING.md,
     ...SHADOWS.sm,
   },
+  loginButtonDisabled: {
+    backgroundColor: COLORS.accentPinkLight,
+    opacity: 0.6,
+  },
   loginButtonText: {
-    fontSize: FONTS.sizes['2xl'],
+    fontSize: FONTS.sizes.lg,
     fontWeight: '700',
     color: COLORS.white,
     letterSpacing: 0.5,
@@ -646,19 +620,18 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   socialButtons: {
-    flexDirection: 'column',
-    justifyContent: 'space-between',
+    flexDirection: 'row',
+    justifyContent: 'center',
     marginBottom: SPACING.md,
-    gap: SPACING.sm,
+    gap: SPACING.md,
   },
   socialButton: {
-    flex: 1,
-    flexDirection: 'row',
+    width: 50,
+    height: 50,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: COLORS.white,
-    borderRadius: BORDER_RADIUS.full,
-    paddingVertical: SPACING.sm,
+    borderRadius: 25,
     borderWidth: 1,
     borderColor: COLORS.gray[300],
   },

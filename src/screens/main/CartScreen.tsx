@@ -250,7 +250,7 @@ const CartScreen: React.FC = () => {
               resizeMode="contain"
             />
           {/* </View> */}
-          <Text style={styles.welcomeText}>Welcome to TaoExpress!</Text>
+          <Text style={styles.welcomeText}>Welcome to TodayMall!</Text>
           <Text style={styles.loginPrompt}>
             Login to access your shopping cart
           </Text>
@@ -342,7 +342,7 @@ const CartScreen: React.FC = () => {
       </Text>
       
       <View style={styles.headerActions}>
-        <TouchableOpacity style={styles.headerIcon}>
+        <TouchableOpacity style={styles.headerIcon} onPress={() => {navigation.navigate('Wishlist' as never)}}>
           <Ionicons name="heart-outline" size={24} color={COLORS.black} />
         </TouchableOpacity>
         <TouchableOpacity style={styles.headerIcon}>

@@ -24,7 +24,7 @@ const GlowmifyLogo: React.FC<GlowmifyLogoProps> = ({
       </View>
       {showText && (
         <View style={styles.appNameContainer}>
-          <Text style={[styles.appName, { fontSize: textSize }]}>taoexpress</Text>
+          <Text style={[styles.appName, { fontSize: textSize }]}>TodayMall</Text>
         </View>
       )}
     </View>

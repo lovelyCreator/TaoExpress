@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.xs,
   },
   buttonText: {
-    fontSize: FONTS.sizes.lg,
+    fontSize: FONTS.sizes.md,
     fontWeight: '700',
   },
   overlay: {

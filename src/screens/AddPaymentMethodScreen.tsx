@@ -8,14 +8,13 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  SafeAreaView,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 
-import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../constants';
+import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '../constants';
 import { RootStackParamList } from '../types';
 
 type AddPaymentMethodScreenNavigationProp = StackNavigationProp<
@@ -95,13 +94,13 @@ const AddPaymentMethodScreen: React.FC = () => {
   };
 
   const renderHeader = () => (
-    <LinearGradient colors={['#FFE4E6', '#FFF0F1', '#FFFFFF']} style={styles.header}>
+    <View style={styles.header}>
       <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-        <Ionicons name="chevron-back" size={24} color={COLORS.text.primary} />
+        <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
       </TouchableOpacity>
       <Text style={styles.headerTitle}>Add Card</Text>
       <View style={styles.placeholder} />
-    </LinearGradient>
+    </View>
   );
 
   return (
@@ -252,26 +251,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.lg,
+    paddingVertical: SPACING.sm,
+    paddingTop: SPACING['2xl'],
+    backgroundColor: COLORS.white,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: COLORS.gray[100],
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
   },
   headerTitle: {
     fontSize: FONTS.sizes.xl,
     fontWeight: '700',
     color: COLORS.text.primary,
-    letterSpacing: 0.5,
   },
   placeholder: {
     width: 40,
@@ -325,18 +320,21 @@ const styles = StyleSheet.create({
     padding: SPACING.lg,
   },
   submitButton: {
-    backgroundColor: '#2196F3',
-    paddingVertical: SPACING.md,
+    backgroundColor: COLORS.error,
+    paddingVertical: SPACING.smmd,
     borderRadius: BORDER_RADIUS.full,
     alignItems: 'center',
+    ...SHADOWS.sm,
   },
   submitButtonDisabled: {
-    backgroundColor: COLORS.gray[300],
+    backgroundColor: COLORS.accentPinkLight,
+    opacity: 0.6,
   },
   submitButtonText: {
-    fontSize: FONTS.sizes.md,
-    fontWeight: '600',
+    fontSize: FONTS.sizes.lg,
+    fontWeight: '700',
     color: COLORS.white,
+    letterSpacing: 0.5,
   },
 });
 

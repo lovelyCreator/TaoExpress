@@ -14,18 +14,27 @@ WebBrowser.maybeCompleteAuthSession();
 // IMPORTANT: You need BOTH Web Client ID AND Android Client ID in Google Cloud Console
 // Web Client ID - for getting ID tokens
 const GOOGLE_WEB_CLIENT_ID = '504835766110-u1kq6htjoenjum17a9g7k27j7ui4q2u7.apps.googleusercontent.com';
-const GOOGLE_REDIRECT_URI = "https://auth.expo.io/@roy_hensley/taoexpress";
+const GOOGLE_REDIRECT_URI = "https://auth.expo.io/@roy_hensley/todaymall";
 
 // Configure Google Sign-In
-// Make sure you have created an Android OAuth Client in Google Cloud Console with:
-// - Package name: com.app.taoexpress
-// - SHA-1 #1: 5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25
-// - SHA-1 #2: 35:2A:B3:C0:06:50:CC:C9:2C:A7:29:D2:7D:23:77:48:5D:0C:06:D0
+// IMPORTANT: Create an Android OAuth Client in Google Cloud Console with:
+// - Package name: com.app.todaymall (must match build.gradle)
+// - SHA-1: Get from running: cd android && gradlew.bat signingReport
+// 
+// You need BOTH:
+// 1. Web OAuth Client (for backend) - webClientId below
+// 2. Android OAuth Client (for mobile) - with SHA-1 fingerprint
+
+
+
 GoogleSignin.configure({
   webClientId: GOOGLE_WEB_CLIENT_ID,
   offlineAccess: true,
   forceCodeForRefreshToken: true,
 });
+
+
+
 // Facebook OAuth Configuration
 const FACEBOOK_APP_ID = 'YOUR_FACEBOOK_APP_ID';
 const FACEBOOK_REDIRECT_URI = AuthSession.makeRedirectUri({
@@ -40,7 +49,7 @@ const APPLE_REDIRECT_URI = AuthSession.makeRedirectUri({
 const TWITTER_CLIENT_ID = 'dURqNDZQVDRTQjJYbWt2cUwtOFU6MTpjaQ';
 const TWITTER_CLIENT_SECRET = '7KcFO61dXldQA8Em1JQqWJK4VaJqL-DO46e25gObmnPGHbrfgZ';
 const TWITTER_REDIRECT_URI = AuthSession.makeRedirectUri({
-  native: 'com.app.taoexpress://oauthredirect',
+  native: 'com.app.todaymall://oauthredirect',
 });
 const KAKAO_CLIENT_ID = 'YOUR_KAKAO_REST_API_KEY';
 const KAKAO_REDIRECT_URI = AuthSession.makeRedirectUri({
@@ -77,8 +86,9 @@ const generateCodeChallenge = async (codeVerifier: string): Promise<string> => {
     .replace(/=/g, '');
 };
 
-// Google Sign In with native modal
+// Google Sign In with native modal and backend integration
 export const signInWithGoogle = async () => {
+  
   try {
     // Check if Play Services are available (Android only)
     await GoogleSignin.hasPlayServices();
@@ -89,42 +99,115 @@ export const signInWithGoogle = async () => {
     
     console.log('Google Sign-In Success:', response);
 
-    // Get tokens
-    const tokens = await GoogleSignin.getTokens();
+    // Check if sign-in was successful
+    if (!response || !response.data) {
+      console.log('Google Sign-In: No response data');
+      return {
+        success: false,
+        error: 'Sign-in failed - no response data',
+      };
+    }
 
-    // Extract user data from response
-    const userData = response.data;
+    // Get ID token directly from response (more reliable)
+    const idToken = response.data.idToken;
+    
+    if (!idToken) {
+      console.log('Google Sign-In: No ID token in response');
+      return {
+        success: false,
+        error: 'Failed to get authentication token',
+      };
+    }
+    
+    console.log("Google ID Token: ", idToken);
+
+    // Send idToken to backend
+    const API_BASE_URL = 'http://221.138.36.200:5000/api/v1';
+    const backendResponse = await fetch(`${API_BASE_URL}/auth/google/mobile`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true',
+      },
+      body: JSON.stringify({
+        idToken: idToken,
+      }),
+    });
+
+    console.log('Backend Response Status:', backendResponse.status);
+    
+    // Get response text first
+    const responseText = await backendResponse.text();
+    console.log('Backend Response Text:', responseText.substring(0, 200));
+    
+    // Try to parse as JSON
+    let backendData;
+    try {
+      backendData = JSON.parse(responseText);
+      console.log('Backend Response:', backendData);
+    } catch (parseError) {
+      console.error('Failed to parse backend response:', parseError);
+      return {
+        success: false,
+        error: 'Invalid response from server',
+      };
+    }
+
+    // Check if backend authentication was successful
+    if (!backendResponse.ok || backendData.status !== 'success') {
+      return {
+        success: false,
+        error: backendData.message || 'Backend authentication failed',
+      };
+    }
+
+    // Extract user data from backend response (same format as login)
+    const { user, token, refreshToken } = backendData.data;
 
     return {
       success: true,
       data: {
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.idToken,
-        userInfo: {
-          id: userData?.user?.id || '',
-          email: userData?.user?.email || '',
-          name: userData?.user?.name || '',
-          picture: userData?.user?.photo || '',
+        token: token,
+        refreshToken: refreshToken,
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.user_id || user.name,
+          phone: user.phone,
+          avatar: user.avatar,
         },
       },
     };
   } catch (error: any) {
     console.error('Google Sign-In Error:', error);
+    console.error('Error code:', error.code);
+    console.error('Error message:', error.message);
     
-    if (error.code === 'SIGN_IN_CANCELLED') {
+    // Handle specific error codes
+    if (error.code === 'SIGN_IN_CANCELLED' || error.code === '-5') {
       return {
         success: false,
-        error: 'Authentication cancelled',
+        error: 'Sign-in cancelled',
       };
     } else if (error.code === 'IN_PROGRESS') {
       return {
         success: false,
-        error: 'Sign in already in progress',
+        error: 'Sign-in already in progress',
       };
     } else if (error.code === 'PLAY_SERVICES_NOT_AVAILABLE') {
       return {
         success: false,
-        error: 'Play Services not available',
+        error: 'Google Play Services not available',
+      };
+    } else if (error.code === 'SIGN_IN_REQUIRED' || error.message?.includes('getTokens requires')) {
+      return {
+        success: false,
+        error: 'Sign-in was not completed',
+      };
+    } else if (error.code === 'DEVELOPER_ERROR') {
+      return {
+        success: false,
+        error: 'Configuration error - Please check SHA-1 fingerprint in Firebase Console',
       };
     }
     

@@ -96,8 +96,9 @@ const PaymentPasswordScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       {/* Header with Gradient */}
-      <LinearGradient
-        colors={['#FFE4E6', '#FFF0F1', '#FFFFFF']}
+      {/* <LinearGradient
+        colors={['#FFE4E6', '#FFF0F1', '#FFFFFF']} */}
+      <View
         style={styles.header}
       >
         <TouchableOpacity 
@@ -108,7 +109,8 @@ const PaymentPasswordScreen = () => {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Payment Password</Text>
         <View style={styles.placeholder} />
-      </LinearGradient>
+      {/* </LinearGradient> */}
+      </View>
 
       <ScrollView 
         style={styles.scrollView} 
@@ -262,7 +264,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.lg,
-    marginBottom: SPACING.md,
+    // marginBottom: SPACING.md,
+    paddingTop: SPACING['2xl'],
   },
   backButton: {
     width: 40,
@@ -384,16 +387,11 @@ const styles = StyleSheet.create({
     color: COLORS.text.primary,
   },
   submitButton: {
-    backgroundColor: '#FF6B9D',
-    borderRadius: 12,
-    paddingVertical: SPACING.lg,
+    backgroundColor: COLORS.error,
+    borderRadius: 999,
+    paddingVertical: SPACING.smmd,
     alignItems: 'center',
     marginBottom: SPACING.xl,
-    shadowColor: '#FF6B9D',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
   },
   submitButtonDisabled: {
     backgroundColor: COLORS.gray[300],
@@ -402,6 +400,7 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontSize: FONTS.sizes.lg,
     fontWeight: '700',
+    letterSpacing: 0.5,
   },
   infoCard: {
     flexDirection: 'row',
@@ -410,6 +409,7 @@ const styles = StyleSheet.create({
     padding: SPACING.lg,
     borderWidth: 1,
     borderColor: '#D0E8F7',
+    marginBottom: 50,
   },
   infoIconContainer: {
     marginRight: SPACING.md,

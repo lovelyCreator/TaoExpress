@@ -5,20 +5,18 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Image,
   Share,
   Alert,
-  Platform,
+  SafeAreaView,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import * as Clipboard from 'expo-clipboard';
 
 import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../../constants';
 import { RootStackParamList } from '../../types';
+import { LinearGradient } from 'expo-linear-gradient';
 
 type ShareAppScreenNavigationProp = StackNavigationProp<RootStackParamList, 'ShareApp'>;
 
@@ -26,8 +24,8 @@ const ShareAppScreen: React.FC = () => {
   const navigation = useNavigation<ShareAppScreenNavigationProp>();
 
   // App sharing information
-  const appName = 'TaoExpress';
-  const appUrl = 'https://taoexpress.app'; // Replace with your actual app URL
+  const appName = 'TodayMall';
+  const appUrl = 'https://todaymall.app'; // Replace with your actual app URL
   const shareMessage = `Check out ${appName}! 🎁\n\nJoin now and get exclusive discounts on all products!\n\nDownload here: ${appUrl}`;
 
   const handleSharePoster = async () => {
@@ -76,13 +74,13 @@ const ShareAppScreen: React.FC = () => {
   };
 
   const renderHeader = () => (
-    <LinearGradient colors={['#FFE4E6', '#FFF0F1', '#FFFFFF']} style={styles.header}>
+    <View style={styles.header}>
       <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-        <Ionicons name="chevron-back" size={24} color={COLORS.text.primary} />
+        <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
       </TouchableOpacity>
       <Text style={styles.headerTitle}>Share</Text>
       <View style={styles.placeholder} />
-    </LinearGradient>
+    </View>
   );
 
   return (
@@ -111,8 +109,8 @@ const ShareAppScreen: React.FC = () => {
 
             {/* Main Content */}
             <View style={styles.posterContent}>
-              <Text style={styles.appNameKorean}>타오익스</Text>
-              <Text style={styles.appNameKorean}>프레스</Text>
+              <Text style={styles.appNameKorean}>Today</Text>
+              <Text style={styles.appNameKorean}>Mall</Text>
               
               <View style={styles.appSharingBadge}>
                 <Text style={styles.appSharingText}>APPsharing</Text>
@@ -196,26 +194,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.lg,
+    paddingVertical: SPACING.sm,
+    paddingTop: SPACING['2xl'],
+    backgroundColor: COLORS.white,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: COLORS.gray[100],
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
   },
   headerTitle: {
     fontSize: FONTS.sizes.xl,
     fontWeight: '700',
     color: COLORS.text.primary,
-    letterSpacing: 0.5,
   },
   placeholder: {
     width: 40,

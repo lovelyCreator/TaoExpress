@@ -18,6 +18,7 @@ export const COLORS = {
   secondaryLight: '#333333',
   // Brand Accent - Red
   accentPink: '#FF0055',
+  accentPinkLight: '#FF005599',
   
   // Neutral Colors - Clean whites and blacks
   white: '#FFFFFF',
@@ -176,6 +177,23 @@ export const ANIMATION_DURATION = {
   slow: 500,
 };
 
+// Demo Mode Configuration
+// CASE 1 (DEMO_MODE = true): Client Demo Version
+//   - Home, Search, Image Search, Category, Product Detail: Full functionality
+//   - Cart: Always shows empty state
+//   - Wishlist: Always shows empty state  
+//   - Profile: Only shows user info and login button (no settings, no menu items below)
+//   - Auth: Full functionality (same as Case 2)
+//
+// CASE 2 (DEMO_MODE = false): Full App Version
+//   - All features enabled
+//   - Full Cart functionality
+//   - Full Wishlist functionality
+//   - Full Profile with all menu items and settings
+//
+// Toggle this flag to switch between demo and full versions
+export const DEMO_MODE = true;
+
 // API Configuration
 export const API_CONFIG = {
   baseUrl: process.env.API_BASE_URL || 'https://192.168.5.54:8001/api/v1', // Default to HTTPS
@@ -186,6 +204,7 @@ export const API_CONFIG = {
 // Storage Keys
 export const STORAGE_KEYS = {
   USER_TOKEN: 'user_token',
+  REFRESH_TOKEN: 'refresh_token',
   USER_DATA: 'user_data',
   CART_DATA: 'cart_data',
   WISHLIST_DATA: 'wishlist_data',

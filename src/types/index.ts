@@ -342,7 +342,7 @@ export type RootStackParamList = {
   ChattingMembers: undefined,
   ChatSearch: undefined,
   CustomerService: undefined,
-  ImageSearch: { imageUri: string },
+  OrderInquiry: undefined,
   ChatProducts: { 
     sellerId?: string;
   };
@@ -376,8 +376,9 @@ export type AuthStackParamList = {
   Login: undefined;
   Signup: undefined;
   ForgotPassword: undefined;
-  ResetPassword: { token: string };
+  ResetPassword: { token: string; email: string };
   OtpVerification: { email: string };
+  EmailVerification: { email: string; token: string; userData: any };
 };
 
 export type MainTabParamList = {
@@ -1043,7 +1044,8 @@ export interface RegisterVariables {
   email: string;
   password: string;
   name: string;
-  gender: string;
+  phone: string;
+  isBusiness: boolean;
 }
 
 export interface GuestLoginVariables {
@@ -1247,7 +1249,8 @@ export interface RegisterRequest {
   email: string;
   password: string;
   name: string;
-  gender: string;
+  phone: string;
+  isBusiness: boolean;
 }
 
 export interface GustLoginRequest {

@@ -119,20 +119,6 @@ const HomeScreen: React.FC = () => {
   const [showScrollToTop, setShowScrollToTop] = useState(false);
   const scrollToTopOpacity = useRef(new Animated.Value(0)).current;
   
-  // Interpolate header translation directly from scrollY
-  const headerTranslateY = scrollY.interpolate({
-    inputRange: [0, HEADER_TOP_HEIGHT],
-    outputRange: [0, -HEADER_TOP_HEIGHT],
-    extrapolate: 'clamp',
-  });
-  
-  // Immediate color change - step function (0 or 1, no gradual transition)
-  const headerBgOpacity = scrollY.interpolate({
-    inputRange: [0, SCROLL_THRESHOLD],
-    outputRange: [0, 1],
-    extrapolate: 'clamp',
-  });
-  
   // State for new "New In" products
   const [newInProducts, setNewInProducts] = useState<NewInProduct[]>([]);
   
@@ -546,63 +532,37 @@ const HomeScreen: React.FC = () => {
   };
 
   const renderHeader = () => {
-    // Animated icon color (white to black)
-    const animatedIconColor = scrollY.interpolate({
-      inputRange: [0, SCROLL_THRESHOLD],
-      outputRange: [0, 1],
-      extrapolate: 'clamp',
-    });
-    
     return (
-      <Animated.View 
-        style={[
-          styles.header,
-          { 
-            transform: [{ translateY: headerTranslateY }],
-          }
-        ]}
-      >
+      <View style={styles.header}>
         <View style={styles.headerContent}>
           <StatusBar barStyle="dark-content" backgroundColor="transparent" />
-          {/* Logo and Notification */}
+          {/* App Name and Icons Row */}
           <View style={styles.headerTop}>
             <View style={styles.logoContainer}>
-              {/* Logo hidden */}
+              <Text style={styles.appName}>TodayMall</Text>
             </View>
             <View style={styles.headerSpacer} />
-            <NotificationBadge
-              icon="headset-outline"
-              iconSize={36}
-              iconColor={COLORS.white}
-              count={unreadCount}
-              badgeColor="#fa9d24ff"
-              onPress={() => {
-                navigation.navigate('CustomerService' as never);
-              }}
-            />
-          </View>
-          
-          {/* Search Bar and Platform Menu */}
-          <View style={styles.searchRow}>
-            <View style={styles.platformButton}>
-              <PlatformMenu
-                platforms={platforms}
-                selectedPlatform={selectedPlatform}
-                onSelectPlatform={setSelectedPlatform}
-                getLabel={(platform) => platform.toUpperCase()}
-                textColor={COLORS.white}
+            <View style={styles.headerIcons}>
+              <TouchableOpacity
+                style={styles.iconButton}
+                onPress={() => navigation.navigate('Search' as never)}
+              >
+                <Ionicons name="search" size={24} color={COLORS.white} />
+              </TouchableOpacity>
+              <NotificationBadge
+                icon="headset-outline"
+                iconSize={24}
                 iconColor={COLORS.white}
+                count={unreadCount}
+                badgeColor="#fa9d24ff"
+                onPress={() => {
+                  navigation.navigate('CustomerService' as never);
+                }}
               />
             </View>
-            
-            <SearchButton
-              placeholder="Search products..."
-              onPress={() => navigation.navigate('Search' as never)}
-              onCameraPress={handleImageSearch}
-            />
           </View>
         </View>
-      </Animated.View>
+      </View>
     );
   };
 
@@ -618,36 +578,37 @@ const HomeScreen: React.FC = () => {
       ...companyCategories
     ];
     
-    // Animated text color (white to black)
-    const animatedTextColor = scrollY.interpolate({
-      inputRange: [0, SCROLL_THRESHOLD],
-      outputRange: [0, 1],
-      extrapolate: 'clamp',
-    });
-    
     return (
-      <Animated.View 
-        style={[
-          styles.categoryTabsContainer,
-          { 
-            transform: [{ translateY: headerTranslateY }],
-          }
-        ]}
+      <View 
+        style={styles.categoryTabsContainer}
         onLayout={(e) => {
           categoryScrollViewWidth.current = e.nativeEvent.layout.width;
         }}
       >
-        <ScrollView 
-          ref={categoryScrollRef}
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoryTabs}
-          scrollEventThrottle={16}
-        >
-          {allCategories.map((category, index) => (
-            <TouchableOpacity
-              key={`category-${category.id}`}
-              style={styles.categoryTab}
+        <View style={styles.categoryTabsRow}>
+          <View style={styles.platformMenuContainer}>
+            <PlatformMenu
+              platforms={platforms}
+              selectedPlatform={selectedPlatform}
+              onSelectPlatform={setSelectedPlatform}
+              getLabel={(platform) => platform.toUpperCase()}
+              textColor={COLORS.text.primary}
+              iconColor={COLORS.text.primary}
+            />
+          </View>
+          
+          <ScrollView 
+            ref={categoryScrollRef}
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.categoryTabs}
+            scrollEventThrottle={16}
+            style={styles.categoryScrollView}
+          >
+            {allCategories.map((category, index) => (
+              <TouchableOpacity
+                key={`category-${category.id}`}
+                style={styles.categoryTab}
               onLayout={(e) => {
                 const { x, width } = e.nativeEvent.layout;
                 categoryTabLayouts.current[category.id] = { x, width };
@@ -725,8 +686,9 @@ const HomeScreen: React.FC = () => {
               )}
             </TouchableOpacity>
           ))}
-        </ScrollView>
-      </Animated.View>
+          </ScrollView>
+        </View>
+      </View>
     );
   };
 
@@ -1241,20 +1203,15 @@ const HomeScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Animated.View 
-        style={[
-          styles.gradientBackgroundFixed,
-          { transform: [{ translateY: headerTranslateY }] }
-        ]}
-      >
+      <View style={styles.gradientBackgroundFixed}>
         <LinearGradient
           colors={['#FF0055', '#ff8676ff', '#fca8afff', '#FFFFFF']}
-          locations={[0, 0.4, 0.45, 0.7, 1]}
+          locations={[0, 0.4, 0.7, 1]}
           style={styles.gradientFill}
           start={{ x: 0, y: 0 }}
           end={{ x: 0, y: 1 }}
         />
-      </Animated.View>
+      </View>
       
       <View style={styles.fixedTopBars}>
         {renderHeader()}
@@ -1319,7 +1276,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: 550, // Shorter gradient coverage
+    height: 350, // Shorter gradient coverage
     zIndex: 0,
   },
   gradientFill: {
@@ -1331,14 +1288,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   scrollContent: {
-    paddingTop: 90,
+    paddingTop: 10,
     paddingBottom: 10,
     backgroundColor: 'transparent',
   },
   fixedTopBars: {
     backgroundColor: 'transparent',
     zIndex: 10,
-    marginBottom: -80,
+    // marginBottom: -80,
   },
   headerPlaceholder: {
     backgroundColor: COLORS.white,
@@ -1356,7 +1313,7 @@ const styles = StyleSheet.create({
   header: {
     zIndex: 10,
     paddingHorizontal: SPACING.lg,
-    // paddingTop: Platform.OS === 'ios' ? 30 : 20,
+    paddingTop: Platform.OS === 'ios' ? 30 : 20,
     paddingBottom: SPACING.sm,
   },
   headerContent: {
@@ -1365,10 +1322,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: SPACING.lg,
+    // marginBottom: SPACING.lg,
   },
   logoContainer: {
     // No background needed
+  },
+  appName: {
+    fontSize: FONTS.sizes['2xl'],
+    fontWeight: '700',
+    color: COLORS.white,
+    letterSpacing: 0.5,
   },
   logo: {
     width: 160,
@@ -1376,6 +1339,18 @@ const styles = StyleSheet.create({
   },
   headerSpacer: {
     flex: 1,
+  },
+  headerIcons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+  },
+  iconButton: {
+    padding: SPACING.xs,
+  },
+  platformRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   searchRow: {
     flexDirection: 'row',
@@ -1398,8 +1373,24 @@ const styles = StyleSheet.create({
     paddingBottom: SPACING.xs,
     zIndex: 9,
   },
+  categoryTabsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  platformMenuContainer: {
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.white,
+    borderRadius: BORDER_RADIUS.md,
+    marginLeft: SPACING.md,
+  },
+  categoryScrollView: {
+    flex: 1,
+  },
   categoryTabs: {
-    paddingHorizontal: SPACING.md,
+    paddingHorizontal: SPACING.sm,
   },
   categoryTab: {
     paddingHorizontal: SPACING.md,
@@ -1408,7 +1399,7 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   categoryTabText: {
-    fontSize: FONTS.sizes.lg,
+    fontSize: FONTS.sizes.md,
     color: COLORS.white,
     fontWeight: '400',
   },

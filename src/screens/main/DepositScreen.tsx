@@ -6,13 +6,14 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { COLORS, FONTS, SPACING } from '../../constants';
-import DatePickerModal from '../../components/DatePickerModal';
+import { DatePickerModal } from '../../components';
 
 interface Transaction {
   id: number;
@@ -113,9 +114,15 @@ const DepositScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar
+        barStyle="dark-content"
+        backgroundColor="transparent"
+        translucent={true}
+      />
       {/* Header with Gradient */}
-      <LinearGradient
-        colors={['#FFE4E6', '#FFF0F1', '#FFFFFF']}
+      {/* <LinearGradient
+        colors={['#FFE4E6', '#FFF0F1', '#FFFFFF']} */}
+      <View
         style={styles.header}
       >
         <TouchableOpacity 
@@ -126,7 +133,8 @@ const DepositScreen = () => {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Deposit</Text>
         <View style={styles.placeholder} />
-      </LinearGradient>
+      {/* </LinearGradient> */}
+      </View>
 
       <ScrollView 
         style={styles.scrollView} 
@@ -292,8 +300,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.lg,
-    marginBottom: SPACING.md,
+    paddingVertical: SPACING.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.gray[200],
+    backgroundColor: COLORS.white,
   },
   backButton: {
     width: 40,
@@ -324,7 +334,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.lg,
     paddingTop: SPACING.md,
     paddingBottom: SPACING.xl,
-    marginTop: -20,
   },
   balanceCard: {
     backgroundColor: COLORS.white,

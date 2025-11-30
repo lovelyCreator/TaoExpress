@@ -3,7 +3,7 @@ import { getStoredToken } from './authApi';
 import axios from 'axios';
 
 // API base URL - using environment variable with fallback to local endpoint
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://semistiff-vance-doctorly.ngrok-free.dev/api/v1';
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://221.138.36.200:5000/api/v1';
 
 // Categories API
 export const categoriesApi = {

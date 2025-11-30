@@ -78,8 +78,9 @@ const ChangePasswordScreen: React.FC = () => {
   };
 
   const renderHeader = () => (
-    <LinearGradient
-      colors={['#FFE4E6', '#FFF0F1', '#FFFFFF']}
+    // <LinearGradient
+    //   colors={['#FFE4E6', '#FFF0F1', '#FFFFFF']}
+    <View
       style={styles.header}
     >
       <TouchableOpacity
@@ -90,7 +91,8 @@ const ChangePasswordScreen: React.FC = () => {
       </TouchableOpacity>
       <Text style={styles.headerTitle}>Change Password</Text>
       <View style={styles.placeholder} />
-    </LinearGradient>
+    {/* </LinearGradient> */}
+    </View>
   );
 
   const renderPasswordInput = (
@@ -256,6 +258,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.lg,
     marginBottom: SPACING.md,
+    paddingTop: SPACING['2xl']
   },
   backButton: {
     width: 40,
@@ -323,16 +326,11 @@ const styles = StyleSheet.create({
     padding: SPACING.xs,
   },
   saveButton: {
-    backgroundColor: '#FF6B9D',
-    paddingVertical: SPACING.md,
-    borderRadius: 12,
+    backgroundColor: COLORS.error,
+    borderRadius: 999,
+    paddingVertical: SPACING.smmd,
     alignItems: 'center',
     marginTop: SPACING.md,
-    shadowColor: '#FF6B9D',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
   },
   saveButtonText: {
     fontSize: FONTS.sizes.lg,

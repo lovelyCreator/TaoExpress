@@ -99,7 +99,8 @@ export const useRegisterMutation = (options?: AuthUseMutationOptions): UseRegist
         variables.email,
         variables.password,
         variables.name,
-        variables.gender
+        variables.phone,
+        variables.isBusiness
       );
       
       if (response.success && response.data) {
@@ -232,4 +233,230 @@ export const useChangePasswordMutation = (options?: AuthUseMutationOptions): Use
     isSuccess,
     isError,
   };
+};
+
+
+// Verify Email Mutation
+export const useVerifyEmailMutation = (options?: AuthUseMutationOptions) => {
+  const [data, setData] = useState<any | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isSuccess, setIsSuccess] = useState<boolean>(false);
+  const [isError, setIsError] = useState<boolean>(false);
+
+  const mutate = useCallback(async (variables: { email: string; code: string }) => {
+    setIsLoading(true);
+    setIsSuccess(false);
+    setIsError(false);
+    setError(null);
+
+    try {
+      const { verifyEmail } = require('../services/authApi');
+      const response = await verifyEmail(variables.email, variables.code);
+      
+      if (response.success && response.data) {
+        setData(response.data);
+        setIsSuccess(true);
+        options?.onSuccess?.(response.data);
+      } else {
+        const errorMessage = response.error || 'Verification failed';
+        setError(errorMessage);
+        setIsError(true);
+        options?.onError?.(errorMessage);
+      }
+    } catch (err) {
+      const errorMessage = 'An unexpected error occurred';
+      setError(errorMessage);
+      setIsError(true);
+      options?.onError?.(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [options]);
+
+  return { mutate, data, error, isLoading, isSuccess, isError };
+};
+
+// Resend Verification Code Mutation
+export const useResendVerificationMutation = (options?: AuthUseMutationOptions) => {
+  const [data, setData] = useState<any | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isSuccess, setIsSuccess] = useState<boolean>(false);
+  const [isError, setIsError] = useState<boolean>(false);
+
+  const mutate = useCallback(async (variables: { email: string }) => {
+    setIsLoading(true);
+    setIsSuccess(false);
+    setIsError(false);
+    setError(null);
+
+    try {
+      const { resendVerificationCode } = require('../services/authApi');
+      const response = await resendVerificationCode(variables.email);
+      
+      if (response.success && response.data) {
+        setData(response.data);
+        setIsSuccess(true);
+        options?.onSuccess?.(response.data);
+      } else {
+        const errorMessage = response.error || 'Failed to resend code';
+        setError(errorMessage);
+        setIsError(true);
+        options?.onError?.(errorMessage);
+      }
+    } catch (err) {
+      const errorMessage = 'An unexpected error occurred';
+      setError(errorMessage);
+      setIsError(true);
+      options?.onError?.(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [options]);
+
+  return { mutate, data, error, isLoading, isSuccess, isError };
+};
+
+// Forgot Password Mutation
+export const useForgotPasswordMutation = (options?: AuthUseMutationOptions) => {
+  const [data, setData] = useState<any | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isSuccess, setIsSuccess] = useState<boolean>(false);
+  const [isError, setIsError] = useState<boolean>(false);
+
+  const mutate = useCallback(async (variables: { email: string }) => {
+    setIsLoading(true);
+    setIsSuccess(false);
+    setIsError(false);
+    setError(null);
+
+    try {
+      const { forgotPassword } = require('../services/authApi');
+      const response = await forgotPassword(variables.email);
+      
+      if (response.success && response.data) {
+        setData(response.data);
+        setIsSuccess(true);
+        options?.onSuccess?.(response.data);
+      } else {
+        const errorMessage = response.error || 'Failed to send reset link';
+        setError(errorMessage);
+        setIsError(true);
+        options?.onError?.(errorMessage);
+      }
+    } catch (err) {
+      const errorMessage = 'An unexpected error occurred';
+      setError(errorMessage);
+      setIsError(true);
+      options?.onError?.(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [options]);
+
+  return { mutate, data, error, isLoading, isSuccess, isError };
+};
+
+// Reset Password Mutation
+export const useResetPasswordMutation = (options?: AuthUseMutationOptions) => {
+  const [data, setData] = useState<any | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isSuccess, setIsSuccess] = useState<boolean>(false);
+  const [isError, setIsError] = useState<boolean>(false);
+
+  const mutate = useCallback(async (variables: { email: string; code: string; password: string }) => {
+    setIsLoading(true);
+    setIsSuccess(false);
+    setIsError(false);
+    setError(null);
+
+    try {
+      const { resetPassword } = require('../services/authApi');
+      const response = await resetPassword(variables.email, variables.code, variables.password);
+      
+      if (response.success && response.data) {
+        setData(response.data);
+        setIsSuccess(true);
+        options?.onSuccess?.(response.data);
+      } else {
+        const errorMessage = response.error || 'Failed to reset password';
+        setError(errorMessage);
+        setIsError(true);
+        options?.onError?.(errorMessage);
+      }
+    } catch (err) {
+      const errorMessage = 'An unexpected error occurred';
+      setError(errorMessage);
+      setIsError(true);
+      options?.onError?.(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [options]);
+
+  return { mutate, data, error, isLoading, isSuccess, isError };
+};
+
+// Social Login Mutation
+export const useSocialLoginMutation = (options?: AuthUseMutationOptions) => {
+  const [data, setData] = useState<{ token: string; refreshToken: string; user: Partial<User> } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isSuccess, setIsSuccess] = useState<boolean>(false);
+  const [isError, setIsError] = useState<boolean>(false);
+
+  const mutate = useCallback(async (provider: 'google' | 'facebook' | 'apple' | 'twitter' | 'kakao') => {
+    setIsLoading(true);
+    setIsSuccess(false);
+    setIsError(false);
+    setError(null);
+
+    try {
+      const { signInWithGoogle, signInWithFacebook, signInWithApple, signInWithTwitter, signInWithKakao } = require('../services/socialAuth');
+      
+      let response;
+      switch (provider) {
+        case 'google':
+          response = await signInWithGoogle();
+          break;
+        case 'facebook':
+          response = await signInWithFacebook();
+          break;
+        case 'apple':
+          response = await signInWithApple();
+          break;
+        case 'twitter':
+          response = await signInWithTwitter();
+          break;
+        case 'kakao':
+          response = await signInWithKakao();
+          break;
+        default:
+          throw new Error('Unsupported provider');
+      }
+      
+      if (response.success && response.data) {
+        setData(response.data);
+        setIsSuccess(true);
+        options?.onSuccess?.(response.data);
+      } else {
+        const errorMessage = response.error || 'Social login failed';
+        setError(errorMessage);
+        setIsError(true);
+        options?.onError?.(errorMessage);
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
+      setError(errorMessage);
+      setIsError(true);
+      options?.onError?.(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [options]);
+
+  return { mutate, data, error, isLoading, isSuccess, isError };
 };

@@ -3,22 +3,33 @@ import {
   View,
   Text,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
-  Alert,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { TextInput } from '../../components';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { useAuth } from '../../context/AuthContext';
-import { COLORS, FONTS, SPACING, BORDER_RADIUS, VALIDATION_RULES, ERROR_MESSAGES, SUCCESS_MESSAGES } from '../../constants';
+import { useResetPasswordMutation } from '../../hooks/useAuthMutations';
+import { useToast } from '../../hooks/useToast';
+import { COLORS, FONTS, SPACING, BORDER_RADIUS, VALIDATION_RULES, ERROR_MESSAGES } from '../../constants';
 
 const ResetPasswordScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const { resetPassword, isLoading } = useAuth();
+  const { showToast, ToastComponent } = useToast();
+  
+  const { mutate: resetPassword, isLoading } = useResetPasswordMutation({
+    onSuccess: (data) => {
+      showToast({ message: data.message || 'Password reset successfully!', type: 'success' });
+      setTimeout(() => {
+        navigation.navigate('Login' as never);
+      }, 1500);
+    },
+    onError: (error) => {
+      showToast({ message: error, type: 'error' });
+    },
+  });
   
   const [formData, setFormData] = useState({
     password: '',
@@ -50,15 +61,18 @@ const ResetPasswordScreen: React.FC = () => {
   const handleResetPassword = async () => {
     if (!validateForm()) return;
 
-    try {
-      const token = (route.params as any)?.token || 'mock_token';
-      // await resetPassword(token, formData.password);
-      Alert.alert('Success', 'Password reset successfully!', [
-        { text: 'OK', onPress: () => navigation.navigate('Login' as never) }
-      ]);
-    } catch (error) {
-      Alert.alert('Error', error as string);
+    const { token, email } = (route.params as any) || {};
+    
+    if (!token || !email) {
+      showToast({ message: 'Missing verification code or email', type: 'error' });
+      return;
     }
+
+    await resetPassword({
+      email,
+      code: token,
+      password: formData.password,
+    });
   };
 
   const handleBackToLogin = () => {
@@ -70,11 +84,8 @@ const ResetPasswordScreen: React.FC = () => {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <LinearGradient
-        colors={[COLORS.background, COLORS.surface]}
-        style={styles.gradient}
-      >
-        <View style={styles.content}>
+      {ToastComponent}
+      <View style={styles.content}>
           <View style={styles.header}>
             <TouchableOpacity
               style={styles.backButton}
@@ -82,13 +93,8 @@ const ResetPasswordScreen: React.FC = () => {
             >
               <Ionicons name="arrow-back" size={18} color={COLORS.text.primary} />
             </TouchableOpacity>
-            
-            {/* <View style={styles.logoContainer}>
-              <View style={styles.logo}>
-                <Text style={styles.logoText}>G</Text>
-              </View>
-              <Text style={styles.appName}>Glowmify</Text>
-            </View> */}
+            <Text style={styles.headerTitle}>TodayMall</Text>
+            <View style={styles.placeholder} />
           </View>
 
           <View style={styles.form}>
@@ -97,98 +103,61 @@ const ResetPasswordScreen: React.FC = () => {
               Please create a strong password with at least 8 characters.
             </Text>
 
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>New Password</Text>
-              <View style={[styles.inputWrapper, errors.password && styles.inputError]}>
-                {/* <Ionicons name="lock-closed-outline" size={20} color={COLORS.gray[400]} /> */}
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter your new password"
-                  placeholderTextColor={COLORS.gray[400]}
-                  value={formData.password}
-                  onChangeText={(text) => {
-                    setFormData({ ...formData, password: text });
-                    if (errors.password) {
-                      setErrors({ ...errors, password: '' });
-                    }
-                  }}
-                  secureTextEntry={!showPassword}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-                <TouchableOpacity
-                  onPress={() => setShowPassword(!showPassword)}
-                  style={styles.eyeIcon}
-                >
-                  <Ionicons
-                    name={showPassword ? 'eye-outline' : 'eye-off-outline'}
-                    size={20}
-                    color={COLORS.gray[400]}
-                  />
-                </TouchableOpacity>
-              </View>
-              {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
-            </View>
+            <TextInput
+              label="New Password"
+              placeholder="Enter your new password"
+              value={formData.password}
+              onChangeText={(text) => {
+                setFormData({ ...formData, password: text });
+                if (errors.password) {
+                  setErrors({ ...errors, password: '' });
+                }
+              }}
+              secureTextEntry={!showPassword}
+              onToggleSecure={() => setShowPassword(!showPassword)}
+              showSecureToggle={true}
+              autoCapitalize="none"
+              autoCorrect={false}
+              error={errors.password}
+              labelStyle={{ color: COLORS.black }}
+            />
 
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Confirm New Password</Text>
-              <View style={[styles.inputWrapper, errors.confirmPassword && styles.inputError]}>
-                {/* <Ionicons name="lock-closed-outline" size={20} color={COLORS.gray[400]} /> */}
-                <TextInput
-                  style={styles.input}
-                  placeholder="Confirm your new password"
-                  placeholderTextColor={COLORS.gray[400]}
-                  value={formData.confirmPassword}
-                  onChangeText={(text) => {
-                    setFormData({ ...formData, confirmPassword: text });
-                    if (errors.confirmPassword) {
-                      setErrors({ ...errors, confirmPassword: '' });
-                    }
-                  }}
-                  secureTextEntry={!showConfirmPassword}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-                <TouchableOpacity
-                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                  style={styles.eyeIcon}
-                >
-                  <Ionicons
-                    name={showConfirmPassword ? 'eye-outline' : 'eye-off-outline'}
-                    size={20}
-                    color={COLORS.gray[400]}
-                  />
-                </TouchableOpacity>
-              </View>
-              {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword}</Text>}
-            </View>
+            <TextInput
+              label="Confirm New Password"
+              placeholder="Confirm your new password"
+              value={formData.confirmPassword}
+              onChangeText={(text) => {
+                setFormData({ ...formData, confirmPassword: text });
+                if (errors.confirmPassword) {
+                  setErrors({ ...errors, confirmPassword: '' });
+                }
+              }}
+              secureTextEntry={!showConfirmPassword}
+              onToggleSecure={() => setShowConfirmPassword(!showConfirmPassword)}
+              showSecureToggle={true}
+              autoCapitalize="none"
+              autoCorrect={false}
+              error={errors.confirmPassword}
+              labelStyle={{ color: COLORS.black }}
+            />
 
             <TouchableOpacity
-              style={styles.resetButton}
+              style={
+                (isLoading || !formData.password || !formData.confirmPassword)
+                  ? { ...styles.resetButton, ...styles.resetButtonDisabled }
+                  : styles.resetButton
+              }
               onPress={handleResetPassword}
-              disabled={isLoading}
+              disabled={isLoading || !formData.password || !formData.confirmPassword}
               activeOpacity={0.8}
             >
-              <View
-                style={styles.buttonGradient}
-              >
-                <Text style={styles.resetButtonText}>
-                  {isLoading ? 'Updating...' : 'Update Password'}
-                </Text>
-              </View>
+              <Text style={styles.resetButtonText}>
+                {isLoading ? 'Updating...' : 'Update Password'}
+              </Text>
             </TouchableOpacity>
 
-            {/* <View style={styles.helpContainer}>
-              <Text style={styles.helpText}>
-                Remember your password?{' '}
-                <Text style={styles.helpLink} onPress={handleBackToLogin}>
-                  Sign In
-                </Text>
-              </Text>
-            </View> */}
           </View>
         </View>
-      </LinearGradient>
     </KeyboardAvoidingView>
   );
 };
@@ -198,7 +167,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.white,
   },
-  gradient: {
+  coadient: {
     flex: 1,
   },
   content: {
@@ -206,56 +175,34 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.lg,
   },
   header: {
-    paddingTop: 50,
-    // paddingBottom: SPACING.xl,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: SPACING.sm,
+    paddingTop: SPACING['2xl'],
   },
   backButton: {
-    width: 30,
-    height: 30,
+    width: 40,
+    height: 40,
     borderRadius: 20,
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.gray[100],
     justifyContent: 'center',
     alignItems: 'center',
-    // marginBottom: SPACING.lg,
-    shadowColor: COLORS.shadow,
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
   },
-  logoContainer: {
-    alignItems: 'center',
-  },
-  logo: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: COLORS.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: SPACING.sm,
-  },
-  logoText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: COLORS.white,
-  },
-  appName: {
-    fontSize: FONTS.sizes.lg,
-    fontWeight: 'bold',
+  headerTitle: {
+    fontSize: FONTS.sizes['xl'],
+    fontWeight: '700',
     color: COLORS.text.primary,
+  },
+  placeholder: {
+    width: 40,
   },
   form: {
     flex: 1,
-    justifyContent: 'flex-start',
-    alignItems: 'flex-start',
-    marginTop: SPACING['2xl'],
+    marginTop: SPACING.md,
   },
   title: {
-    fontSize: FONTS.sizes['2xl'],
+    fontSize: FONTS.sizes['xl'],
     fontWeight: 'bold',
     color: COLORS.text.primary,
     marginBottom: SPACING.sm,
@@ -306,20 +253,22 @@ const styles = StyleSheet.create({
     marginTop: SPACING.xs,
   },
   resetButton: {
-    borderRadius: BORDER_RADIUS.lg,
-    overflow: 'hidden',
+    backgroundColor: COLORS.error,
+    borderRadius: BORDER_RADIUS.full,
+    paddingVertical: SPACING.smmd,
+    alignItems: 'center',
     marginBottom: SPACING.xl,
     width: '100%' as const,
   },
-  buttonGradient: {
-    paddingVertical: SPACING.smmd,
-    alignItems: 'center',
-    backgroundColor: COLORS.black,
+  resetButtonDisabled: {
+    backgroundColor: COLORS.accentPinkLight,
+    opacity: 0.6,
   },
   resetButtonText: {
-    fontSize: FONTS.sizes.md,
-    fontWeight: '600',
+    fontSize: FONTS.sizes.lg,
+    fontWeight: '700',
     color: COLORS.white,
+    letterSpacing: 0.5,
   },
   helpContainer: {
     alignItems: 'center',

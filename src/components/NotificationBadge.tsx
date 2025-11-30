@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, Animated, TouchableOpacity } from 'react-native';
+import { Text, StyleSheet, Animated, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../constants';
+import { COLORS, FONTS } from '../constants';
 
 interface NotificationBadgeProps {
   icon: string;
@@ -45,6 +45,9 @@ const NotificationBadge: React.FC<NotificationBadgeProps> = ({
     }
   }, [count]);
 
+  // Format count display
+  const displayCount = count > 99 ? '99+' : count.toString();
+
   return (
     <TouchableOpacity style={styles.container} onPress={onPress}>
       <Ionicons name={icon as any} size={iconSize} color={iconColor} />
@@ -52,7 +55,7 @@ const NotificationBadge: React.FC<NotificationBadgeProps> = ({
         <Animated.View
           style={[styles.badge, { backgroundColor: badgeColor }, { transform: [{ scale: badgePulse }] }]}
         >
-          <Text style={styles.badgeText}>{count}</Text>
+          <Text style={styles.badgeText} numberOfLines={1}>{displayCount}</Text>
         </Animated.View>
       )}
     </TouchableOpacity>
@@ -66,20 +69,24 @@ const styles = StyleSheet.create({
   },
   badge: {
     position: 'absolute',
-    top: -2,
-    right: -2,
+    top: -8,
+    right: -5,
     backgroundColor: COLORS.primary,
     borderRadius: 12,
-    minWidth: 24,
-    height: 24,
+    minWidth: 20,
+    height: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 6,
+    paddingHorizontal: 5,
+    flexDirection: 'row',
   },
   badgeText: {
-    fontSize: 12,
+    fontSize: FONTS.sizes.xs,
     fontWeight: '700',
     color: COLORS.white,
+    textAlign: 'center',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
 });
 
