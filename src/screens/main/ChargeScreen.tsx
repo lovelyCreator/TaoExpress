@@ -24,7 +24,7 @@ const ChargeScreen = () => {
 
   // Bank transfer information
   const bankInfo = {
-    recipient: 'TaoExpress Co., Ltd.',
+    recipient: 'TodayMall Co., Ltd.',
     accountNumber: '171301-04-359074',
     bank: 'Kookmin Bank',
   };

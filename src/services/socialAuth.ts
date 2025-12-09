@@ -122,7 +122,7 @@ export const signInWithGoogle = async () => {
     console.log("Google ID Token: ", idToken);
 
     // Send idToken to backend
-    const API_BASE_URL = 'http://221.138.36.200:5000/api/v1';
+    const API_BASE_URL = 'https://todaymall.co.kr/api/v1';
     const backendResponse = await fetch(`${API_BASE_URL}/auth/google/mobile`, {
       method: 'POST',
       headers: {

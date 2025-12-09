@@ -13,9 +13,22 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 
 import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../../constants';
+import { useAppSelector } from '../../store/hooks';
+import { translations } from '../../i18n/translations';
 
 const CustomerServiceScreen: React.FC = () => {
   const navigation = useNavigation();
+  const locale = useAppSelector((s) => s.i18n.locale) as 'en' | 'ko' | 'zh';
+  
+  // Translation function
+  const t = (key: string) => {
+    const keys = key.split('.');
+    let value: any = translations[locale as keyof typeof translations];
+    for (const k of keys) {
+      value = value?.[k];
+    }
+    return value || key;
+  };
 
   const handlePhoneCall = () => {
     const phoneNumber = '070-7792-6663';
@@ -44,7 +57,7 @@ const CustomerServiceScreen: React.FC = () => {
         >
           <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Customer Service</Text>
+        <Text style={styles.headerTitle}>{t('customerService.title')}</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -61,7 +74,7 @@ const CustomerServiceScreen: React.FC = () => {
 
       {/* Online Client Center */}
       <View style={styles.contentContainer}>
-        <Text style={styles.sectionTitle}>Online Client Center</Text>
+        <Text style={styles.sectionTitle}>{t('customerService.onlineClientCenter')}</Text>
 
         {/* Phone Button */}
         <TouchableOpacity
@@ -78,7 +91,7 @@ const CustomerServiceScreen: React.FC = () => {
           onPress={handleKakaoTalk}
         >
           <Ionicons name="chatbubble" size={24} color={COLORS.text.primary} />
-          <Text style={styles.kakaoButtonText}>kakao Talk</Text>
+          <Text style={styles.kakaoButtonText}>{t('customerService.kakaoTalk')}</Text>
         </TouchableOpacity>
 
         {/* Order Inquiry Button */}
@@ -87,7 +100,7 @@ const CustomerServiceScreen: React.FC = () => {
           onPress={handleOrderInquiry}
         >
           <Ionicons name="document-text" size={24} color={COLORS.text.primary} />
-          <Text style={styles.orderButtonText}>Order Inquiry</Text>
+          <Text style={styles.orderButtonText}>{t('customerService.orderInquiry')}</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

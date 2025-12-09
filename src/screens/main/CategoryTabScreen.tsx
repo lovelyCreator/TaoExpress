@@ -21,12 +21,15 @@ import { StackNavigationProp } from '@react-navigation/stack';
 
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '../../constants';
 import { RootStackParamList, Product } from '../../types';
-import { useCategoriesMutation } from '../../hooks/useCategories';
+import { useCategoriesMutation, useCategoriesTreeMutation } from '../../hooks/useCategories';
+import { useSearchProductsByKeywordMutation } from '../../hooks/useHomeScreenMutations';
 import { PlatformMenu, SearchButton, NotificationBadge, ProductCard, ImagePickerModal } from '../../components';
 import { useAuth } from '../../context/AuthContext';
 import { useWishlist } from '../../context/WishlistContext';
+import { useToast } from '../../context/ToastContext';
 import { usePlatformStore } from '../../store/platformStore';
 import { useAppSelector } from '../../store/hooks';
+import { productsApi } from '../../services/api';
 import { translations } from '../../i18n/translations';
 
 const { width } = Dimensions.get('window');
@@ -49,13 +52,41 @@ const CategoryTabScreen: React.FC = () => {
     selectedCategory,
     setSelectedPlatform, 
     setSelectedCategory,
+    setCategoriesTree,
     getCompanyCategories,
-    getRecommendedSubcategories,
-    getFilteredProducts
+    getRecommendedSubcategories
   } = usePlatformStore();
+  const { showToast } = useToast();
   
   // i18n
   const locale = useAppSelector((s) => s.i18n.locale);
+
+  // Helper function to navigate to product detail after checking API
+  const navigateToProductDetail = async (
+    productId: string | number,
+    source: string = selectedPlatform,
+    country: string = locale as string
+  ) => {
+    try {
+      // Check product detail API first
+      const response = await productsApi.getProductDetail(productId, source, country);
+      
+      if (response.success && response.data) {
+        // API call successful, navigate to product detail
+        navigation.navigate('ProductDetail', { 
+          productId: productId.toString(),
+          source: source,
+        });
+      } else {
+        // API call failed, show toast and don't navigate
+        showToast('Sorry, product details are not available right now.', 'error');
+      }
+    } catch (error) {
+      // Error occurred, show toast and don't navigate
+      console.error('Error checking product detail:', error);
+      showToast('Sorry, product details are not available right now.', 'error');
+    }
+  };
   const t = (key: string) => {
     const keys = key.split('.');
     let value: any = translations[locale as keyof typeof translations];
@@ -74,13 +105,51 @@ const CategoryTabScreen: React.FC = () => {
 
   // Use the categories mutation hook to fetch categories from backend
   const { mutate: fetchCategories, data: categoriesData, isLoading: isCategoriesLoading, isError } = useCategoriesMutation();
+  
+  // Use the categories tree API hook
+  const { mutate: fetchCategoriesTree, data: categoriesTreeData, isLoading: categoriesTreeLoading } = useCategoriesTreeMutation({
+    onSuccess: (data) => {
+      // Store categories tree in Zustand
+      setCategoriesTree(data);
+    },
+    onError: (error) => {
+      console.error('Error fetching categories tree:', error);
+    }
+  });
+
+  // Get company categories from Zustand (with locale support)
+  // This will be recalculated when locale changes
+  const companyCategories = getCompanyCategories(locale);
+
+  // Get selected category name for search
+  const selectedCategoryData = companyCategories.find(cat => cat.id === selectedCategory);
+  const searchKeyword = selectedCategoryData?.name || '';
+
+  // Use search products by keyword mutation hook for "For You" section
+  const { 
+    mutate: searchProductsByKeyword, 
+    data: searchProductsData, 
+    isLoading: searchProductsLoading,
+    error: searchProductsError
+  } = useSearchProductsByKeywordMutation({
+    onSuccess: (data) => {
+      console.log('Search products fetched successfully:', data?.length, 'items');
+    },
+    onError: (error) => {
+      console.error('Search products fetch error:', error);
+    }
+  });
 
   useEffect(() => {
     fetchCategories();
+    // Fetch categories tree for the selected platform
+    fetchCategoriesTree(selectedPlatform);
   }, []);
-
-  // Get company categories from Zustand
-  const companyCategories = getCompanyCategories();
+  
+  // Fetch categories tree when platform changes
+  useEffect(() => {
+    fetchCategoriesTree(selectedPlatform);
+  }, [selectedPlatform]);
 
   // Set first category as selected when platform changes
   useEffect(() => {
@@ -89,9 +158,27 @@ const CategoryTabScreen: React.FC = () => {
     }
   }, [selectedPlatform, companyCategories]);
 
+  // Fetch products when category or platform or locale changes
+  useEffect(() => {
+    if (searchKeyword && selectedPlatform) {
+      searchProductsByKeyword(searchKeyword, selectedPlatform, locale as 'en' | 'zh' | 'ko', 1, 20);
+    }
+  }, [selectedCategory, selectedPlatform, locale, searchKeyword]);
+  
+  // Refresh categories when locale changes
+  useEffect(() => {
+    // Categories will automatically update because getCompanyCategories uses locale
+    // This effect ensures the component re-renders when locale changes
+  }, [locale]);
+
   const onRefresh = async () => {
     setRefreshing(true);
     await fetchCategories();
+    await fetchCategoriesTree(selectedPlatform);
+    // Refresh search products
+    if (searchKeyword && selectedPlatform) {
+      searchProductsByKeyword(searchKeyword, selectedPlatform, locale as 'en' | 'zh' | 'ko', 1, 20);
+    }
     setRefreshing(false);
   };
 
@@ -143,13 +230,8 @@ const CategoryTabScreen: React.FC = () => {
     }
   };
 
-  // Get filtered products for "For You" section using Zustand
-  const getForYouProducts = () => {
-    return getFilteredProducts('forYou');
-  };
-
-  const handleProductPress = (product: Product) => {
-    navigation.navigate('ProductDetail', { productId: product.id });
+  const handleProductPress = async (product: Product) => {
+    await navigateToProductDetail(product.id, selectedPlatform, locale as string);
   };
 
   const renderHeader = () => (
@@ -166,7 +248,7 @@ const CategoryTabScreen: React.FC = () => {
         />
         
         <SearchButton
-          placeholder="Search"
+          placeholder={t('category.searchPlaceholder')}
           onPress={() => navigation.navigate('Search' as never)}
           onCameraPress={handleImageSearch}
         />
@@ -210,18 +292,46 @@ const CategoryTabScreen: React.FC = () => {
           // Get the selected category to pass along
           const selectedCategoryData = companyCategories.find(cat => cat.id === selectedCategory);
           
+          // Convert subsubcategories to correct locale if they exist
+          let localizedSubSubCategories: any[] = [];
+          if (item.subsubcategories && item.subsubcategories.length > 0) {
+            localizedSubSubCategories = item.subsubcategories.map((subSubCat: any) => {
+              // If subSubCat.name is an object with zh, en, ko, extract the correct locale
+              if (subSubCat.name && typeof subSubCat.name === 'object') {
+                return {
+                  ...subSubCat,
+                  name: subSubCat.name[locale] || subSubCat.name.en || subSubCat.name
+                };
+              }
+              // If it's already a string, use it as is
+              return subSubCat;
+            });
+          }
+          
           // Always go directly to ProductDiscovery
           navigation.navigate('ProductDiscovery', { 
             subCategoryName: item.name,
             categoryId: selectedCategory,
             categoryName: selectedCategoryData?.name,
             subcategoryId: item.id,
-            subsubcategories: item.subsubcategories || []
+            subsubcategories: localizedSubSubCategories
           });
         }}
       >
         <View style={styles.recommendedImageContainer}>
-          <Ionicons name="shirt-outline" size={32} color={COLORS.primary} />
+          {item.image ? (
+            <Image 
+              source={{ uri: item.image }} 
+              style={styles.recommendedImage}
+              resizeMode="cover"
+            />
+          ) : (
+            <Image 
+              source={require('../../assets/icons/logo.png')} 
+              style={styles.recommendedLogo}
+              resizeMode="contain"
+            />
+          )}
         </View>
         <Text style={styles.recommendedName} numberOfLines={2}>
           {item.name}
@@ -231,7 +341,41 @@ const CategoryTabScreen: React.FC = () => {
   };
 
   const renderForYouProducts = () => {
-    const products = getForYouProducts();
+    const products = searchProductsData || [];
+    
+    // Show loading state
+    if (searchProductsLoading) {
+      return (
+        <View style={styles.forYouSection}>
+          <View style={styles.forYouHeader}>
+            <Text style={styles.forYouTitle}>For you</Text>
+          </View>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color={COLORS.primary} />
+            <Text style={styles.loadingText}>Loading products...</Text>
+          </View>
+        </View>
+      );
+    }
+
+    // Show error state
+    if (searchProductsError) {
+      return (
+        <View style={styles.forYouSection}>
+          <View style={styles.forYouHeader}>
+            <Text style={styles.forYouTitle}>For you</Text>
+          </View>
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>Failed to load products</Text>
+          </View>
+        </View>
+      );
+    }
+
+    // Show empty state
+    if (!Array.isArray(products) || products.length === 0) {
+      return null;
+    }
     
     return (
       <View style={styles.forYouSection}>
@@ -239,51 +383,14 @@ const CategoryTabScreen: React.FC = () => {
           <Text style={styles.forYouTitle}>For you</Text>
         </View>
         <View style={styles.forYouGrid}>
-          {products.map((product: any, index: number) => {
-            const productData: Product = {
-              id: product.id,
-              name: product.name,
-              images: [product.image],
-              price: product.price,
-              originalPrice: product.originalPrice,
-              discount: product.discount,
-              description: '',
-              category: { id: '', name: '', icon: '', image: '', subcategories: [] },
-              subcategory: '',
-              brand: '',
-              seller: { 
-                id: '', 
-                name: '', 
-                avatar: '', 
-                rating: 0, 
-                reviewCount: 0, 
-                isVerified: false, 
-                followersCount: 0, 
-                description: '', 
-                location: '', 
-                joinedDate: new Date() 
-              },
-              rating: product.rating || 0,
-              reviewCount: product.ratingCount || 0,
-              rating_count: product.ratingCount || 0,
-              inStock: true,
-              stockCount: 0,
-              tags: [],
-              isNew: false,
-              isFeatured: false,
-              isOnSale: false,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-              orderCount: product.orderCount || 0,
-            };
-
+          {products.map((product: Product, index: number) => {
             const handleLike = async () => {
               if (!user || isGuest) {
                 alert('Please login first');
                 return;
               }
               try {
-                await toggleWishlist(productData);
+                await toggleWishlist(product);
               } catch (error) {
                 console.error('Error toggling wishlist:', error);
               }
@@ -291,10 +398,13 @@ const CategoryTabScreen: React.FC = () => {
 
             return (
               <ProductCard
-                key={`foryou-${product.id}`}
-                product={productData}
+                key={`foryou-${product.id || index}`}
+                product={product}
                 variant="simple"
-                onPress={() => handleProductPress(productData)}
+                onPress={() => handleProductPress(product)}
+                onLikePress={handleLike}
+                isLiked={likedProductIds.includes(product.id?.toString() || '')}
+                showLikeButton={true}
                 cardWidth={FOR_YOU_CARD_WIDTH}
               />
             );
@@ -304,15 +414,17 @@ const CategoryTabScreen: React.FC = () => {
     );
   };
 
-  // Use company categories for left column
-  const categoriesToDisplay = companyCategories;
+  // Use company categories for left column (with locale support)
+  const categoriesToDisplay = getCompanyCategories(locale);
   
-  // Get subcategories for recommended section
-  const recommendedItems = getRecommendedSubcategories();
+  // Get subcategories for recommended section (with locale support)
+  const allRecommendedItems = getRecommendedSubcategories(locale);
   
-  // Add "All categories" as the first item
-  const allCategoriesItem = { id: 'all', name: 'All categories' };
-  const subcategoriesWithAll = [allCategoriesItem, ...recommendedItems];
+  // Show only first 9 subcategories as recommended
+  const recommendedItems = allRecommendedItems.slice(0, 9);
+  
+  // Check if there are more than 9 subcategories to show the "Show more" button
+  const hasMoreSubcategories = allRecommendedItems.length > 9;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -358,13 +470,52 @@ const CategoryTabScreen: React.FC = () => {
                 />
               </TouchableOpacity>
               {showRecommended && (
-                <View style={styles.recommendedGrid}>
-                  {subcategoriesWithAll.map((item, index) => (
-                    <View key={`rec-${index}`}>
-                      {renderRecommendedItem({ item })}
-                    </View>
-                  ))}
-                </View>
+                <>
+                  <View style={styles.recommendedGrid}>
+                    {recommendedItems.map((item, index) => (
+                      <View key={`rec-${item.id || index}`}>
+                        {renderRecommendedItem({ item })}
+                      </View>
+                    ))}
+                  </View>
+                  {hasMoreSubcategories && (
+                    <TouchableOpacity
+                      style={styles.showMoreButton}
+                      onPress={() => {
+                        // Get the selected category to pass along
+                        const selectedCategoryData = companyCategories.find(cat => cat.id === selectedCategory);
+                        
+                        // Get all subcategories for the selected category
+                        const allSubcategories = allRecommendedItems;
+                        
+                        // Navigate to SubCategory screen to show all subcategories
+                        // Convert categoryId to number if it's a valid number string, otherwise keep as string or pass as is
+                        let categoryIdToPass: number | undefined;
+                        if (selectedCategory) {
+                          if (typeof selectedCategory === 'string') {
+                            const numValue = Number(selectedCategory);
+                            categoryIdToPass = isNaN(numValue) ? undefined : numValue;
+                          } else if (typeof selectedCategory === 'number') {
+                            categoryIdToPass = selectedCategory;
+                          }
+                        }
+                        
+                        navigation.navigate('SubCategory', { 
+                          categoryName: selectedCategoryData?.name || 'All Subcategories',
+                          categoryId: categoryIdToPass,
+                          subcategories: allSubcategories,
+                        });
+                      }}
+                    >
+                      <Text style={styles.showMoreText}>Show more</Text>
+                      <Ionicons 
+                        name="chevron-forward" 
+                        size={16} 
+                        color={COLORS.primary} 
+                      />
+                    </TouchableOpacity>
+                  )}
+                </>
               )}
             </View>
             
@@ -469,6 +620,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: SPACING.sm,
+    overflow: 'hidden',
+  },
+  recommendedImage: {
+    width: '100%',
+    height: '100%',
+  },
+  recommendedLogo: {
+    width: '60%',
+    height: '60%',
   },
   recommendedName: {
     fontSize: FONTS.sizes.md,
@@ -508,6 +668,20 @@ const styles = StyleSheet.create({
     marginTop: SPACING.md,
     fontSize: FONTS.sizes.sm,
     color: COLORS.text.secondary,
+  },
+  showMoreButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.md,
+    marginTop: SPACING.sm,
+    gap: SPACING.xs,
+  },
+  showMoreText: {
+    fontSize: FONTS.sizes.md,
+    color: COLORS.primary,
+    fontWeight: '600',
   },
 });
 

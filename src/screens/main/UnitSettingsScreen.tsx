@@ -11,6 +11,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { COLORS, FONTS, SPACING } from '../../constants';
+import { useAppSelector } from '../../store/hooks';
+import { translations } from '../../i18n/translations';
 
 type Currency = {
   id: string;
@@ -21,12 +23,23 @@ type Currency = {
 
 const UnitSettingsScreen = () => {
   const navigation = useNavigation();
+  const locale = useAppSelector((state) => state.i18n.locale) as 'en' | 'ko' | 'zh';
   const [selectedCurrency, setSelectedCurrency] = useState('KRW');
+  
+  // Translation function
+  const t = (key: string) => {
+    const keys = key.split('.');
+    let value: any = translations[locale as keyof typeof translations];
+    for (const k of keys) {
+      value = value?.[k];
+    }
+    return value || key;
+  };
 
   const currencies: Currency[] = [
-    { id: 'KRW', name: 'Korean Won', symbol: '₩', code: 'KRW' },
-    { id: 'CNY', name: 'Chinese Yuan', symbol: '¥', code: 'CNY' },
-    { id: 'USD', name: 'US Dollar', symbol: '$', code: 'USD' },
+    { id: 'KRW', name: t('profile.koreanWon'), symbol: '₩', code: 'KRW' },
+    { id: 'CNY', name: t('profile.chineseYuan'), symbol: '¥', code: 'CNY' },
+    { id: 'USD', name: t('profile.usDollar'), symbol: '$', code: 'USD' },
   ];
 
   const handleSelectCurrency = (currencyId: string) => {
@@ -48,7 +61,7 @@ const UnitSettingsScreen = () => {
         >
           <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Unit Settings</Text>
+        <Text style={styles.headerTitle}>{t('profile.unit')}</Text>
         <View style={styles.placeholder} />
       {/* </LinearGradient> */}
       </View>
@@ -58,9 +71,9 @@ const UnitSettingsScreen = () => {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.content}>
-          <Text style={styles.sectionTitle}>Select Currency Unit</Text>
+          <Text style={styles.sectionTitle}>{t('profile.selectCurrencyUnit')}</Text>
           <Text style={styles.sectionDescription}>
-            Choose your preferred currency for displaying prices
+            {t('profile.chooseCurrencyDescription')}
           </Text>
 
           <View style={styles.currencyContainer}>
@@ -114,8 +127,7 @@ const UnitSettingsScreen = () => {
               <Ionicons name="information-circle" size={24} color="#4A90E2" />
             </View>
             <Text style={styles.infoText}>
-              Changing the currency unit will update all price displays throughout the app. 
-              This is for display purposes only and does not affect actual transaction currencies.
+              {t('profile.currencyChangeInfo')}
             </Text>
           </View>
         </View>

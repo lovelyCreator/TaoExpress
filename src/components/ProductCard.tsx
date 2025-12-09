@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -20,36 +20,58 @@ import { useAuth } from '../context/AuthContext';
 const { width } = Dimensions.get('window');
 const GRID_CARD_WIDTH = (width - SPACING.md * 2 - SPACING.md) / 2;
 
-// Generate dynamic live messages based on product data
+// Generate dynamic live messages based on product data from API
 const generateLiveMessages = (product?: Product): string[] => {
   const allMessages: string[] = [];
   
-  // Savings message (if discount available)
+  // Savings message (if discount available) - from real product data
   if (product?.originalPrice && product?.price) {
     const savings = product.originalPrice - product.price;
     if (savings > 0) {
-      allMessages.push(`${savings.toFixed(2)} off on ${product.originalPrice.toFixed(2)}`);
+      allMessages.push(`Save ${savings.toFixed(2)} on ${product.originalPrice.toFixed(2)}`);
     }
+  }
+  
+  // Month sold count - from real API data (monthSold)
+  if (product?.orderCount && product.orderCount > 0) {
+    allMessages.push(`${product.orderCount}+ sold this month`);
+  }
+  
+  // Repurchase rate - from real API data (repurchaseRate)
+  if (product?.repurchaseRate) {
+    const repurchaseRate = typeof product.repurchaseRate === 'string' 
+      ? product.repurchaseRate 
+      : `${product.repurchaseRate}%`;
+    allMessages.push(`${repurchaseRate} repurchase rate`);
+  }
+  
+  // Rating and reviews - from real product data
+  if (product?.rating && product.rating > 0) {
+    allMessages.push(`${product.rating.toFixed(1)}★ rating`);
+  }
+  
+  if (product?.reviewCount && product.reviewCount > 0) {
+    allMessages.push(`${product.reviewCount}+ reviews`);
   }
   
   // Fast delivery
   allMessages.push('Fast delivery available');
   
-  // Cart activity (random number for demo)
-  const cartAdded = Math.floor(Math.random() * 50) + 10;
-  allMessages.push(`${cartAdded}+ added to cart`);
+  // Free shipping
+  allMessages.push('Free shipping available');
   
-  // 5-star reviews (based on order count or random)
-  const reviews = product?.orderCount ? product.orderCount * 10 : Math.floor(Math.random() * 500) + 100;
-  allMessages.push(`${reviews}+ gave 5-star`);
-  
-  // Additional messages
-  allMessages.push('Free shipping on orders over $50');
-  allMessages.push('Trusted by thousands');
+  // Quality guarantee
   allMessages.push('Quality guaranteed');
+  
+  // Return policy
   allMessages.push('Easy returns within 30 days');
-  allMessages.push('Secure payment guaranteed');
-  allMessages.push('24/7 customer support');
+  
+  // If no real data, add some generic messages
+  if (allMessages.length < 3) {
+    allMessages.push('Trusted by thousands');
+    allMessages.push('Secure payment guaranteed');
+    allMessages.push('24/7 customer support');
+  }
   
   // Shuffle messages to make each product show different order
   return allMessages.sort(() => Math.random() - 0.5);
@@ -166,17 +188,32 @@ const ProductCard: React.FC<ProductCardProps> = ({
     const cardW = cardWidth || Math.floor(width * 0.28);
     const cardH = Math.floor(cardW * 1.55);
     
+    // Component for image
+    const NewInImageWithPlaceholder = React.memo(() => {
+      const imageUri = product.image || '';
+      
+      return (
+        <View style={{ position: 'relative', width: cardW, height: cardH }}>
+          {/* Real product image only */}
+          {imageUri && (
+            <Image
+              source={{ uri: imageUri }}
+              style={[styles.newInImage, { width: cardW, height: cardH }, imageStyle]}
+              resizeMode="cover"
+              fadeDuration={0}
+            />
+          )}
+        </View>
+      );
+    });
+    
     return (
       <TouchableOpacity
         style={[styles.newInCard, { width: cardW }, style]}
         onPress={onPress}
         activeOpacity={0.9}
       >
-        <Image
-          source={{ uri: product.images?.[0] || '' }}
-          style={[styles.newInImage, { width: cardW, height: cardH }, imageStyle]}
-          resizeMode="cover"
-        />
+        <NewInImageWithPlaceholder />
         <LinearGradient
           colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.55)']}
           style={styles.newInOverlay}
@@ -205,22 +242,14 @@ const ProductCard: React.FC<ProductCardProps> = ({
       >
         <View style={[styles.imageWrapper, isFullWidth && styles.fullWidthImageWrapper]}>
           <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false}>
-            {product.images && product.images.length > 0 ? (
-              product.images.map((img: string, idx: number) => (
-                <Image
-                  key={`img-${idx}`}
-                  source={{ uri: img }}
-                  style={[styles.gridImage, { width: imageW, height: imageH }, isFullWidth && styles.fullWidthImage, imageStyle]}
-                  resizeMode="cover"
-                />
-              ))
-            ) : (
+            {product.image && 
               <Image
-                source={require('../assets/icons/man.png')}
+                source={{ uri: product.image }}
                 style={[styles.gridImage, { width: imageW, height: imageH }, isFullWidth && styles.fullWidthImage, imageStyle]}
                 resizeMode="cover"
+                fadeDuration={0}
               />
-            )}
+            }
           </ScrollView>
           
           {/* Like button - bottom right */}
@@ -243,10 +272,10 @@ const ProductCard: React.FC<ProductCardProps> = ({
             {product.name}
           </Text>
           <View style={styles.gridPriceRow}>
-            <Text style={styles.gridPrice}>${product.price?.toFixed(2) || '0.00'}</Text>
+            <Text style={styles.gridPrice}>¥{product.price?.toFixed(2) || '0.00'}</Text>
             {product.originalPrice && (
               <Text style={styles.gridOriginalPrice}>
-                ${product.originalPrice.toFixed(2)}
+                ¥{product.originalPrice.toFixed(2)}
               </Text>
             )}
           </View>
@@ -268,22 +297,14 @@ const ProductCard: React.FC<ProductCardProps> = ({
       >
         <View style={styles.imageWrapper}>
           <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false}>
-            {product.images && product.images.length > 0 ? (
-              product.images.map((img: string, idx: number) => (
-                <Image
-                  key={`img-${idx}`}
-                  source={{ uri: img }}
-                  style={[styles.horizontalImage, { width: cardW, height: imageH }, imageStyle]}
-                  resizeMode="cover"
-                />
-              ))
-            ) : (
+            {product.image && 
               <Image
-                source={require('../assets/icons/man.png')}
-                style={[styles.horizontalImage, { width: cardW - SPACING.sm * 2, height: imageH }, imageStyle]}
+                source={{ uri: product.image }}
+                style={[styles.horizontalImage, { width: cardW, height: imageH }, imageStyle]}
                 resizeMode="cover"
+                fadeDuration={0}
               />
-            )}
+            }
           </ScrollView>
           
           {/* Like button - bottom right */}
@@ -306,10 +327,10 @@ const ProductCard: React.FC<ProductCardProps> = ({
             {product.name}
           </Text>
           <View style={styles.horizontalPriceRow}>
-            <Text style={styles.horizontalPrice}>${product.price?.toFixed(2) || '0.00'}</Text>
+            <Text style={styles.horizontalPrice}>¥{product.price?.toFixed(2) || '0.00'}</Text>
             {product.originalPrice && (
               <Text style={styles.horizontalOriginalPrice}>
-                ${product.originalPrice.toFixed(2)}
+                ¥{product.originalPrice.toFixed(2)}
               </Text>
             )}
           </View>
@@ -329,25 +350,19 @@ const ProductCard: React.FC<ProductCardProps> = ({
         onPress={onPress}
         activeOpacity={0.9}
       >
-        <View style={styles.imageWrapper}>
-          <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false}>
-            {product.images && product.images.length > 0 ? (
-              product.images.map((img: string, idx: number) => (
-                <Image
-                  key={`img-${idx}`}
-                  source={{ uri: img }}
-                  style={[styles.moreToLoveImage, { width: cardW, height: imageH }, imageStyle]}
-                  resizeMode="cover"
-                />
-              ))
-            ) : (
+        <View style={{ position: 'relative' }}>
+          <View style={{ position: 'relative', width: cardW, height: imageH }}>
+            {/* Show imageUrl from API - only one image comes from API */}
+            {product.image && (
               <Image
-                source={require('../assets/icons/man.png')}
+                source={{ uri: product.image }}
                 style={[styles.moreToLoveImage, { width: cardW, height: imageH }, imageStyle]}
                 resizeMode="cover"
+                fadeDuration={0}
               />
             )}
-          </ScrollView>
+          </View>
+          {/* <MoreToLoveImage /> */}
           
           {/* Like button - bottom right */}
           {showLikeButton && (
@@ -375,7 +390,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
           
           {/* Line 3: Price, Sold, and Reviews */}
           <View style={styles.bottomRow}>
-            <Text style={styles.moreToLovePrice}>${product.price?.toFixed(2) || '0.00'}</Text>
+            <Text style={styles.moreToLovePrice}>¥{product.price?.toFixed(2) || '0.00'}</Text>
             {showRating && (
               <>
                 <Text style={styles.soldText}>
@@ -407,7 +422,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
         activeOpacity={0.9}
       >
         <Image
-          source={{ uri: product.images?.[0] || '' }}
+          source={{ uri: product.image || '' }}
           style={[styles.simpleImage, { width: cardW, height: imageH }, imageStyle]}
           resizeMode="cover"
         />
@@ -415,24 +430,38 @@ const ProductCard: React.FC<ProductCardProps> = ({
           <Text style={styles.simpleName} numberOfLines={2}>
             {product.name}
           </Text>
-          <Text style={styles.simplePrice}>${product.price?.toFixed(2) || '0.00'}</Text>
+          <Text style={styles.simplePrice}>¥{product.price?.toFixed(2) || '0.00'}</Text>
         </View>
       </TouchableOpacity>
     );
   }
 
   // Default variant
+  const DefaultImageWithPlaceholder = React.memo(() => {
+    const imageUri = product.image || '';
+    
+    return (
+      <View style={{ position: 'relative', width: '100%', height: '100%' }}>
+        {/* Real product image only */}
+        {imageUri && (
+          <Image
+            source={{ uri: imageUri }}
+            style={[styles.productImage, imageStyle]}
+            resizeMode="cover"
+            fadeDuration={0}
+          />
+        )}
+      </View>
+    );
+  });
+  
   return (
     <TouchableOpacity
       style={[styles.productCard, style]}
       onPress={onPress}
     >
       <View style={styles.productImageContainer}>
-        <Image
-          source={{ uri: product.images?.[0] || '' }}
-          style={[styles.productImage, imageStyle]}
-          resizeMode="cover"
-        />
+        <DefaultImageWithPlaceholder />
         
         {showLikeButton && (
           <TouchableOpacity
@@ -455,9 +484,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
         
         <View style={styles.priceContainer}>
           {product.originalPrice && (
-            <Text style={styles.originalPrice}>${product.originalPrice.toFixed(2)}</Text>
+            <Text style={styles.originalPrice}>¥{product.originalPrice.toFixed(2)}</Text>
           )}
-          <Text style={styles.productPrice}>${product.price?.toFixed(2) || '0.00'}</Text>
+          <Text style={styles.productPrice}>¥{product.price?.toFixed(2) || '0.00'}</Text>
         </View>
         
         {showRating && (

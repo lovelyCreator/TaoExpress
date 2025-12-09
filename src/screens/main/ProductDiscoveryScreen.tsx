@@ -22,11 +22,14 @@ import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '../../constants'
 import { RootStackParamList, Product } from '../../types';
 import { useWishlist } from '../../context/WishlistContext';
 import { useSearch } from '../../context/SearchContext';
-import { useCategoriesMutation } from '../../hooks/useCategories';
+import { useToast } from '../../context/ToastContext';
+import { useCategoriesMutation, useCategoriesTreeMutation } from '../../hooks/useCategories';
 import { useSortProductsMutation } from '../../hooks/useSearchMutations';
-import { useStoresMutation } from '../../hooks/useHomeScreenMutations';
+import { useStoresMutation, useSearchProductsByKeywordMutation } from '../../hooks/useHomeScreenMutations';
 import { SortModal, ProductCard, Button } from '../../components';
 import { usePlatformStore } from '../../store/platformStore';
+import { useAppSelector } from '../../store/hooks';
+import { productsApi } from '../../services/api';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - SPACING.lg * 2 - SPACING.sm) / 2;
@@ -45,31 +48,170 @@ const ProductDiscoveryScreen: React.FC = () => {
   const [displaySubSubCategories, setDisplaySubSubCategories] = useState<any[]>([]);
   
   // Get Zustand store
-  const { getCompanyCategories } = usePlatformStore();
+  const { getCompanyCategories, getSubSubcategoriesFromTree, selectedPlatform, setCategoriesTree } = usePlatformStore();
+  const { showToast } = useToast();
+  
+  // Get locale from Redux store
+  const locale = useAppSelector((s) => s.i18n.locale) as 'en' | 'ko' | 'zh';
+
+  // Helper function to navigate to product detail after checking API
+  const navigateToProductDetail = async (
+    productId: string | number,
+    source: string = selectedPlatform,
+    country: string = locale
+  ) => {
+    try {
+      // Check product detail API first
+      const response = await productsApi.getProductDetail(productId, source, country);
+      
+      if (response.success && response.data) {
+        // API call successful, navigate to product detail
+        navigation.navigate('ProductDetail', { 
+          productId: productId.toString(),
+          source: source,
+        });
+      } else {
+        // API call failed, show toast and don't navigate
+        showToast('Sorry, product details are not available right now.', 'error');
+      }
+    } catch (error) {
+      // Error occurred, show toast and don't navigate
+      console.error('Error checking product detail:', error);
+      showToast('Sorry, product details are not available right now.', 'error');
+    }
+  };
+  
+  // Use the categories tree API hook
+  const { mutate: fetchCategoriesTree } = useCategoriesTreeMutation({
+    onSuccess: (data) => {
+      // Store categories tree in Zustand
+      setCategoriesTree(data);
+    },
+    onError: (error) => {
+      console.error('Error fetching categories tree:', error);
+    }
+  });
+  
+  // Fetch categories tree when component mounts
+  useEffect(() => {
+    fetchCategoriesTree(selectedPlatform);
+  }, [selectedPlatform]);
 
   // Load subsubcategories based on navigation params
   useEffect(() => {
     if (passedSubSubCategories && passedSubSubCategories.length > 0) {
-      // Coming from a specific subcategory
-      setDisplaySubSubCategories(passedSubSubCategories);
+      // Coming from a specific subcategory with subsubcategories
+      // Ensure names are in the correct locale
+      const localizedSubSubCategories = passedSubSubCategories.map((subSubCat: any) => {
+        // If name is an object with zh, en, ko, extract the correct locale
+        if (subSubCat.name && typeof subSubCat.name === 'object') {
+          return {
+            ...subSubCat,
+            name: subSubCat.name[locale] || subSubCat.name.en || subSubCat.name
+          };
+        }
+        // If it's already a string, use it as is
+        return subSubCat;
+      });
+      setDisplaySubSubCategories(localizedSubSubCategories);
+    } else if (categoryId && subcategoryId) {
+      // Coming from a specific subcategory - get subsubcategories from tree
+      try {
+        const subSubCategories = getSubSubcategoriesFromTree(categoryId, subcategoryId, locale);
+        if (subSubCategories && subSubCategories.length > 0) {
+          setDisplaySubSubCategories(subSubCategories);
+        } else {
+          // No subsubcategories found, show "All" item
+          setDisplaySubSubCategories([{
+            id: 'all',
+            name: 'All',
+          }]);
+        }
+      } catch (error) {
+        console.error('Error getting subsubcategories:', error);
+        // On error, show "All" item
+        setDisplaySubSubCategories([{
+          id: 'all',
+          name: 'All',
+        }]);
+      }
     } else if (categoryId) {
       // Coming from "All categories" - get all subsubcategories from the category
-      const companyCategories = getCompanyCategories();
-      const category = companyCategories.find((cat: any) => cat.id === categoryId);
-      
-      if (category && category.subcategories) {
-        // Collect all subsubcategories from all subcategories
-        const allSubSubCategories: any[] = [];
-        category.subcategories.forEach((subcat: any) => {
-          if (subcat.subsubcategories && subcat.subsubcategories.length > 0) {
-            allSubSubCategories.push(...subcat.subsubcategories);
+      try {
+        const companyCategories = getCompanyCategories(locale);
+        const category = companyCategories.find((cat: any) => cat.id === categoryId);
+        
+        if (category && category.children) {
+          // Collect all subsubcategories from all subcategories using tree structure
+          const allSubSubCategories: any[] = [];
+          category.children.forEach((subcat: any) => {
+            if (subcat.children && subcat.children.length > 0) {
+              allSubSubCategories.push(...subcat.children.map((item: any) => ({
+                id: item._id || item.id,
+                name: item.name?.[locale] || item.name?.en || item.name,
+              })));
+            }
+          });
+          if (allSubSubCategories.length > 0) {
+            setDisplaySubSubCategories(allSubSubCategories);
+          } else {
+            // No subsubcategories found, show "All" item
+            setDisplaySubSubCategories([{
+              id: 'all',
+              name: 'All',
+            }]);
           }
-        });
-        setDisplaySubSubCategories(allSubSubCategories);
+        } else {
+          // No category found, show "All" item
+          setDisplaySubSubCategories([{
+            id: 'all',
+            name: 'All',
+          }]);
+        }
+      } catch (error) {
+        console.error('Error getting subsubcategories from category:', error);
+        // On error, show "All" item
+        setDisplaySubSubCategories([{
+          id: 'all',
+          name: 'All',
+        }]);
+      }
+    } else {
+      // No category or subcategory provided, show "All" item
+      setDisplaySubSubCategories([{
+        id: 'all',
+        name: 'All',
+      }]);
+    }
+  }, [categoryId, subcategoryId, passedSubSubCategories, locale]);
+  
+  // Auto-select "All" when it's the only option
+  useEffect(() => {
+    if (displaySubSubCategories.length === 1 && displaySubSubCategories[0]?.id === 'all') {
+      setSelectedSubSubCategory(null); // null means "All" is selected
+      // Set searchQuery to subcategory name when "All" is auto-selected
+      const categoryNameToUse = subCategoryName || categoryName || '';
+      if (categoryNameToUse) {
+        setSearchQuery(categoryNameToUse);
       }
     }
-  }, [categoryId, passedSubSubCategories]);
+  }, [displaySubSubCategories, subCategoryName, categoryName]);
   
+  // Search products by keyword mutation
+  const {
+    mutate: searchProductsByKeyword,
+    data: searchProductsData,
+    isLoading: searchProductsLoading,
+    error: searchProductsError
+  } = useSearchProductsByKeywordMutation({
+    onSuccess: (data) => {
+      console.log('Search products fetched successfully:', data?.length, 'items');
+    },
+    onError: (error) => {
+      console.error('Search products fetch error:', error);
+    }
+  });
+
   // States
   const [categories, setCategories] = useState<string[]>([]);
   const [categoryIds, setCategoryIds] = useState<number[]>([]);
@@ -208,6 +350,33 @@ const ProductDiscoveryScreen: React.FC = () => {
       }, 50);
     }
   }, [categoriesData, activeCategoryTab, products.length]);
+  
+  // Load products when subcategory is available and there are no subsubcategories
+  useEffect(() => {
+    // If we have a subcategoryId, no subsubcategories, and no products yet, load products for the subcategory
+    if (subcategoryId && displaySubSubCategories.length === 0 && products.length === 0 && !categoryLoading && !isLoadingRef.current) {
+      console.log('Loading products for subcategory (no subsubcategories):', subcategoryId);
+      // Small delay to ensure state updates
+      setTimeout(() => {
+        setCategoryLoading(true);
+        loadProducts(selectedSort || 'Popularity', 1);
+      }, 100);
+    }
+  }, [subcategoryId, displaySubSubCategories.length, products.length, categoryLoading]);
+
+  // Load products when selectedSubSubCategory changes or on initial load
+  useEffect(() => {
+    if (subCategoryName) {
+      // Reset to first page and reload products when subsubcategory selection changes
+      setOffset(1);
+      setHasMore(true);
+      setProducts([]);
+      setCategoryLoading(true);
+      setTimeout(() => {
+        loadProducts(selectedSort || 'Popularity', 1);
+      }, 50);
+    }
+  }, [selectedSubSubCategory, subCategoryName, displaySubSubCategories]);
 
   // Update indicator position when active category changes
   useEffect(() => {
@@ -335,10 +504,30 @@ const ProductDiscoveryScreen: React.FC = () => {
     }
   }, [storesData]);
 
+  // Update products when search results are fetched
+  useEffect(() => {
+    if (searchProductsData && Array.isArray(searchProductsData)) {
+      if (offset === 1) {
+        // First page, replace existing data
+        setProducts(searchProductsData);
+      } else {
+        // Subsequent pages, append to existing data
+        const uniqueNewProducts = searchProductsData.filter((newProduct: any) => 
+          !products.some((existingProduct: any) => existingProduct.id === newProduct.id)
+        );
+        setProducts(prev => [...prev, ...uniqueNewProducts]);
+      }
+      // Set hasMore based on whether we got a full page
+      setHasMore(searchProductsData.length >= 20);
+      setCategoryLoading(false);
+      isLoadingRef.current = false;
+    }
+  }, [searchProductsData, offset]);
+
   // Memoize products for performance
   const memoizedProducts = useMemo(() => products, [products]);
 
-  // Load products
+  // Load products using search API
   const loadProducts = async (sortType: string = selectedSort || 'Popularity', pageOffset: number = offset || 1 ) => {
     // Prevent multiple simultaneous API calls
     if (isLoadingRef.current) {
@@ -346,99 +535,53 @@ const ProductDiscoveryScreen: React.FC = () => {
       return;
     }
     
-    console.log('loadProducts called:', { offset: pageOffset, searchQuery, activeCategoryTab, sortType });
+    // Use searchQuery if available, otherwise determine search keyword based on selected subsubcategory
+    let searchKeyword = searchQuery || '';
+    
+    if (!searchKeyword) {
+      // Fallback: Determine search keyword based on selected subsubcategory
+      if (selectedSubSubCategory && selectedSubSubCategory !== 'all') {
+        // If a subsubcategory is selected, use its name
+        const selectedSubSubCat = displaySubSubCategories.find((cat: any) => {
+          if (!cat || !cat.id) return false;
+          const catId = String(cat.id).trim();
+          const selectedId = String(selectedSubSubCategory).trim();
+          return catId === selectedId;
+        });
+        if (selectedSubSubCat && selectedSubSubCat.name) {
+          searchKeyword = selectedSubSubCat.name;
+        }
+      } else {
+        // If "All" is selected, use the subcategory name
+        searchKeyword = subCategoryName || '';
+      }
+    }
+    
+    if (!searchKeyword) {
+      console.warn('No search keyword available, skipping product load');
+      isLoadingRef.current = false;
+      return;
+    }
+    
+    console.log('loadProducts called:', { 
+      offset: pageOffset, 
+      searchKeyword, 
+      searchQuery,
+      selectedSubSubCategory,
+      subCategoryName 
+    });
     isLoadingRef.current = true;
+    setCategoryLoading(true);
     
     try {
-      let categoryIdsToUse: number[] = [];
-      
-      if (selectedCategories.length > 0) {
-        // Use explicitly selected categories
-        categoryIdsToUse = selectedCategories;
-        console.log('Using selected category IDs:', selectedCategories);
-      } else if (activeCategoryTab && categoriesData && categoriesData.length > 0) {
-        // Use active category tab if no categories explicitly selected
-        const selectedCategory = categoriesData.find((cat: any) => cat.name === activeCategoryTab);
-        console.log('Selected category data:', selectedCategory);
-        if (selectedCategory && selectedCategory.id !== undefined) {
-          categoryIdsToUse = [selectedCategory.id];
-          console.log('Using specific category ID:', selectedCategory.id);
-        } else {
-          // Fallback to first category if selected category not found
-          const firstCategory = categoriesData[0];
-          if (firstCategory && firstCategory.id !== undefined) {
-            categoryIdsToUse = [firstCategory.id];
-            console.log('Fallback to first category ID:', firstCategory.id);
-          } else {
-            categoryIdsToUse = [1]; // Ultimate fallback
-            console.log('Using ultimate fallback category ID: 1');
-          }
-        }
-      } else if (categoryIds.length > 0) {
-        // Use stored category IDs
-        categoryIdsToUse = categoryIds;
-        console.log('Using stored category IDs:', categoryIds);
-      } else {
-        categoryIdsToUse = [1]; // Fallback
-        console.log('Using fallback category ID: 1');
-      }
-      
-      console.log('Final category IDs to use:', categoryIdsToUse);
-      
-      // Prepare filter parameter as JSON string
-      let filterParam = '[]';
-      const filters: any[] = [];
-      
-      // Add category filter if selected
-      if (selectedCategories.length > 0) {
-        filters.push({ categories: selectedCategories });
-      }
-      
-      // Add rating filter if selected
-      if (selectedRating !== null) {
-        filters.push({ minRating: selectedRating });
-      }
-      
-      if (filters.length > 0) {
-        filterParam = JSON.stringify(filters);
-      }
-      
-      // Convert price strings to numbers
-      const minPriceNum = minPrice ? parseFloat(minPrice) : 0.0;
-      const maxPriceNum = maxPrice ? parseFloat(maxPrice) : 999999.0;
-      
-      // Validate category IDs before passing to sortProductsMutation
-      const validCategoryIds = categoryIdsToUse.filter(id => id !== undefined && id !== null);
-      if (validCategoryIds.length === 0) {
-        console.warn('No valid category IDs found, using fallback ID 1');
-        validCategoryIds.push(1);
-      }
-      
-      console.log('Calling sortProductsMutation with:', {
-        sort: sortType,
-        categoryIds: validCategoryIds,
-        offset: pageOffset, // Use pageOffset instead of offset
-        limit: 25,
-        type: 'all',
-        filter: filterParam,
-        ratingCount: selectedRating !== null ? selectedRating.toString() : '', // Pass rating_count parameter
-        minPrice: isNaN(minPriceNum) ? 0.0 : minPriceNum,
-        maxPrice: isNaN(maxPriceNum) ? 999999.0 : maxPriceNum,
-        search: searchQuery
-      });
-      
-      // Pass all parameters to the sortProductsMutation
-      await sortProductsMutation(
-        sortType, 
-        validCategoryIds, 
-        pageOffset, // Use pageOffset instead of offset
-        25,          // limit - changed from 4 to 25
-        'all',       // type
-        filterParam, // filter - now using our filters
-        selectedRating !== null ? selectedRating.toString() : '', // rating_count - pass selected rating
-        isNaN(minPriceNum) ? 0.0 : minPriceNum,         // min_price
-        isNaN(maxPriceNum) ? 999999.0 : maxPriceNum,    // max_price
-        searchQuery  // search
+      // Use search API with keyword, platform, locale, page, pageSize
+      // Note: The API uses page (1-based) not offset, so we use pageOffset directly
+      searchProductsByKeyword(
+        searchKeyword,
+        selectedPlatform,
+        locale,
+        pageOffset,
+        20 // pageSize - same as "For you" section
       );
     } catch (error) {
       console.error('Error loading products:', error);
@@ -449,8 +592,7 @@ const ProductDiscoveryScreen: React.FC = () => {
     } finally {
       // Reset loading state
       isLoadingRef.current = false;
-      setCategoryLoading(false); // Reset category loading state
-      // Remove loading state references since we're not showing loading indicators
+      setCategoryLoading(false);
     }
   };
 
@@ -558,13 +700,26 @@ const ProductDiscoveryScreen: React.FC = () => {
           contentContainerStyle={styles.subSubCategoriesContent}
         >
           {displaySubSubCategories.map((subSubCat: any, index: number) => {
-            const isSelected = selectedSubSubCategory === subSubCat.id;
+            const isAllItem = subSubCat.id === 'all';
             return (
               <TouchableOpacity
                 key={subSubCat.id || index}
                 style={styles.subSubCategoryItem}
                 onPress={() => {
-                  setSelectedSubSubCategory(isSelected ? null : subSubCat.id);
+                  if (isAllItem) {
+                    // For "All" item, clear the selection to show all products
+                    setSelectedSubSubCategory(null);
+                    // Set searchQuery to subcategory name for "All"
+                    const categoryNameToUse = subCategoryName || categoryName || '';
+                    console.log('Setting searchQuery to subcategory name for "All":', categoryNameToUse);
+                    setSearchQuery(categoryNameToUse);
+                  } else {
+                    // Always select the pressed item (no toggle - always set to the item's id)
+                    // Ensure ID is stored as string for consistent comparison
+                    setSelectedSubSubCategory(subSubCat.name);
+                    // Update searchQuery to the subsubcategory name
+                    setSearchQuery(subSubCat.name || '');
+                  }
                   // Reload products for this subsubcategory
                   setOffset(1);
                   setHasMore(true);
@@ -577,17 +732,25 @@ const ProductDiscoveryScreen: React.FC = () => {
               >
                 <View style={[
                   styles.subSubCategoryImageContainer,
-                  isSelected && styles.subSubCategoryImageContainerSelected
+                  (searchQuery === subSubCat.name) && styles.subSubCategoryImageContainerSelected
                 ]}>
-                  <Ionicons 
-                    name="shirt-outline" 
-                    size={32} 
-                    color={isSelected ? COLORS.accentPink : COLORS.gray[600]} 
-                  />
+                  {!isAllItem && subSubCat.image ? (
+                    <Image 
+                      source={{ uri: subSubCat.image }} 
+                      style={styles.subSubCategoryImage}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <Image 
+                      source={require('../../assets/icons/logo.png')} 
+                      style={styles.subSubCategoryLogo}
+                      resizeMode="contain"
+                    />
+                  )}
                 </View>
                 <Text style={[
                   styles.subSubCategoryName,
-                  isSelected && styles.subSubCategoryNameSelected
+                  (searchQuery === subSubCat.name) && styles.subSubCategoryNameSelected
                 ]} numberOfLines={2}>
                   {subSubCat.name}
                 </Text>
@@ -810,8 +973,8 @@ const ProductDiscoveryScreen: React.FC = () => {
 
 
   // Product press handlers
-  const handleProductPress = (product: Product) => {
-    navigation.navigate('ProductDetail', { productId: product.id });
+  const handleProductPress = async (product: Product) => {
+    await navigateToProductDetail(product.id, selectedPlatform, locale);
   };
 
   const handleLikePress = async (product: Product) => {
@@ -1090,10 +1253,19 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.xs,
     borderWidth: 2,
     borderColor: 'transparent',
+    overflow: 'hidden',
   },
   subSubCategoryImageContainerSelected: {
     borderColor: COLORS.accentPink,
     backgroundColor: COLORS.white,
+  },
+  subSubCategoryImage: {
+    width: '100%',
+    height: '100%',
+  },
+  subSubCategoryLogo: {
+    width: '50%',
+    height: '50%',
   },
   subSubCategoryName: {
     fontSize: FONTS.sizes.xs,

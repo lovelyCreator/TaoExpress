@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { categoriesApi } from '../services/api';
-import { CategoryData, UseCategoriesOptions, UseChildCategoriesOptions, UseCategoriesResult, UseChildCategoriesResult } from '../types';
+import { CategoryData, UseCategoriesOptions, UseChildCategoriesOptions, UseCategoriesResult, UseChildCategoriesResult, UseCategoriesTreeOptions, UseCategoriesTreeResult, CategoriesTreeResponse } from '../types';
 
 // Hook for fetching all categories
 export const useCategoriesMutation = (options?: UseCategoriesOptions): UseCategoriesResult => {
@@ -93,6 +93,53 @@ export const useChildCategoriesMutation = (options?: UseChildCategoriesOptions):
         options?.onSuccess?.(validCategories);
       } else {
         const errorMessage = response.message || 'Failed to fetch child categories';
+        setError(errorMessage);
+        setIsError(true);
+        options?.onError?.(errorMessage);
+      }
+    } catch (err) {
+      const errorMessage = 'An unexpected error occurred. Please try again.';
+      setError(errorMessage);
+      setIsError(true);
+      options?.onError?.(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [options]);
+
+  return {
+    mutate,
+    data,
+    error,
+    isLoading,
+    isSuccess,
+    isError,
+  };
+};
+
+// Hook for fetching categories tree by platform
+export const useCategoriesTreeMutation = (options?: UseCategoriesTreeOptions): UseCategoriesTreeResult => {
+  const [data, setData] = useState<CategoriesTreeResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isSuccess, setIsSuccess] = useState<boolean>(false);
+  const [isError, setIsError] = useState<boolean>(false);
+
+  const mutate = useCallback(async (platform: string) => {
+    setIsLoading(true);
+    setIsSuccess(false);
+    setIsError(false);
+    setError(null);
+
+    try {
+      const response = await categoriesApi.getCategoriesTree(platform);
+      
+      if (response.success && response.data) {
+        setData(response.data);
+        setIsSuccess(true);
+        options?.onSuccess?.(response.data);
+      } else {
+        const errorMessage = response.message || 'Failed to fetch categories tree';
         setError(errorMessage);
         setIsError(true);
         options?.onError?.(errorMessage);

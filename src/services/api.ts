@@ -60,7 +60,7 @@ setTimeout(() => {
 }, 100);
 
 // API base URL - using environment variable with fallback to local endpoint
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://192.168.5.54:8001/api/v1';
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
 // Helper function to get auth headers
 const getAuthHeaders = async () => {

@@ -16,14 +16,30 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import * as Clipboard from 'expo-clipboard';
 import { COLORS, FONTS, SPACING } from '../../constants';
-import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../context/AuthContext';
+import { useAppSelector } from '../../store/hooks';
+import { translations } from '../../i18n/translations';
 
 const AffiliateMarketingScreen = () => {
   const navigation = useNavigation();
-  const { t } = useTranslation();
+  const locale = useAppSelector((state) => state.i18n.locale) as 'en' | 'ko' | 'zh';
   const { user } = useAuth();
   const [copiedCode, setCopiedCode] = useState(false);
+  
+  // Translation function
+  const t = (key: string, params?: { [key: string]: string }) => {
+    const keys = key.split('.');
+    let value: any = translations[locale as keyof typeof translations];
+    for (const k of keys) {
+      value = value?.[k];
+    }
+    if (params && typeof value === 'string') {
+      Object.keys(params).forEach(paramKey => {
+        value = value.replace(`{${paramKey}}`, params[paramKey]);
+      });
+    }
+    return value || key;
+  };
 
   // Mock affiliate data
   const affiliateCode = 'TA0615061';
@@ -34,26 +50,26 @@ const AffiliateMarketingScreen = () => {
     try {
       await Clipboard.setStringAsync(affiliateCode);
       setCopiedCode(true);
-      Alert.alert('Success', 'Invitation code copied!');
+      Alert.alert(t('shareApp.success'), t('profile.invitationCodeCopied'));
       setTimeout(() => setCopiedCode(false), 2000);
     } catch (error) {
-      Alert.alert('Error', 'Failed to copy code');
+      Alert.alert(t('common.error'), t('profile.failedToCopyCode'));
     }
   };
 
   const handleSaveImage = async () => {
     try {
-      Alert.alert('Coming Soon', 'Save image feature will be available soon');
+      Alert.alert(t('profile.comingSoon'), t('profile.saveImageComingSoon'));
     } catch (error) {
-      Alert.alert('Error', 'Failed to save image');
+      Alert.alert(t('common.error'), t('profile.failedToSaveImage'));
     }
   };
 
   const handleShareLink = async () => {
     try {
       const result = await Share.share({
-        message: `Join TodayMall! Use my invitation code: ${affiliateCode}`,
-        title: 'Share Invitation Code',
+        message: t('profile.joinTodayMall', { code: affiliateCode }),
+        title: t('profile.shareInvitationCode'),
       });
 
       if (result.action === Share.sharedAction) {
@@ -61,7 +77,7 @@ const AffiliateMarketingScreen = () => {
       }
     } catch (error) {
       console.error('Share error:', error);
-      Alert.alert('Error', 'Failed to share');
+      Alert.alert(t('common.error'), t('profile.failedToShare'));
     }
   };
 
@@ -79,9 +95,9 @@ const AffiliateMarketingScreen = () => {
         >
           <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Affiliate Marketing</Text>
+        <Text style={styles.headerTitle}>{t('profile.affiliateMarketing')}</Text>
         <TouchableOpacity style={styles.eventRuleButton}>
-          <Text style={styles.eventRuleText}>Event Rule</Text>
+          <Text style={styles.eventRuleText}>{t('profile.eventRule')}</Text>
         </TouchableOpacity>
       {/* </LinearGradient> */}
       </View>
@@ -99,12 +115,12 @@ const AffiliateMarketingScreen = () => {
             />
             <View style={styles.userInfo}>
               <Text style={styles.userName}>user</Text>
-              <Text style={styles.userIncome}>income: {income}</Text>
+              <Text style={styles.userIncome}>{t('profile.income')}: {income}</Text>
             </View>
             <View style={styles.userStats}>
-              <Text style={styles.relatedUsers}>Related User: {relatedUsers}</Text>
+              <Text style={styles.relatedUsers}>{t('profile.relatedUser')}: {relatedUsers}</Text>
               <TouchableOpacity>
-                <Text style={styles.detailedPayout}>Detailed Payout</Text>
+                <Text style={styles.detailedPayout}>{t('profile.detailedPayout')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -115,17 +131,17 @@ const AffiliateMarketingScreen = () => {
           {/* Invite Method 1 */}
           <View style={styles.inviteCard}>
             <View style={styles.inviteMethodBadge}>
-              <Text style={styles.inviteMethodText}>Invite Method 1</Text>
+              <Text style={styles.inviteMethodText}>{t('profile.inviteMethod1')}</Text>
             </View>
             <Text style={styles.inviteDescription}>
-              Please copy the invitation code and send it to your friend.
+              {t('profile.inviteDescription')}
             </Text>
             <View style={styles.codeContainer}>
               <View style={styles.codeBox}>
                 <Text style={styles.codeText}>{affiliateCode}</Text>
               </View>
               <TouchableOpacity style={styles.copyButton} onPress={handleCopyCode}>
-                <Text style={styles.copyButtonText}>Copy</Text>
+                <Text style={styles.copyButtonText}>{t('profile.copy')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -133,10 +149,10 @@ const AffiliateMarketingScreen = () => {
           {/* Invite Method 2 */}
           <View style={styles.inviteCard}>
             <View style={styles.inviteMethodBadge}>
-              <Text style={styles.inviteMethodText}>Invite Method 2</Text>
+              <Text style={styles.inviteMethodText}>{t('profile.inviteMethod2')}</Text>
             </View>
             <Text style={styles.inviteDescription}>
-              Please copy the invitation code and send it to your friend.
+              {t('profile.inviteDescription')}
             </Text>
             
             {/* QR Code / Image Section */}
@@ -151,11 +167,11 @@ const AffiliateMarketingScreen = () => {
             <View style={styles.actionButtons}>
               <TouchableOpacity style={styles.actionButton} onPress={handleSaveImage}>
                 <Ionicons name="download-outline" size={28} color={COLORS.gray[500]} />
-                <Text style={styles.actionButtonText}>Save Image</Text>
+                <Text style={styles.actionButtonText}>{t('profile.saveImage')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.actionButton} onPress={handleShareLink}>
                 <Ionicons name="share-social-outline" size={28} color={COLORS.gray[500]} />
-                <Text style={styles.actionButtonText}>Share Link</Text>
+                <Text style={styles.actionButtonText}>{t('profile.shareLink')}</Text>
               </TouchableOpacity>
             </View>
           </View>

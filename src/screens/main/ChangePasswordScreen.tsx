@@ -18,11 +18,14 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { COLORS, FONTS, SPACING } from '../../constants';
 import { RootStackParamList } from '../../types';
 import { useChangePasswordMutation } from '../../hooks/useAuthMutations';
+import { useAppSelector } from '../../store/hooks';
+import { translations } from '../../i18n/translations';
 
 type ChangePasswordScreenNavigationProp = StackNavigationProp<RootStackParamList, 'ChangePassword'>;
 
 const ChangePasswordScreen: React.FC = () => {
   const navigation = useNavigation<ChangePasswordScreenNavigationProp>();
+  const locale = useAppSelector((state) => state.i18n.locale) as 'en' | 'ko' | 'zh';
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -30,14 +33,29 @@ const ChangePasswordScreen: React.FC = () => {
   const [showNewPassword, setShowNewPassword] = useState(true);
   const [showConfirmPassword, setShowConfirmPassword] = useState(true);
   
+  // Translation function
+  const t = (key: string, params?: { [key: string]: string }) => {
+    const keys = key.split('.');
+    let value: any = translations[locale as keyof typeof translations];
+    for (const k of keys) {
+      value = value?.[k];
+    }
+    if (params && typeof value === 'string') {
+      Object.keys(params).forEach(paramKey => {
+        value = value.replace(`{${paramKey}}`, params[paramKey]);
+      });
+    }
+    return value || key;
+  };
+  
   const { mutate: changePassword, isLoading } = useChangePasswordMutation({
     onSuccess: () => {
       Alert.alert(
-        'Success',
-        'Your password has been changed successfully.',
+        t('shareApp.success'),
+        t('profile.passwordChanged'),
         [
           {
-            text: 'OK',
+            text: t('profile.ok'),
             onPress: () => {
               setCurrentPassword('');
               setNewPassword('');
@@ -49,28 +67,28 @@ const ChangePasswordScreen: React.FC = () => {
       );
     },
     onError: (error) => {
-      Alert.alert('Error', error || 'Failed to change password. Please try again.');
+      Alert.alert(t('common.error'), error || t('profile.failedToUpdateProfile'));
     }
   });
 
   const handleChangePassword = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
-      Alert.alert('Missing Information', 'Please fill in all fields.');
+      Alert.alert(t('profile.missingInformation'), t('profile.fillAllFields'));
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      Alert.alert('Password Mismatch', 'New password and confirm password do not match.');
+      Alert.alert(t('profile.passwordMismatch'), t('profile.passwordsDoNotMatch'));
       return;
     }
 
     if (newPassword.length < 8) {
-      Alert.alert('Weak Password', 'Password must be at least 8 characters long.');
+      Alert.alert(t('profile.weakPassword'), t('profile.passwordMinLength'));
       return;
     }
 
     if (currentPassword === newPassword) {
-      Alert.alert('Same Password', 'New password must be different from current password.');
+      Alert.alert(t('profile.samePassword'), t('profile.passwordMustBeDifferent'));
       return;
     }
 
@@ -89,7 +107,7 @@ const ChangePasswordScreen: React.FC = () => {
       >
         <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
       </TouchableOpacity>
-      <Text style={styles.headerTitle}>Change Password</Text>
+      <Text style={styles.headerTitle}>{t('profile.changePassword')}</Text>
       <View style={styles.placeholder} />
     {/* </LinearGradient> */}
     </View>
@@ -132,7 +150,7 @@ const ChangePasswordScreen: React.FC = () => {
 
   const renderPasswordRequirements = () => (
     <View style={styles.requirementsCard}>
-      <Text style={styles.requirementsTitle}>Password Requirements:</Text>
+      <Text style={styles.requirementsTitle}>{t('profile.passwordRequirements')}</Text>
       <View style={styles.requirementsList}>
         <View style={styles.requirementItem}>
           <Ionicons
@@ -144,7 +162,7 @@ const ChangePasswordScreen: React.FC = () => {
             styles.requirementText,
             { color: newPassword.length >= 8 ? '#4CAF50' : COLORS.gray[500] }
           ]}>
-            At least 8 characters
+            {t('profile.atLeast8Chars')}
           </Text>
         </View>
         <View style={styles.requirementItem}>
@@ -157,7 +175,7 @@ const ChangePasswordScreen: React.FC = () => {
             styles.requirementText,
             { color: /[A-Z]/.test(newPassword) ? '#4CAF50' : COLORS.gray[500] }
           ]}>
-            One uppercase letter
+            {t('profile.oneUppercase')}
           </Text>
         </View>
         <View style={styles.requirementItem}>
@@ -170,7 +188,7 @@ const ChangePasswordScreen: React.FC = () => {
             styles.requirementText,
             { color: /[a-z]/.test(newPassword) ? '#4CAF50' : COLORS.gray[500] }
           ]}>
-            One lowercase letter
+            {t('profile.oneLowercase')}
           </Text>
         </View>
         <View style={styles.requirementItem}>
@@ -183,7 +201,7 @@ const ChangePasswordScreen: React.FC = () => {
             styles.requirementText,
             { color: /\d/.test(newPassword) ? '#4CAF50' : COLORS.gray[500] }
           ]}>
-            One number
+            {t('profile.oneNumber')}
           </Text>
         </View>
       </View>
@@ -201,30 +219,30 @@ const ChangePasswordScreen: React.FC = () => {
       >
         <View style={styles.formCard}>
           {renderPasswordInput(
-            'Current Password',
+            t('profile.currentPassword'),
             currentPassword,
             setCurrentPassword,
             showCurrentPassword,
             () => setShowCurrentPassword(!showCurrentPassword),
-            'Enter your current password'
+            t('profile.enterCurrentPassword')
           )}
 
           {renderPasswordInput(
-            'New Password',
+            t('profile.newPassword'),
             newPassword,
             setNewPassword,
             showNewPassword,
             () => setShowNewPassword(!showNewPassword),
-            'Enter your new password'
+            t('profile.enterNewPassword')
           )}
 
           {renderPasswordInput(
-            'Confirm New Password',
+            t('profile.confirmNewPassword'),
             confirmPassword,
             setConfirmPassword,
             showConfirmPassword,
             () => setShowConfirmPassword(!showConfirmPassword),
-            'Confirm your new password'
+            t('profile.confirmNewPasswordPlaceholder')
           )}
 
           <TouchableOpacity
@@ -235,7 +253,7 @@ const ChangePasswordScreen: React.FC = () => {
             {isLoading ? (
               <ActivityIndicator size="small" color={COLORS.white} />
             ) : (
-              <Text style={styles.saveButtonText}>Save Changes</Text>
+              <Text style={styles.saveButtonText}>{t('profile.saveChanges')}</Text>
             )}
           </TouchableOpacity>
         </View>

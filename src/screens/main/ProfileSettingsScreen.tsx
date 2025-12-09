@@ -20,16 +20,34 @@ import { useAuth } from '../../context/AuthContext';
 import ImagePickerModal from '../../components/ImagePickerModal';
 import { DeleteAccountModal } from '../../components';
 import { InviteCodeBindingModal } from '../../components';
+import { useAppSelector } from '../../store/hooks';
+import { translations } from '../../i18n/translations';
 
 type ProfileSettingsScreenNavigationProp = StackNavigationProp<RootStackParamList, 'ProfileSettings'>;
 
 const ProfileSettingsScreen: React.FC = () => {
   const navigation = useNavigation<ProfileSettingsScreenNavigationProp>();
   const { user, logout, isAuthenticated, updateUser } = useAuth();
+  const locale = useAppSelector((state) => state.i18n.locale) as 'en' | 'ko' | 'zh';
   const [showImagePicker, setShowImagePicker] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showInviteCodeModal, setShowInviteCodeModal] = useState(false);
   const [avatarUri, setAvatarUri] = useState(user?.avatar || null);
+  
+  // Translation function
+  const t = (key: string, params?: { [key: string]: string }) => {
+    const keys = key.split('.');
+    let value: any = translations[locale as keyof typeof translations];
+    for (const k of keys) {
+      value = value?.[k];
+    }
+    if (params && typeof value === 'string') {
+      Object.keys(params).forEach(paramKey => {
+        value = value.replace(`{${paramKey}}`, params[paramKey]);
+      });
+    }
+    return value || key;
+  };
 
   // Korean favorite colors for menu icons (same as ProfileScreen)
   const getMenuIconColor = (index: number) => {
@@ -68,11 +86,11 @@ const ProfileSettingsScreen: React.FC = () => {
       await new Promise(resolve => setTimeout(resolve, 1500));
       
       Alert.alert(
-        'Account Deleted',
-        'Your account has been permanently deleted.',
+        t('profile.accountDeleted'),
+        t('profile.accountDeletedMessage'),
         [
           {
-            text: 'OK',
+            text: t('profile.ok'),
             onPress: async () => {
               await logout();
               navigation.navigate('Auth');
@@ -81,7 +99,7 @@ const ProfileSettingsScreen: React.FC = () => {
         ]
       );
     } catch (error) {
-      Alert.alert('Error', 'Failed to delete account. Please try again.');
+      Alert.alert(t('common.error'), t('profile.failedToDeleteAccount'));
       throw error;
     }
   };
@@ -92,12 +110,12 @@ const ProfileSettingsScreen: React.FC = () => {
       await new Promise(resolve => setTimeout(resolve, 1500));
       
       Alert.alert(
-        'Success',
-        `Invite code "${inviteCode}" has been successfully bound to your account!`,
-        [{ text: 'OK' }]
+        t('shareApp.success'),
+        t('profile.inviteCodeBound', { inviteCode }),
+        [{ text: t('profile.ok') }]
       );
     } catch (error) {
-      Alert.alert('Error', 'Failed to bind invite code. Please check the code and try again.');
+      Alert.alert(t('common.error'), t('profile.failedToBindCode'));
       throw error;
     }
   };
@@ -109,7 +127,7 @@ const ProfileSettingsScreen: React.FC = () => {
     // Request camera permissions
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      alert('Sorry, we need camera permissions to take photos!');
+      alert(t('profile.cameraPermissionRequired'));
       return;
     }
 
@@ -138,7 +156,7 @@ const ProfileSettingsScreen: React.FC = () => {
     // Request media library permissions
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      alert('Sorry, we need gallery permissions to choose photos!');
+      alert(t('profile.galleryPermissionRequired'));
       return;
     }
 
@@ -172,7 +190,7 @@ const ProfileSettingsScreen: React.FC = () => {
       >
         <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
       </TouchableOpacity>
-      <Text style={styles.headerTitle}>My Page</Text>
+      <Text style={styles.headerTitle}>{t('profile.myPage')}</Text>
       <View style={styles.placeholder} />
     {/* </LinearGradient> */}
     </View>
@@ -198,7 +216,7 @@ const ProfileSettingsScreen: React.FC = () => {
             <Ionicons name="camera" size={16} color={COLORS.white} />
           </TouchableOpacity>
         </View>
-        <Text style={styles.changePictureText}>Change Picture</Text>
+        <Text style={styles.changePictureText}>{t('profile.changePicture')}</Text>
         {isAuthenticated && user?.name && (
           <Text style={styles.userName}>{user.name}</Text>
         )}
@@ -210,37 +228,37 @@ const ProfileSettingsScreen: React.FC = () => {
     const menuItems = [
       {
         icon: 'person-outline',
-        title: 'My Details',
+        title: t('profile.myDetails'),
         onPress: () => navigation.navigate('EditProfile'),
       },
       {
         icon: 'key-outline',
-        title: 'Change Password',
+        title: t('profile.changePassword'),
         onPress: () => navigation.navigate('ChangePassword'),
       },
       {
         icon: 'trending-up-outline',
-        title: 'Affiliate Marketing',
+        title: t('profile.affiliateMarketing'),
         onPress: () => navigation.navigate('AffiliateMarketing' as never),
       },
       {
         icon: 'cube-outline',
-        title: 'Unit',
+        title: t('profile.unit'),
         onPress: () => navigation.navigate('UnitSettings'),
       },
       {
         icon: 'lock-closed-outline',
-        title: 'Payment Password',
+        title: t('profile.paymentPassword'),
         onPress: () => navigation.navigate('PaymentPassword'),
       },
       {
         icon: 'trash-outline',
-        title: 'Delete Account',
+        title: t('profile.deleteAccount'),
         onPress: () => setShowDeleteModal(true),
       },
       {
         icon: 'gift-outline',
-        title: 'Invite Code Binding',
+        title: t('profile.inviteCodeBinding'),
         onPress: () => setShowInviteCodeModal(true),
       },
     ];
@@ -282,7 +300,7 @@ const ProfileSettingsScreen: React.FC = () => {
             <View style={styles.logoutIconContainer}>
               <Ionicons name="log-out-outline" size={20} color={COLORS.error} />
             </View>
-            <Text style={styles.logoutText}>Log out</Text>
+            <Text style={styles.logoutText}>{t('profile.logOut')}</Text>
           </TouchableOpacity>
         )}
       </ScrollView>

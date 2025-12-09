@@ -15,6 +15,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '../constants';
+import { useAppSelector } from '../store/hooks';
+import { translations } from '../i18n/translations';
 
 const { height } = Dimensions.get('window');
 
@@ -29,11 +31,22 @@ const InviteCodeBindingModal: React.FC<InviteCodeBindingModalProps> = ({
   onClose,
   onSubmit,
 }) => {
+  const locale = useAppSelector((state) => state.i18n.locale) as 'en' | 'ko' | 'zh';
   const [inviteCode, setInviteCode] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const slideAnim = useRef(new Animated.Value(height)).current;
   const panY = useRef(new Animated.Value(0)).current;
   const isDismissing = useRef(false);
+  
+  // Translation function
+  const t = (key: string) => {
+    const keys = key.split('.');
+    let value: any = translations[locale as keyof typeof translations];
+    for (const k of keys) {
+      value = value?.[k];
+    }
+    return value || key;
+  };
 
   useEffect(() => {
     if (visible) {
@@ -97,12 +110,12 @@ const InviteCodeBindingModal: React.FC<InviteCodeBindingModalProps> = ({
 
   const handleSubmit = async () => {
     if (!inviteCode.trim()) {
-      Alert.alert('Error', 'Please enter an invite code');
+      Alert.alert(t('common.error'), t('profile.enterInviteCodeError'));
       return;
     }
 
     if (inviteCode.length < 6) {
-      Alert.alert('Error', 'Invite code must be at least 6 characters');
+      Alert.alert(t('common.error'), t('profile.inviteCodeMinLength'));
       return;
     }
 
@@ -157,21 +170,21 @@ const InviteCodeBindingModal: React.FC<InviteCodeBindingModalProps> = ({
           </View>
 
           {/* Title */}
-          <Text style={styles.title}>Bind Invite Code</Text>
+          <Text style={styles.title}>{t('profile.bindInviteCode')}</Text>
 
           {/* Description */}
           <Text style={styles.description}>
-            Enter the invite code you received to unlock special rewards and benefits.
+            {t('profile.bindInviteCodeDescription')}
           </Text>
 
           {/* Input */}
           <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Invite Code</Text>
+            <Text style={styles.inputLabel}>{t('profile.inviteCode')}</Text>
             <View style={styles.inputWrapper}>
               <Ionicons name="ticket-outline" size={20} color={COLORS.gray[400]} />
               <TextInput
                 style={styles.input}
-                placeholder="Enter invite code"
+                placeholder={t('profile.enterInviteCode')}
                 placeholderTextColor={COLORS.text.secondary}
                 value={inviteCode}
                 onChangeText={setInviteCode}
@@ -185,18 +198,18 @@ const InviteCodeBindingModal: React.FC<InviteCodeBindingModalProps> = ({
 
           {/* Benefits List */}
           <View style={styles.benefitsList}>
-            <Text style={styles.benefitsTitle}>Benefits:</Text>
+            <Text style={styles.benefitsTitle}>{t('profile.benefits')}</Text>
             <View style={styles.benefitItem}>
               <Ionicons name="checkmark-circle" size={18} color="#4CAF50" />
-              <Text style={styles.benefitText}>Exclusive discounts</Text>
+              <Text style={styles.benefitText}>{t('profile.exclusiveDiscounts')}</Text>
             </View>
             <View style={styles.benefitItem}>
               <Ionicons name="checkmark-circle" size={18} color="#4CAF50" />
-              <Text style={styles.benefitText}>Special promotions</Text>
+              <Text style={styles.benefitText}>{t('profile.specialPromotions')}</Text>
             </View>
             <View style={styles.benefitItem}>
               <Ionicons name="checkmark-circle" size={18} color="#4CAF50" />
-              <Text style={styles.benefitText}>Bonus rewards points</Text>
+              <Text style={styles.benefitText}>{t('profile.bonusRewardsPoints')}</Text>
             </View>
           </View>
 
@@ -207,7 +220,7 @@ const InviteCodeBindingModal: React.FC<InviteCodeBindingModalProps> = ({
               onPress={handleClose}
               disabled={isSubmitting}
             >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
+              <Text style={styles.cancelButtonText}>{t('profile.cancel')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[
@@ -221,7 +234,7 @@ const InviteCodeBindingModal: React.FC<InviteCodeBindingModalProps> = ({
               {isSubmitting ? (
                 <ActivityIndicator size="small" color={COLORS.white} />
               ) : (
-                <Text style={styles.submitButtonText}>Bind Code</Text>
+                <Text style={styles.submitButtonText}>{t('profile.bindCode')}</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -230,7 +243,7 @@ const InviteCodeBindingModal: React.FC<InviteCodeBindingModalProps> = ({
           <View style={styles.infoNote}>
             <Ionicons name="information-circle-outline" size={16} color={COLORS.text.secondary} />
             <Text style={styles.infoText}>
-              You can only bind one invite code per account
+              {t('profile.oneCodePerAccount')}
             </Text>
           </View>
             </Animated.View>

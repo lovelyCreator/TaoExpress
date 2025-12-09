@@ -13,6 +13,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '../constants';
+import { useAppSelector } from '../store/hooks';
+import { translations } from '../i18n/translations';
 
 const { width, height } = Dimensions.get('window');
 
@@ -39,11 +41,22 @@ const CouponModal: React.FC<CouponModalProps> = ({
   onConfirm,
   selectedCouponId,
 }) => {
+  const locale = useAppSelector((state) => state.i18n.locale) as 'en' | 'ko' | 'zh';
   const slideAnim = useRef(new Animated.Value(height)).current;
   const panY = useRef(new Animated.Value(0)).current;
   const isDismissing = useRef(false);
   
   const [selectedCoupon, setSelectedCoupon] = useState<string | null>(selectedCouponId || null);
+  
+  // Translation function
+  const t = (key: string) => {
+    const keys = key.split('.');
+    let value: any = translations[locale as keyof typeof translations];
+    for (const k of keys) {
+      value = value?.[k];
+    }
+    return value || key;
+  };
 
   const coupons: Coupon[] = [
     {
@@ -160,9 +173,9 @@ const CouponModal: React.FC<CouponModalProps> = ({
 
   const formatDiscount = (coupon: Coupon) => {
     if (coupon.discountType === 'percentage') {
-      return `${coupon.discount}% OFF`;
+      return `${coupon.discount}% ${t('profile.off')}`;
     } else {
-      return `$${coupon.discount} OFF`;
+      return `$${coupon.discount} ${t('profile.off')}`;
     }
   };
 
@@ -195,9 +208,9 @@ const CouponModal: React.FC<CouponModalProps> = ({
                 <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
                   {/* Header */}
                   <View style={styles.header}>
-                    <Text style={styles.title}>Select Coupon</Text>
+                    <Text style={styles.title}>{t('profile.selectCoupon')}</Text>
                     <Text style={styles.subtitle}>
-                      Choose a coupon to apply to your order
+                      {t('profile.chooseCouponDescription')}
                     </Text>
                   </View>
 
@@ -216,8 +229,8 @@ const CouponModal: React.FC<CouponModalProps> = ({
                             <Ionicons name="close" size={20} color={COLORS.white} />
                           </View>
                           <View style={styles.couponInfo}>
-                            <Text style={styles.couponName}>No Coupon</Text>
-                            <Text style={styles.couponDescription}>Don't use any coupon</Text>
+                            <Text style={styles.couponName}>{t('profile.noCoupon')}</Text>
+                            <Text style={styles.couponDescription}>{t('profile.dontUseCoupon')}</Text>
                           </View>
                         </View>
                         <View style={styles.couponRight}>
@@ -253,11 +266,11 @@ const CouponModal: React.FC<CouponModalProps> = ({
                               <Text style={styles.couponDescription}>{coupon.description}</Text>
                               {coupon.minAmount && (
                                 <Text style={styles.couponCondition}>
-                                  Min. order: ${coupon.minAmount}
+                                  {t('profile.minOrder')}: ${coupon.minAmount}
                                 </Text>
                               )}
                               <Text style={styles.couponExpiry}>
-                                Expires: {coupon.expiryDate}
+                                {t('profile.expires')}: {coupon.expiryDate}
                               </Text>
                             </View>
                           </View>
@@ -288,7 +301,7 @@ const CouponModal: React.FC<CouponModalProps> = ({
                   onPress={handleClose}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                  <Text style={styles.cancelButtonText}>{t('profile.cancel')}</Text>
                 </TouchableOpacity>
                 
                 <TouchableOpacity
@@ -296,7 +309,7 @@ const CouponModal: React.FC<CouponModalProps> = ({
                   onPress={handleConfirm}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.confirmButtonText}>Apply Coupon</Text>
+                  <Text style={styles.confirmButtonText}>{t('profile.applyCoupon')}</Text>
                 </TouchableOpacity>
               </View>
             </Animated.View>

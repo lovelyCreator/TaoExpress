@@ -65,7 +65,7 @@ const HelpArticleScreen: React.FC = () => {
       >
         <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
       </TouchableOpacity>
-      <Text style={styles.headerTitle} numberOfLines={1}>Help Article</Text>
+      <Text style={styles.headerTitle} numberOfLines={1}>{t('helpArticle.title')}</Text>
       <View style={styles.placeholder} />
     </View>
   );

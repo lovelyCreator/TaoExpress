@@ -190,7 +190,7 @@ const PusherTestScreen: React.FC = () => {
     setIsLoading(true);
     try {
       // Send test message to your Laravel backend
-      const response = await fetch('http://221.138.36.200:5000/api/v1/customer/message/send', {
+      const response = await fetch('https://todaymall.co.kr/api/v1/customer/message/send', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

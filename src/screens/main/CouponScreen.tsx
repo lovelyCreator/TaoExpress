@@ -11,6 +11,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { COLORS, FONTS, SPACING } from '../../constants';
+import { useAppSelector } from '../../store/hooks';
+import { translations } from '../../i18n/translations';
 
 interface Coupon {
   id: number;
@@ -25,8 +27,19 @@ interface Coupon {
 
 const CouponScreen = () => {
   const navigation = useNavigation();
+  const locale = useAppSelector((state) => state.i18n.locale) as 'en' | 'ko' | 'zh';
   const [activeTab, setActiveTab] = useState<'my' | 'ended' | 'using'>('my');
   const [couponCode, setCouponCode] = useState('');
+  
+  // Translation function
+  const t = (key: string) => {
+    const keys = key.split('.');
+    let value: any = translations[locale as keyof typeof translations];
+    for (const k of keys) {
+      value = value?.[k];
+    }
+    return value || key;
+  };
 
   // Sample coupon data
   const coupons: Coupon[] = [
@@ -102,7 +115,7 @@ const CouponScreen = () => {
         >
           <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Coupon</Text>
+        <Text style={styles.headerTitle}>{t('profile.coupon')}</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -118,7 +131,7 @@ const CouponScreen = () => {
               onPress={() => setActiveTab('my')}
             >
               <Text style={[styles.tabText, activeTab === 'my' && styles.tabTextActive]}>
-                Available
+                {t('profile.available')}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -126,7 +139,7 @@ const CouponScreen = () => {
               onPress={() => setActiveTab('ended')}
             >
               <Text style={[styles.tabText, activeTab === 'ended' && styles.tabTextActive]}>
-                Expired
+                {t('profile.expired')}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -134,7 +147,7 @@ const CouponScreen = () => {
               onPress={() => setActiveTab('using')}
             >
               <Text style={[styles.tabText, activeTab === 'using' && styles.tabTextActive]}>
-                Used
+                {t('profile.used')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -143,7 +156,7 @@ const CouponScreen = () => {
           <View style={styles.inputContainer}>
             <TextInput
               style={styles.input}
-              placeholder="Enter coupon code"
+              placeholder={t('profile.enterCouponCode')}
               placeholderTextColor="#999"
               value={couponCode}
               onChangeText={setCouponCode}
@@ -152,7 +165,7 @@ const CouponScreen = () => {
               style={styles.changeButton}
               onPress={handleChangeCoupon}
             >
-              <Text style={styles.changeButtonText}>Apply</Text>
+              <Text style={styles.changeButtonText}>{t('profile.apply')}</Text>
             </TouchableOpacity>
           </View>
 
@@ -160,7 +173,7 @@ const CouponScreen = () => {
           {filteredCoupons.length === 0 ? (
             <View style={styles.emptyState}>
               <Ionicons name="ticket-outline" size={80} color="#CCC" />
-              <Text style={styles.emptyText}>No coupons available</Text>
+              <Text style={styles.emptyText}>{t('profile.noCouponsAvailable')}</Text>
             </View>
           ) : (
             <View style={styles.couponList}>
@@ -173,30 +186,30 @@ const CouponScreen = () => {
                         style={styles.useButton}
                         onPress={() => handleUseCoupon(coupon)}
                       >
-                        <Text style={styles.useButtonText}>Use</Text>
+                        <Text style={styles.useButtonText}>{t('profile.use')}</Text>
                       </TouchableOpacity>
                     )}
                     {coupon.status === 'ended' && (
                       <View style={styles.expiredBadge}>
-                        <Text style={styles.expiredText}>Expired</Text>
+                        <Text style={styles.expiredText}>{t('profile.expired')}</Text>
                       </View>
                     )}
                     {coupon.status === 'used' && (
                       <View style={styles.usedBadge}>
-                        <Text style={styles.usedText}>Used</Text>
+                        <Text style={styles.usedText}>{t('profile.used')}</Text>
                       </View>
                     )}
                   </View>
 
                   <Text style={styles.minAmount}>
-                    Minimum purchase: ${coupon.minAmount}
+                    {t('profile.minimumPurchase')}: ${coupon.minAmount}
                   </Text>
 
                   <Text style={styles.couponTitle}>{coupon.title}</Text>
 
                   <View style={styles.divider} />
 
-                  <Text style={styles.endDate}>Expires: {coupon.endDate}</Text>
+                  <Text style={styles.endDate}>{t('profile.expires')}: {coupon.endDate}</Text>
                   <Text style={styles.description}>{coupon.description}</Text>
                 </View>
               ))}

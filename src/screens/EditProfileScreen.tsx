@@ -19,12 +19,25 @@ import { COLORS, FONTS, SPACING } from '../constants';
 import { RootStackParamList } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { userProfileApi } from '../services/userProfileApi';
+import { useAppSelector } from '../store/hooks';
+import { translations } from '../i18n/translations';
 
 type EditProfileScreenNavigationProp = StackNavigationProp<RootStackParamList, 'EditProfile'>;
 
 const EditProfileScreen: React.FC = () => {
   const navigation = useNavigation<EditProfileScreenNavigationProp>();
   const { user, updateUser } = useAuth();
+  const locale = useAppSelector((state) => state.i18n.locale) as 'en' | 'ko' | 'zh';
+  
+  // Translation function
+  const t = (key: string) => {
+    const keys = key.split('.');
+    let value: any = translations[locale as keyof typeof translations];
+    for (const k of keys) {
+      value = value?.[k];
+    }
+    return value || key;
+  };
   
   const [formData, setFormData] = useState({
     id: user?.name || '', // ID is the user's name
@@ -62,10 +75,10 @@ const EditProfileScreen: React.FC = () => {
   const validateField = (name: string, value: string) => {
     switch (name) {
       case 'id':
-        return value.trim() ? '' : 'ID is required';
+        return value.trim() ? '' : t('profile.idRequired');
       case 'email':
-        if (!value.trim()) return 'Email is required';
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return 'Please enter a valid email';
+        if (!value.trim()) return t('profile.emailRequired');
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return t('profile.validEmailRequired');
         return '';
       default:
         return '';
@@ -120,14 +133,14 @@ const EditProfileScreen: React.FC = () => {
           email: formData.email,
         });
         
-        Alert.alert('Success', 'Profile updated successfully!', [
-          { text: 'OK', onPress: () => navigation.goBack() }
+        Alert.alert(t('shareApp.success'), t('profile.profileUpdated'), [
+          { text: t('profile.ok'), onPress: () => navigation.goBack() }
         ]);
       } else {
-        Alert.alert('Error', response.message || 'Failed to update profile. Please try again.');
+        Alert.alert(t('common.error'), response.message || t('profile.failedToUpdateProfile'));
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to update profile. Please try again.');
+      Alert.alert(t('common.error'), t('profile.failedToUpdateProfile'));
     } finally {
       setLoading(false);
     }
@@ -145,7 +158,7 @@ const EditProfileScreen: React.FC = () => {
       >
         <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
       </TouchableOpacity>
-      <Text style={styles.headerTitle}>My Details</Text>
+      <Text style={styles.headerTitle}>{t('profile.editProfileTitle')}</Text>
       <View style={styles.placeholder} />
     {/* </LinearGradient> */}
     </View>
@@ -155,11 +168,11 @@ const EditProfileScreen: React.FC = () => {
     <View style={styles.formContainer}>
       <View style={styles.formCard}>
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>ID</Text>
+          <Text style={styles.label}>{t('profile.id')}</Text>
           <View style={[styles.inputWrapper, errors.id && touched.id && styles.inputError]}>
             <RNTextInput
               style={styles.input}
-              placeholder="Enter your ID"
+              placeholder={t('profile.enterId')}
               value={formData.id}
               onChangeText={(text) => handleChange('id', text)}
               onBlur={() => handleBlur('id')}
@@ -173,11 +186,11 @@ const EditProfileScreen: React.FC = () => {
         </View>
 
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>Email</Text>
+          <Text style={styles.label}>{t('auth.email')}</Text>
           <View style={[styles.inputWrapper, errors.email && touched.email && styles.inputError]}>
             <RNTextInput
               style={styles.input}
-              placeholder="Enter your email"
+              placeholder={t('profile.enterEmail')}
               value={formData.email}
               onChangeText={(text) => handleChange('email', text)}
               onBlur={() => handleBlur('email')}
@@ -200,7 +213,7 @@ const EditProfileScreen: React.FC = () => {
           {loading ? (
             <ActivityIndicator size="small" color={COLORS.white} />
           ) : (
-            <Text style={styles.saveButtonText}>Save Changes</Text>
+            <Text style={styles.saveButtonText}>{t('profile.saveChanges')}</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -212,7 +225,7 @@ const EditProfileScreen: React.FC = () => {
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#FF6B9D" />
-          <Text style={styles.loadingText}>Loading profile...</Text>
+          <Text style={styles.loadingText}>{t('profile.loadingProfile')}</Text>
         </View>
       </SafeAreaView>
     );

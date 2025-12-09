@@ -23,10 +23,15 @@ import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '../../constants'
 import { RootStackParamList, Product } from '../../types';
 import { useWishlist } from '../../context/WishlistContext';
 import { useSearch } from '../../context/SearchContext';
+import { useToast } from '../../context/ToastContext';
 import { useCategoriesMutation } from '../../hooks/useCategories';
 import { useSortProductsMutation } from '../../hooks/useSearchMutations';
-import { useStoresMutation } from '../../hooks/useHomeScreenMutations';
+import { useStoresMutation, useSearchProductsByKeywordMutation } from '../../hooks/useHomeScreenMutations';
+import { usePlatformStore } from '../../store/platformStore';
+import { useAppSelector } from '../../store/hooks';
+import { productsApi } from '../../services/api';
 import { SortModal, ImagePickerModal, ProductCard, Button } from '../../components';
+import { translations } from '../../i18n/translations';
 
 
 const { width } = Dimensions.get('window');
@@ -60,7 +65,7 @@ const SearchScreenComponent: React.FC = () => {
   const [sortModalVisible, setSortModalVisible] = useState(false);
   const [imagePickerModalVisible, setImagePickerModalVisible] = useState(false);
   const [showFilterSection, setShowFilterSection] = useState(false);
-  const [activeFilterCategory, setActiveFilterCategory] = useState<string>('Platform');
+  const [activeFilterCategory, setActiveFilterCategory] = useState<string>('Platform'); // Keep as key for switch case
   
   // Filter states
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
@@ -78,8 +83,68 @@ const SearchScreenComponent: React.FC = () => {
   const indicatorW = useRef(new Animated.Value(0)).current;
   const scrollX = useRef(new Animated.Value(0)).current;
 
+  // Get Zustand store
+  const { selectedPlatform } = usePlatformStore();
+  const { showToast } = useToast();
+  
+  // Get locale from Redux store
+  const locale = useAppSelector((s) => s.i18n.locale) as 'en' | 'ko' | 'zh';
+  
+  // Translation function
+  const t = (key: string) => {
+    const keys = key.split('.');
+    let value: any = translations[locale as keyof typeof translations];
+    for (const k of keys) {
+      value = value?.[k];
+    }
+    return value || key;
+  };
+
+  // Helper function to navigate to product detail after checking API
+  const navigateToProductDetail = async (
+    productId: string | number,
+    source: string = selectedPlatform,
+    country: string = locale
+  ) => {
+    try {
+      // Check product detail API first
+      const response = await productsApi.getProductDetail(productId, source, country);
+      
+      if (response.success && response.data) {
+        // API call successful, navigate to product detail
+        navigation.navigate('ProductDetail', { 
+          productId: productId.toString(),
+          source: source,
+        });
+      } else {
+        // API call failed, show toast and don't navigate
+        showToast('Sorry, product details are not available right now.', 'error');
+      }
+    } catch (error) {
+      // Error occurred, show toast and don't navigate
+      console.error('Error checking product detail:', error);
+      showToast('Sorry, product details are not available right now.', 'error');
+    }
+  };
+
   // Hooks
   const { mutate: fetchCategories, data: categoriesData } = useCategoriesMutation();
+  
+  // Search products by keyword mutation
+  const {
+    mutate: searchProductsByKeyword,
+    data: searchProductsData,
+    isLoading: searchProductsLoading,
+    error: searchProductsError
+  } = useSearchProductsByKeywordMutation({
+    onSuccess: (data) => {
+      console.log('Search products fetched successfully:', data?.length, 'items');
+    },
+    onError: (error) => {
+      console.error('Search products fetch error:', error);
+    }
+  });
+  
   const { 
     mutate: sortProductsMutation, 
     data: sortResults,
@@ -122,6 +187,26 @@ const SearchScreenComponent: React.FC = () => {
     }
   });
   
+  // Update products when search results are fetched
+  useEffect(() => {
+    if (searchProductsData && Array.isArray(searchProductsData)) {
+      if (offset === 1) {
+        // First page, replace existing data
+        setProducts(searchProductsData);
+      } else {
+        // Subsequent pages, append to existing data
+        const uniqueNewProducts = searchProductsData.filter((newProduct: any) => 
+          !products.some((existingProduct: any) => existingProduct.id === newProduct.id)
+        );
+        setProducts(prev => [...prev, ...uniqueNewProducts]);
+      }
+      // Set hasMore based on whether we got a full page
+      setHasMore(searchProductsData.length >= 20);
+      setCategoryLoading(false);
+      isLoadingRef.current = false;
+    }
+  }, [searchProductsData, offset]);
+
   const { mutate: fetchStores, data: storesData } = useStoresMutation({
     onSuccess: (data) => {
       setStores(data || []);
@@ -190,16 +275,6 @@ const SearchScreenComponent: React.FC = () => {
     }
   }, [categoriesData]);
 
-  // Load products when categories are loaded and active category is set
-  useEffect(() => {
-    // Only load products if we have categories data, an active tab, and no products yet
-    if (categoriesData && categoriesData.length > 0 && activeCategoryTab && products.length === 0) {
-      // Small delay to ensure state updates
-      setTimeout(() => {
-        loadProducts(selectedSort, offset); // Load all products on initial load
-      }, 50);
-    }
-  }, [categoriesData, activeCategoryTab, products.length]);
 
   // Update indicator position when active category changes
   useEffect(() => {
@@ -345,7 +420,7 @@ const SearchScreenComponent: React.FC = () => {
   // Add a ref to track if we're currently refreshing
   const isRefreshingRef = useRef(false);
 
-  // Load products
+  // Load products using search API
   const loadProducts = async (sortType: string = selectedSort || 'Popularity', pageOffset: number = offset || 1 ) => {
     // Prevent multiple simultaneous API calls
     if (isLoadingRef.current) {
@@ -353,99 +428,34 @@ const SearchScreenComponent: React.FC = () => {
       return;
     }
     
-    console.log('loadProducts called:', { offset: pageOffset, searchQuery, activeCategoryTab, sortType });
+    // Use searchQuery as the keyword
+    const searchKeyword = searchQuery || '';
+    
+    if (!searchKeyword || searchKeyword.trim().length === 0) {
+      console.warn('No search keyword available, skipping product load');
+      isLoadingRef.current = false;
+      return;
+    }
+    
+    console.log('loadProducts called:', { 
+      offset: pageOffset, 
+      searchKeyword, 
+      searchQuery,
+      selectedPlatform,
+      locale
+    });
     isLoadingRef.current = true;
+    setCategoryLoading(true);
     
     try {
-      let categoryIdsToUse: number[] = [];
-      
-      if (selectedCategories.length > 0) {
-        // Use explicitly selected categories
-        categoryIdsToUse = selectedCategories;
-        console.log('Using selected category IDs:', selectedCategories);
-      } else if (activeCategoryTab && categoriesData && categoriesData.length > 0) {
-        // Use active category tab if no categories explicitly selected
-        const selectedCategory = categoriesData.find((cat: any) => cat.name === activeCategoryTab);
-        console.log('Selected category data:', selectedCategory);
-        if (selectedCategory && selectedCategory.id !== undefined) {
-          categoryIdsToUse = [selectedCategory.id];
-          console.log('Using specific category ID:', selectedCategory.id);
-        } else {
-          // Fallback to first category if selected category not found
-          const firstCategory = categoriesData[0];
-          if (firstCategory && firstCategory.id !== undefined) {
-            categoryIdsToUse = [firstCategory.id];
-            console.log('Fallback to first category ID:', firstCategory.id);
-          } else {
-            categoryIdsToUse = [1]; // Ultimate fallback
-            console.log('Using ultimate fallback category ID: 1');
-          }
-        }
-      } else if (categoryIds.length > 0) {
-        // Use stored category IDs
-        categoryIdsToUse = categoryIds;
-        console.log('Using stored category IDs:', categoryIds);
-      } else {
-        categoryIdsToUse = [1]; // Fallback
-        console.log('Using fallback category ID: 1');
-      }
-      
-      console.log('Final category IDs to use:', categoryIdsToUse);
-      
-      // Prepare filter parameter as JSON string
-      let filterParam = '[]';
-      const filters: any[] = [];
-      
-      // Add category filter if selected
-      if (selectedCategories.length > 0) {
-        filters.push({ categories: selectedCategories });
-      }
-      
-      // Add rating filter if selected
-      if (selectedRating !== null) {
-        filters.push({ minRating: selectedRating });
-      }
-      
-      if (filters.length > 0) {
-        filterParam = JSON.stringify(filters);
-      }
-      
-      // Convert price strings to numbers
-      const minPriceNum = minPrice ? parseFloat(minPrice) : 0.0;
-      const maxPriceNum = maxPrice ? parseFloat(maxPrice) : 999999.0;
-      
-      // Validate category IDs before passing to sortProductsMutation
-      const validCategoryIds = categoryIdsToUse.filter(id => id !== undefined && id !== null);
-      if (validCategoryIds.length === 0) {
-        console.warn('No valid category IDs found, using fallback ID 1');
-        validCategoryIds.push(1);
-      }
-      
-      console.log('Calling sortProductsMutation with:', {
-        sort: sortType,
-        categoryIds: validCategoryIds,
-        offset: pageOffset, // Use pageOffset instead of offset
-        limit: 25,
-        type: 'all',
-        filter: filterParam,
-        ratingCount: selectedRating !== null ? selectedRating.toString() : '', // Pass rating_count parameter
-        minPrice: isNaN(minPriceNum) ? 0.0 : minPriceNum,
-        maxPrice: isNaN(maxPriceNum) ? 999999.0 : maxPriceNum,
-        search: searchQuery
-      });
-      
-      // Pass all parameters to the sortProductsMutation
-      await sortProductsMutation(
-        sortType, 
-        validCategoryIds, 
-        pageOffset, // Use pageOffset instead of offset
-        25,          // limit - changed from 4 to 25
-        'all',       // type
-        filterParam, // filter - now using our filters
-        selectedRating !== null ? selectedRating.toString() : '', // rating_count - pass selected rating
-        isNaN(minPriceNum) ? 0.0 : minPriceNum,         // min_price
-        isNaN(maxPriceNum) ? 999999.0 : maxPriceNum,    // max_price
-        searchQuery  // search
+      // Use search API with keyword, platform, locale, page, pageSize
+      // Note: The API uses page (1-based) not offset, so we use pageOffset directly
+      searchProductsByKeyword(
+        searchKeyword.trim(),
+        selectedPlatform,
+        locale,
+        pageOffset,
+        20 // pageSize - same as ProductDiscovery
       );
     } catch (error) {
       console.error('Error loading products:', error);
@@ -456,8 +466,7 @@ const SearchScreenComponent: React.FC = () => {
     } finally {
       // Reset loading state
       isLoadingRef.current = false;
-      setCategoryLoading(false); // Reset category loading state
-      // Remove loading state references since we're not showing loading indicators
+      setCategoryLoading(false);
     }
   };
 
@@ -505,8 +514,8 @@ const SearchScreenComponent: React.FC = () => {
   };
 
   // Handle product press
-  const handleProductPress = (product: Product) => {
-    navigation.navigate('ProductDetail', { productId: product.id });
+  const handleProductPress = async (product: Product) => {
+    await navigateToProductDetail(product.id, selectedPlatform, locale);
   };
 
   // Handle like press
@@ -571,27 +580,29 @@ const SearchScreenComponent: React.FC = () => {
         style={styles.backButton}
         onPress={() => navigation.goBack()}
       >
-        <Ionicons name="arrow-back" size={20} color={COLORS.black} />
+        <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
       </TouchableOpacity>
-      <View style={styles.searchContainer}>
-        <Ionicons name="search-outline" size={20} color={COLORS.gray[400]} />
-        <TextInput
-          style={styles.searchInput}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholder="Search"
-          placeholderTextColor={COLORS.gray[400]}
-          returnKeyType="search"
-        />
-        {searchQuery ? (
-          <TouchableOpacity onPress={() => setSearchQuery('')}>
-            <Ionicons name="close" size={20} color={COLORS.black} />
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity onPress={handleImageSearch}>
-            <Ionicons name="camera-outline" size={22} color={COLORS.text.primary} />
-          </TouchableOpacity>
-        )}
+      <View style={styles.searchButtonContainer}>
+        <View style={styles.searchBar}>
+          <Ionicons name="search-outline" size={20} color={COLORS.gray[400]} style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder={t('search.placeholder')}
+            placeholderTextColor={COLORS.gray[400]}
+            returnKeyType="search"
+            autoFocus
+          />
+          {searchQuery ? (
+            <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
+              <Ionicons name="close-circle" size={20} color={COLORS.gray[400]} />
+            </TouchableOpacity>
+          ) : null}
+        </View>
+        <TouchableOpacity onPress={handleImageSearch} style={styles.cameraButton}>
+          <Ionicons name="camera-outline" size={24} color={COLORS.text.primary} />
+        </TouchableOpacity>
       </View>
     </View>
   )
@@ -693,14 +704,14 @@ const SearchScreenComponent: React.FC = () => {
         style={styles.sortButton}
         onPress={() => setSortModalVisible(true)}
       >
-        <Text style={styles.sortButtonText}>Sort by</Text>
+        <Text style={styles.sortButtonText}>{t('search.sortBy')}</Text>
         <Ionicons name="chevron-down" size={16} color={COLORS.black} />
       </TouchableOpacity>
       <TouchableOpacity 
         style={[styles.sortButton, {borderRightWidth: 0}]}
         onPress={() => setShowFilterSection(!showFilterSection)}
       >
-        <Text style={styles.sortButtonText}>Filter</Text>
+        <Text style={styles.sortButtonText}>{t('search.filter')}</Text>
         <Ionicons name={showFilterSection ? "chevron-up" : "chevron-down"} size={16} color={COLORS.black} />
       </TouchableOpacity>
     </View>
@@ -711,31 +722,36 @@ const SearchScreenComponent: React.FC = () => {
     if (!showFilterSection) return null;
 
     const platforms = ['1688', 'taobao', 'wsy', 'vip', 'vvic', 'myCompany'];
-    const filterCategories = ['Platform', 'Price', 'Factory', 'Implementation'];
+    const filterCategories = [
+      { key: 'Platform', label: t('search.filterCategories.platform') },
+      { key: 'Price', label: t('search.filterCategories.price') },
+      { key: 'Factory', label: t('search.filterCategories.factory') },
+      { key: 'Implementation', label: t('search.filterCategories.implementation') },
+    ];
     
     // Only show Factory and Implementation for 1688
     const show1688Only = selectedPlatforms.includes('1688') || selectedPlatforms.length === 0;
     let visibleCategories = filterCategories;
     if (!show1688Only) {
-      visibleCategories = filterCategories.filter(c => c !== 'Factory' && c !== 'Implementation');
+      visibleCategories = filterCategories.filter(c => c.key !== 'Factory' && c.key !== 'Implementation');
     }
     
     const factoryRatings = [
-      'Certified factory',
-      '5-star rating',
-      '4.5 stars',
-      '4 star rating',
-      'Rating below 4 starts'
+      t('search.factoryRatings.certifiedFactory'),
+      t('search.factoryRatings.fiveStar'),
+      t('search.factoryRatings.fourPointFive'),
+      t('search.factoryRatings.fourStar'),
+      t('search.factoryRatings.belowFour'),
     ];
     
     const implementations = [
-      '7 days without reason',
-      'Same-day shipping from supplier',
-      'Supplier ships within 24hours',
-      'Supplier ships within 48 hours',
-      'Individual delivery support',
-      'Individually shipped',
-      'Free shipping'
+      t('search.implementations.sevenDays'),
+      t('search.implementations.sameDay'),
+      t('search.implementations.within24Hours'),
+      t('search.implementations.within48Hours'),
+      t('search.implementations.individualDelivery'),
+      t('search.implementations.individuallyShipped'),
+      t('search.implementations.freeShipping'),
     ];
     
     const renderRightContent = () => {
@@ -775,7 +791,7 @@ const SearchScreenComponent: React.FC = () => {
             <View style={styles.priceInputContainer}>
               <View style={styles.priceInputRow}>
                 <View style={styles.priceInputWrapper}>
-                  <Text style={styles.priceInputLabel}>Min Price</Text>
+                  <Text style={styles.priceInputLabel}>{t('search.minPrice')}</Text>
                   <TextInput
                     style={styles.priceInput}
                     placeholder="0"
@@ -786,7 +802,7 @@ const SearchScreenComponent: React.FC = () => {
                 </View>
                 <Text style={styles.priceSeparator}>-</Text>
                 <View style={styles.priceInputWrapper}>
-                  <Text style={styles.priceInputLabel}>Max Price</Text>
+                  <Text style={styles.priceInputLabel}>{t('search.maxPrice')}</Text>
                   <TextInput
                     style={styles.priceInput}
                     placeholder="999999"
@@ -870,18 +886,18 @@ const SearchScreenComponent: React.FC = () => {
             <ScrollView showsVerticalScrollIndicator={false}>
               {visibleCategories.map((category) => (
                 <TouchableOpacity
-                  key={category}
+                  key={category.key}
                   style={[
                     styles.filterCategoryItem,
-                    activeFilterCategory === category && styles.filterCategoryItemActive
+                    activeFilterCategory === category.key && styles.filterCategoryItemActive
                   ]}
-                  onPress={() => setActiveFilterCategory(category)}
+                  onPress={() => setActiveFilterCategory(category.key)}
                 >
                   <Text style={[
                     styles.filterCategoryText,
-                    activeFilterCategory === category && styles.filterCategoryTextActive
+                    activeFilterCategory === category.key && styles.filterCategoryTextActive
                   ]}>
-                    {category}
+                    {category.label}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -899,7 +915,7 @@ const SearchScreenComponent: React.FC = () => {
         {/* Confirm Button */}
         <View style={styles.confirmButtonContainer}>
           <Button
-            title="Confirm"
+            title={t('search.confirm')}
             onPress={() => {
               setShowFilterSection(false);
               // Apply filters
@@ -960,15 +976,18 @@ const SearchScreenComponent: React.FC = () => {
       }
     }
     
+    // Get image from item - API returns 'image' (singular), Product type expects 'image' (string)
+    const itemImage = item.image || item.imageUrl || productImage || '';
+    
     // Create Product object
     const product: Product = {
       id: item.id?.toString() || '',
-      name: item.name || 'Unknown Product',
-      description: item.description || '',
+      name: item.name || item.title || 'Unknown Product',
+      description: item.description || item.titleOriginal || item.title || '',
       price: price,
       originalPrice: item.originalPrice,
       discount: item.discount,
-      images: item.images || [productImage || ''],
+      image: itemImage,
       category: item.category || { id: '', name: '', icon: '', image: '', subcategories: [] },
       subcategory: item.subcategory || '',
       brand: item.brand || '',
@@ -1134,10 +1153,10 @@ const SearchScreenComponent: React.FC = () => {
         ) : (
           <View style={styles.recentSearchesContainer}>
             <View style={styles.recentSearchesHeader}>
-              <Text style={styles.recentSearchesTitle}>Recent Searches</Text>
+              <Text style={styles.recentSearchesTitle}>{t('search.recentSearches')}</Text>
               {recentSearches.length > 0 && (
                 <TouchableOpacity onPress={() => setRecentSearches([])}>
-                  <Text style={styles.clearButton}>Clean</Text>
+                  <Text style={styles.clearAllButton}>{t('search.clean')}</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -1236,38 +1255,55 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING['2xl'],
+    paddingHorizontal: SPACING.md,
+    paddingTop: SPACING.xl,
     paddingBottom: SPACING.sm,
     backgroundColor: COLORS.white,
-
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.gray[200],
+    gap: SPACING.sm,
   },
   backButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: COLORS.white,
     justifyContent: 'center',
     alignItems: 'center',
-    ...SHADOWS.small,
   },
-  searchContainer: {
+  searchButtonContainer: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: SPACING.sm,
+  },
+  searchBar: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: COLORS.gray[100],
-    borderRadius: 40,
+    borderRadius: 20,
     paddingHorizontal: SPACING.md,
-    marginLeft: SPACING.sm,
+    paddingVertical: SPACING.sm,
+    height: 40,
+  },
+  searchIcon: {
+    marginRight: SPACING.xs,
   },
   searchInput: {
-    flexDirection: 'row',
     flex: 1,
-    textAlign: 'left',
-    marginLeft: SPACING.sm,
     fontSize: FONTS.sizes.md,
     color: COLORS.text.primary,
+    padding: 0,
+  },
+  clearButton: {
+    marginLeft: SPACING.xs,
+  },
+  cameraButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   categoryTabsContainer: {
     backgroundColor: COLORS.white,
@@ -1523,7 +1559,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.text.primary,
   },
-  clearButton: {
+  clearAllButton: {
     fontSize: FONTS.sizes.sm,
     color: COLORS.text.secondary,
     fontWeight: '500',

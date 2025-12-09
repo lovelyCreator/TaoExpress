@@ -15,9 +15,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { COLORS, FONTS, SPACING } from '../../constants';
 import { useAuth } from '../../context/AuthContext';
+import { useAppSelector } from '../../store/hooks';
+import { translations } from '../../i18n/translations';
 
 const PaymentPasswordScreen = () => {
   const navigation = useNavigation();
+  const locale = useAppSelector((state) => state.i18n.locale) as 'en' | 'ko' | 'zh';
   const { user } = useAuth();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -30,6 +33,16 @@ const PaymentPasswordScreen = () => {
   const [countdown, setCountdown] = useState(0);
 
   const userEmail = user?.email || 'user@example.com';
+  
+  // Translation function
+  const t = (key: string) => {
+    const keys = key.split('.');
+    let value: any = translations[locale as keyof typeof translations];
+    for (const k of keys) {
+      value = value?.[k];
+    }
+    return value || key;
+  };
 
   const handleSendVerificationCode = async () => {
     if (isSendingCode || countdown > 0) return;
@@ -41,7 +54,7 @@ const PaymentPasswordScreen = () => {
       
       setCodeSent(true);
       setCountdown(60);
-      Alert.alert('Success', 'Verification code sent to your email');
+      Alert.alert(t('shareApp.success'), t('profile.verificationCodeSent'));
 
       // Start countdown
       const timer = setInterval(() => {
@@ -54,7 +67,7 @@ const PaymentPasswordScreen = () => {
         });
       }, 1000);
     } catch (error) {
-      Alert.alert('Error', 'Failed to send verification code');
+      Alert.alert(t('common.error'), t('profile.failedToSendCode'));
     } finally {
       setIsSendingCode(false);
     }
@@ -62,19 +75,19 @@ const PaymentPasswordScreen = () => {
 
   const handleSubmit = async () => {
     if (!currentPassword) {
-      Alert.alert('Error', 'Please enter your current password');
+      Alert.alert(t('common.error'), t('profile.enterCurrentPasswordError'));
       return;
     }
     if (!newPassword) {
-      Alert.alert('Error', 'Please enter a new password');
+      Alert.alert(t('common.error'), t('profile.enterNewPasswordError'));
       return;
     }
     if (newPassword.length < 6) {
-      Alert.alert('Error', 'New password must be at least 6 characters');
+      Alert.alert(t('common.error'), t('profile.passwordMin6Chars'));
       return;
     }
     if (!verificationCode) {
-      Alert.alert('Error', 'Please enter the verification code');
+      Alert.alert(t('common.error'), t('profile.enterVerificationCodeError'));
       return;
     }
 
@@ -83,11 +96,11 @@ const PaymentPasswordScreen = () => {
       // TODO: Implement actual API call to update payment password
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      Alert.alert('Success', 'Payment password updated successfully', [
-        { text: 'OK', onPress: () => navigation.goBack() }
+      Alert.alert(t('shareApp.success'), t('profile.paymentPasswordUpdated'), [
+        { text: t('profile.ok'), onPress: () => navigation.goBack() }
       ]);
     } catch (error) {
-      Alert.alert('Error', 'Failed to update payment password');
+      Alert.alert(t('common.error'), t('profile.failedToUpdatePaymentPassword'));
     } finally {
       setIsLoading(false);
     }
@@ -107,7 +120,7 @@ const PaymentPasswordScreen = () => {
         >
           <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Payment Password</Text>
+        <Text style={styles.headerTitle}>{t('profile.paymentPassword')}</Text>
         <View style={styles.placeholder} />
       {/* </LinearGradient> */}
       </View>
@@ -117,19 +130,19 @@ const PaymentPasswordScreen = () => {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.content}>
-          <Text style={styles.sectionTitle}>Set Payment Password</Text>
+          <Text style={styles.sectionTitle}>{t('profile.setPaymentPassword')}</Text>
           <Text style={styles.sectionDescription}>
-            Create a secure password for payment transactions
+            {t('profile.paymentPasswordDescription')}
           </Text>
 
           <View style={styles.formCard}>
             {/* Current Password */}
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Current Password</Text>
+              <Text style={styles.inputLabel}>{t('profile.currentPassword')}</Text>
               <View style={styles.inputWrapper}>
                 <TextInput
                   style={styles.input}
-                  placeholder="Enter current password"
+                  placeholder={t('profile.enterCurrentPasswordPayment')}
                   placeholderTextColor={COLORS.text.secondary}
                   value={currentPassword}
                   onChangeText={setCurrentPassword}
@@ -152,11 +165,11 @@ const PaymentPasswordScreen = () => {
 
             {/* New Password */}
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>New Password</Text>
+              <Text style={styles.inputLabel}>{t('profile.newPassword')}</Text>
               <View style={styles.inputWrapper}>
                 <TextInput
                   style={styles.input}
-                  placeholder="Enter new password (min 6 characters)"
+                  placeholder={t('profile.enterNewPasswordPayment')}
                   placeholderTextColor={COLORS.text.secondary}
                   value={newPassword}
                   onChangeText={setNewPassword}
@@ -179,12 +192,12 @@ const PaymentPasswordScreen = () => {
 
             {/* Email Verification Code */}
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Email Verification Code</Text>
+              <Text style={styles.inputLabel}>{t('profile.emailVerificationCode')}</Text>
               <View style={styles.codeContainer}>
                 <View style={styles.inputWrapper}>
                   <TextInput
                     style={styles.input}
-                    placeholder="Enter verification code"
+                    placeholder={t('profile.enterVerificationCode')}
                     placeholderTextColor={COLORS.text.secondary}
                     value={verificationCode}
                     onChangeText={setVerificationCode}
@@ -204,7 +217,7 @@ const PaymentPasswordScreen = () => {
                     <ActivityIndicator size="small" color={COLORS.white} />
                   ) : (
                     <Text style={styles.sendCodeButtonText}>
-                      {countdown > 0 ? `${countdown}s` : 'Get Code'}
+                      {countdown > 0 ? `${countdown}s` : t('profile.getCode')}
                     </Text>
                   )}
                 </TouchableOpacity>
@@ -215,7 +228,7 @@ const PaymentPasswordScreen = () => {
             <View style={styles.emailInfoContainer}>
               <Ionicons name="mail-outline" size={18} color={COLORS.text.secondary} />
               <Text style={styles.emailInfoText}>
-                Your email address is <Text style={styles.emailText}>{userEmail}</Text>
+                {t('profile.yourEmailIs')} <Text style={styles.emailText}>{userEmail}</Text>
               </Text>
             </View>
           </View>
@@ -229,7 +242,7 @@ const PaymentPasswordScreen = () => {
             {isLoading ? (
               <ActivityIndicator size="small" color={COLORS.white} />
             ) : (
-              <Text style={styles.submitButtonText}>Submit</Text>
+              <Text style={styles.submitButtonText}>{t('profile.submit')}</Text>
             )}
           </TouchableOpacity>
 
@@ -239,11 +252,11 @@ const PaymentPasswordScreen = () => {
               <Ionicons name="shield-checkmark" size={24} color="#4A90E2" />
             </View>
             <View style={styles.infoTextContainer}>
-              <Text style={styles.infoTitle}>Security Tips</Text>
+              <Text style={styles.infoTitle}>{t('profile.securityTips')}</Text>
               <Text style={styles.infoText}>
-                • Use a unique password different from your login password{'\n'}
-                • Include numbers and letters for better security{'\n'}
-                • Never share your payment password with anyone
+                {t('profile.securityTip1')}{'\n'}
+                {t('profile.securityTip2')}{'\n'}
+                {t('profile.securityTip3')}
               </Text>
             </View>
           </View>

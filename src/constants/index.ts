@@ -192,7 +192,7 @@ export const ANIMATION_DURATION = {
 //   - Full Profile with all menu items and settings
 //
 // Toggle this flag to switch between demo and full versions
-export const DEMO_MODE = true;
+export const DEMO_MODE = false;
 
 // API Configuration
 export const API_CONFIG = {
@@ -203,6 +203,7 @@ export const API_CONFIG = {
 
 // Storage Keys
 export const STORAGE_KEYS = {
+  WISHLIST_EXTERNAL_IDS: 'wishlist_external_ids',
   USER_TOKEN: 'user_token',
   REFRESH_TOKEN: 'refresh_token',
   USER_DATA: 'user_data',
@@ -360,4 +361,20 @@ export const SUCCESS_MESSAGES = {
   WISHLIST_ADDED: 'Added to wishlist.',
   WISHLIST_REMOVED: 'Removed from wishlist.',
   NOTIFICATION_SETTINGS_UPDATED: 'Notification settings updated.',
+};
+
+// API Error Codes
+export const API_ERROR_CODES = {
+  // Auth errors
+  EMAIL_ALREADY_REGISTERED: 'EMAIL_ALREADY_REGISTERED',
+  INVALID_REFERRAL_CODE: 'INVALID_REFERRAL_CODE',
+  VALIDATION_ERROR: 'VALIDATION_ERROR',
+  INVALID_CREDENTIALS: 'INVALID_CREDENTIALS',
+  USER_NOT_FOUND: 'USER_NOT_FOUND',
+  UNAUTHORIZED: 'UNAUTHORIZED',
+  
+  // Network errors
+  NETWORK_ERROR: 'NETWORK_ERROR',
+  TIMEOUT_ERROR: 'TIMEOUT_ERROR',
+  SERVER_ERROR: 'SERVER_ERROR',
 };

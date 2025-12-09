@@ -17,24 +17,37 @@ import { AuthStackParamList } from '../../types';
 import { useForgotPasswordMutation } from '../../hooks/useAuthMutations';
 import { useToast } from '../../hooks/useToast';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, VALIDATION_RULES, ERROR_MESSAGES } from '../../constants';
+import { useAppSelector } from '../../store/hooks';
+import { translations } from '../../i18n/translations';
 
 type ForgotPasswordScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'ForgotPassword'>;
 
 const ForgotPasswordScreen: React.FC = () => {
   const navigation = useNavigation<ForgotPasswordScreenNavigationProp>();
   const { showToast, ToastComponent } = useToast();
+  const locale = useAppSelector((state) => state.i18n.locale) as 'en' | 'ko' | 'zh';
+  
+  // Translation function
+  const t = (key: string) => {
+    const keys = key.split('.');
+    let value: any = translations[locale as keyof typeof translations];
+    for (const k of keys) {
+      value = value?.[k];
+    }
+    return value || key;
+  };
   
   const { mutate: forgotPassword, isLoading } = useForgotPasswordMutation({
     onSuccess: (data) => {
       console.log('ForgotPassword: Success callback called');
-      showToast({ message: data?.message || 'Reset code sent to your email', type: 'success' });
+      showToast({ message: data?.message || t('auth.resetCodeSent'), type: 'success' });
       setTimeout(() => {
         navigation.navigate('OtpVerification', { email });
       }, 1000);
     },
     onError: (error) => {
       console.log('ForgotPassword: Error callback called with:', error);
-      showToast({ message: error || 'Failed to send reset link', type: 'error' });
+      showToast({ message: error || t('auth.failedToSendResetLink'), type: 'error' });
     },
   });
   
@@ -97,14 +110,14 @@ const ForgotPasswordScreen: React.FC = () => {
           </View>
 
           <View style={styles.form}>
-            <Text style={styles.subtitle}>Forgot Password</Text>
+            <Text style={styles.subtitle}>{t('auth.forgotPasswordTitle')}</Text>
             {/* <Text style={styles.subtitle}>
               Enter your email to reset your password.
             </Text> */}
 
             <TextInput
-              label="Email"
-              placeholder="Enter your email"
+              label={t('auth.email')}
+              placeholder={t('auth.enterEmail')}
               value={email}
               onChangeText={(text) => {
                 setEmail(text);
@@ -128,7 +141,7 @@ const ForgotPasswordScreen: React.FC = () => {
               activeOpacity={0.8}
             >
               <Text style={styles.resetButtonText}>
-                {isLoading ? 'Sending...' : 'Send Reset Link'}
+                {isLoading ? t('auth.sending') : t('auth.sendResetLink')}
               </Text>
             </TouchableOpacity>
           </View>

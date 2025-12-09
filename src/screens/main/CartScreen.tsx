@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -17,7 +17,11 @@ import { translations } from '../../i18n/translations';
 import { ProductCard } from '../../components';
 import { useWishlist } from '../../context/WishlistContext';
 import { useAuth } from '../../context/AuthContext';
-import mockProducts from '../../data/mockProducts.json';
+import { useRecommendationsMutation } from '../../hooks/useHomeScreenMutations';
+import { productsApi } from '../../services/api';
+import { useToast } from '../../context/ToastContext';
+import { Product } from '../../types';
+import { FlatList } from 'react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -44,188 +48,20 @@ const mockCartData = [
   }
 ];
 
-// Mock "More to love" products - using proper Product type
-const mockMoreToLoveProducts = [
-  {
-    id: 'bed_1',
-    name: 'bed',
-    description: 'Comfortable bed for your home',
-    price: 5.99,
-    originalPrice: 7.00,
-    discount: 25,
-    rating: 4.9,
-    reviewCount: 156,
-    orderCount: 234,
-    images: ['https://picsum.photos/seed/bed1/300/300'],
-    category: { id: '1', name: 'Furniture', icon: '', image: '', subcategories: [] },
-    subcategory: 'Bedroom',
-    brand: 'HomeComfort',
-    seller: {
-      id: '1',
-      name: 'Furniture Store',
-      avatar: '',
-      rating: 4.8,
-      reviewCount: 1200,
-      isVerified: true,
-      followersCount: 500,
-      description: '',
-      location: '',
-      joinedDate: new Date(),
-    },
-    inStock: true,
-    stockCount: 50,
-    sizes: ['Single', 'Double', 'Queen'],
-    colors: [
-      { name: 'White', hex: '#FFFFFF' },
-      { name: 'Brown', hex: '#8B4513' },
-      { name: 'Black', hex: '#000000' }
-    ],
-    tags: ['furniture', 'bedroom'],
-    isNew: false,
-    isFeatured: true,
-    isOnSale: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    rating_count: 156,
-  },
-  {
-    id: 'bed_2',
-    name: 'bed',
-    description: 'Stylish bed with modern design',
-    price: 5.99,
-    originalPrice: 7.00,
-    discount: 25,
-    rating: 4.9,
-    reviewCount: 203,
-    orderCount: 189,
-    images: ['https://picsum.photos/seed/bed2/300/300'],
-    category: { id: '1', name: 'Furniture', icon: '', image: '', subcategories: [] },
-    subcategory: 'Bedroom',
-    brand: 'ModernLiving',
-    seller: {
-      id: '2',
-      name: 'Modern Store',
-      avatar: '',
-      rating: 4.7,
-      reviewCount: 890,
-      isVerified: true,
-      followersCount: 320,
-      description: '',
-      location: '',
-      joinedDate: new Date(),
-    },
-    inStock: true,
-    stockCount: 30,
-    sizes: ['Single', 'Double', 'Queen'],
-    colors: [
-      { name: 'Gray', hex: '#808080' },
-      { name: 'Beige', hex: '#F5F5DC' },
-      { name: 'Navy', hex: '#000080' }
-    ],
-    tags: ['furniture', 'modern'],
-    isNew: true,
-    isFeatured: false,
-    isOnSale: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    rating_count: 203,
-  },
-  {
-    id: 'bed_3',
-    name: 'bed',
-    description: 'Luxury bed with premium materials',
-    price: 5.99,
-    originalPrice: 7.00,
-    discount: 25,
-    rating: 4.9,
-    reviewCount: 178,
-    orderCount: 145,
-    images: ['https://picsum.photos/seed/bed3/300/300'],
-    category: { id: '1', name: 'Furniture', icon: '', image: '', subcategories: [] },
-    subcategory: 'Bedroom',
-    brand: 'LuxuryHome',
-    seller: {
-      id: '3',
-      name: 'Luxury Furniture',
-      avatar: '',
-      rating: 4.9,
-      reviewCount: 567,
-      isVerified: true,
-      followersCount: 890,
-      description: '',
-      location: '',
-      joinedDate: new Date(),
-    },
-    inStock: true,
-    stockCount: 15,
-    sizes: ['Queen', 'King'],
-    colors: [
-      { name: 'Cream', hex: '#FFFDD0' },
-      { name: 'Gold', hex: '#FFD700' },
-      { name: 'Silver', hex: '#C0C0C0' }
-    ],
-    tags: ['furniture', 'luxury'],
-    isNew: false,
-    isFeatured: true,
-    isOnSale: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    rating_count: 178,
-  },
-  {
-    id: 'bed_4',
-    name: 'bed',
-    description: 'Affordable bed with great quality',
-    price: 5.99,
-    originalPrice: 7.00,
-    discount: 25,
-    rating: 4.9,
-    reviewCount: 267,
-    orderCount: 312,
-    images: ['https://picsum.photos/seed/bed4/300/300'],
-    category: { id: '1', name: 'Furniture', icon: '', image: '', subcategories: [] },
-    subcategory: 'Bedroom',
-    brand: 'ValueHome',
-    seller: {
-      id: '4',
-      name: 'Budget Furniture',
-      avatar: '',
-      rating: 4.6,
-      reviewCount: 1100,
-      isVerified: true,
-      followersCount: 234,
-      description: '',
-      location: '',
-      joinedDate: new Date(),
-    },
-    inStock: true,
-    stockCount: 75,
-    sizes: ['Single', 'Double'],
-    colors: [
-      { name: 'White', hex: '#FFFFFF' },
-      { name: 'Pine', hex: '#FFC000' },
-      { name: 'Oak', hex: '#D2B48C' }
-    ],
-    tags: ['furniture', 'budget'],
-    isNew: false,
-    isFeatured: false,
-    isOnSale: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    rating_count: 267,
-  },
-];
 
 const CartScreen: React.FC = () => {
   const navigation = useNavigation();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { likedProductIds, toggleWishlist } = useWishlist();
+  const { showToast } = useToast();
   const [cartData, setCartData] = useState(mockCartData);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set(['cart_item_1']));
   const [allSelected, setAllSelected] = useState(true);
+  const isFetchingRecommendationsRef = useRef(false);
+  const loadedPagesRef = useRef<Set<number>>(new Set());
 
   // i18n
-  const locale = useAppSelector((s) => s.i18n.locale);
+  const locale = useAppSelector((s) => s.i18n.locale) as 'en' | 'ko' | 'zh';
   const t = (key: string) => {
     const keys = key.split('.');
     let value: any = translations[locale as keyof typeof translations];
@@ -233,6 +69,62 @@ const CartScreen: React.FC = () => {
       value = value?.[k];
     }
     return value || key;
+  };
+
+  // Recommendations API hook
+  const { 
+    mutate: fetchRecommendations, 
+    data: recommendationsData, 
+    isLoading: recommendationsLoading,
+    currentPage: recommendationsPage,
+    hasMore: recommendationsHasMore
+  } = useRecommendationsMutation({
+    onSuccess: (data, page) => {
+      isFetchingRecommendationsRef.current = false;
+      if (page > 1) {
+        loadedPagesRef.current.add(page);
+      }
+    },
+    onError: (error) => {
+      console.error('Error fetching recommendations:', error);
+      isFetchingRecommendationsRef.current = false;
+    }
+  });
+
+  // Fetch recommendations on mount
+  useEffect(() => {
+    if (isAuthenticated) {
+      const outMemberId = user?.id || 'dferg0001';
+      fetchRecommendations('en', outMemberId, locale, 1, false);
+      loadedPagesRef.current.add(1);
+    }
+  }, [isAuthenticated, user, locale]);
+
+  // Navigate to product detail helper
+  const navigateToProductDetail = async (
+    productId: string | number,
+    source: string = '1688',
+    country: string = 'en'
+  ) => {
+    try {
+      // Check product detail API first
+      const response = await productsApi.getProductDetail(productId, source, country);
+      
+      if (response.success && response.data) {
+        // API call successful, navigate to product detail
+        (navigation as any).navigate('ProductDetail', {
+          productId: productId.toString(),
+          source: source,
+          country: country,
+        });
+      } else {
+        // API call failed, show toast and don't navigate
+        showToast('Sorry, product details are not available right now.');
+      }
+    } catch (error) {
+      console.error('Error checking product detail:', error);
+      showToast('Sorry, product details are not available right now.');
+    }
   };
 
   // If not authenticated, show login prompt
@@ -453,28 +345,100 @@ const CartScreen: React.FC = () => {
     </View>
   );
 
-  const renderMoreToLove = () => (
-    <View style={styles.moreToLoveSection}>
-      <Text style={styles.sectionTitle}>More to love</Text>
-      
-      <View style={styles.productsGrid}>
-        {mockMoreToLoveProducts.map((product) => (
-          <View key={product.id} style={styles.productCardWrapper}>
-            <ProductCard
-              product={product}
-              variant="moreToLove"
-              onPress={() => (navigation as any).navigate('ProductDetail', { productId: product.id })}
-              onLikePress={() => toggleWishlist(product)}
-              isLiked={likedProductIds.includes(product.id)}
-              showLikeButton={true}
-              showDiscountBadge={true}
-              showRating={true}
-            />
-          </View>
-        ))}
+  const renderMoreToLoveItem = ({ item: product, index }: { item: Product; index: number }) => {
+    if (!product || !product.id) {
+      return null;
+    }
+    
+    const handleLike = async () => {
+      if (!isAuthenticated) {
+        showToast(t('home.pleaseLogin'));
+        return;
+      }
+      try {
+        await toggleWishlist(product);
+      } catch (error) {
+        console.error('Error toggling wishlist:', error);
+      }
+    };
+
+    const handlePress = () => {
+      const productIdToUse = (product as any).offerId || product.id;
+      const source = '1688'; // Default source
+      navigateToProductDetail(productIdToUse, source, 'en');
+    };
+    
+    return (
+      <View style={styles.productCardWrapper}>
+        <ProductCard
+          key={`moretolove-${product.id || index}`}
+          product={product}
+          variant="moreToLove"
+          onPress={handlePress}
+          onLikePress={handleLike}
+          isLiked={likedProductIds.includes(product.id?.toString())}
+          showLikeButton={true}
+          showDiscountBadge={true}
+          showRating={true}
+        />
       </View>
-    </View>
-  );
+    );
+  };
+
+  const renderMoreToLove = () => {
+    const productsToDisplay = recommendationsData || [];
+    
+    if (!Array.isArray(productsToDisplay) || productsToDisplay.length === 0) {
+      // Show loading state if fetching
+      if (recommendationsLoading) {
+        return (
+          <View style={styles.moreToLoveSection}>
+            <Text style={styles.sectionTitle}>{t('home.moreToLove')}</Text>
+            <View style={styles.loadingContainer}>
+              <Text style={styles.loadingText}>{t('home.loadingRecommendations')}</Text>
+            </View>
+          </View>
+        );
+      }
+      return null;
+    }
+    
+    return (
+      <View style={styles.moreToLoveSection}>
+        <Text style={styles.sectionTitle}>{t('home.moreToLove')}</Text>
+        <FlatList
+          data={productsToDisplay}
+          renderItem={renderMoreToLoveItem}
+          keyExtractor={(item, index) => `moretolove-${item.id?.toString() || index}-${index}`}
+          numColumns={2}
+          scrollEnabled={false}
+          nestedScrollEnabled={true}
+          columnWrapperStyle={styles.productsGridRow}
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          initialNumToRender={10}
+          updateCellsBatchingPeriod={50}
+          ListFooterComponent={() => (
+            <>
+              {/* Loading indicator for pagination */}
+              {recommendationsLoading && recommendationsPage > 1 && (
+                <View style={styles.loadingMoreContainer}>
+                  <Text style={styles.loadingMoreText}>{t('home.loadingMoreRecommendations')}</Text>
+                </View>
+              )}
+              {/* End of list indicator */}
+              {!recommendationsHasMore && productsToDisplay.length > 0 && (
+                <View style={styles.endOfListContainer}>
+                  <Text style={styles.endOfListText}>{t('home.reachedEnd')}</Text>
+                </View>
+              )}
+            </>
+          )}
+        />
+      </View>
+    );
+  };
 
   const renderBottomBar = () => (
     <View style={styles.bottomBar}>
@@ -735,6 +699,33 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
+  },
+  productsGridRow: {
+    justifyContent: 'space-between',
+  },
+  loadingContainer: {
+    paddingVertical: SPACING.xl,
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: FONTS.sizes.md,
+    color: COLORS.text.secondary,
+  },
+  loadingMoreContainer: {
+    paddingVertical: SPACING.md,
+    alignItems: 'center',
+  },
+  loadingMoreText: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.text.secondary,
+  },
+  endOfListContainer: {
+    paddingVertical: SPACING.md,
+    alignItems: 'center',
+  },
+  endOfListText: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.text.secondary,
   },
   productCardWrapper: {
     width: (width - SPACING.lg * 2 - SPACING.sm) / 2,

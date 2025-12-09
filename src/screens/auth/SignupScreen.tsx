@@ -18,11 +18,24 @@ import { useRegisterMutation } from '../../hooks/useAuthMutations';
 import { useSocialLogin } from '../../services/socialAuth';
 import { useToast } from '../../hooks/useToast';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS, VALIDATION_RULES, ERROR_MESSAGES } from '../../constants';
+import { useAppSelector } from '../../store/hooks';
+import { translations } from '../../i18n/translations';
 
 const SignupScreen: React.FC = () => {
   const navigation = useNavigation();
   const { socialLogin, signupError, clearSignupError } = useAuth();
   const { showToast, ToastComponent } = useToast();
+  const locale = useAppSelector((state) => state.i18n.locale) as 'en' | 'ko' | 'zh';
+  
+  // Translation function
+  const t = (key: string) => {
+    const keys = key.split('.');
+    let value: any = translations[locale as keyof typeof translations];
+    for (const k of keys) {
+      value = value?.[k];
+    }
+    return value || key;
+  };
   
   const { mutate: register, isLoading, isError, error, isSuccess, data } = useRegisterMutation({
     onSuccess: (data) => {
@@ -31,9 +44,29 @@ const SignupScreen: React.FC = () => {
       console.log('User Registeration successful:', data);
       handleLogin();
     },
-    onError: (error) => {
-      // Error is handled by the hook and will be available in the error state
-      console.log('User signup error:', error);
+    onError: (errorMessage, errorCode) => {
+      // Handle specific error codes
+      console.log('User signup error:', errorMessage, 'Code:', errorCode);
+      
+      if (errorCode === 'EMAIL_ALREADY_REGISTERED') {
+        // Show error only on email field
+        setErrors({ 
+          email: t('auth.emailAlreadyRegistered')
+        });
+      } else if (errorCode === 'INVALID_REFERRAL_CODE') {
+        // Show error only on referral code field
+        setErrors({ 
+          referralCode: t('auth.invalidReferralCode')
+        });
+      } else if (errorCode === 'VALIDATION_ERROR') {
+        // Show validation error
+        setErrors({ 
+          email: errorMessage
+        });
+      } else {
+        // Show generic error
+        showToast({ message: errorMessage, type: 'error' });
+      }
     }
   });
   
@@ -66,64 +99,28 @@ const SignupScreen: React.FC = () => {
   const [isBusinessAccount, setIsBusinessAccount] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
 
-  // Watch for signup success and navigate to profile
+  // Watch for signup success and navigate to email verification
   useEffect(() => {
     if (isSuccess && data) {
-      // Navigate to email verification screen
-      (navigation as any).navigate('EmailVerification', {
-        email: data?.user?.email || formData.email,
-        token: data?.token,
-        userData: data?.user,
-      });
+      if (data.requiresVerification) {
+        // Registration successful, navigate to email verification
+        (navigation as any).navigate('EmailVerification', {
+          email: data.email || formData.email,
+          message: data.message,
+        });
+      } else if (data.user && data.token) {
+        // Registration successful with immediate login (old flow)
+        (navigation as any).navigate('EmailVerification', {
+          email: data.user.email || formData.email,
+          token: data.token,
+          userData: data.user,
+        });
+      }
     }
   }, [isSuccess, data, navigation, formData.email]);
 
-  // Watch for signup errors and handle them appropriately
-  useEffect(() => {
-    if (isError && error) {
-      console.log('SignupScreen: Signup error detected:', error);
-      console.log('SignupScreen: Error useEffect call stack:', new Error().stack);
-      setHasSignupError(true);
-      
-      // Check if it's an existing email error
-      if (error.includes('Email already registered')) {
-        setErrors({ 
-          email: 'The email address you provided is already registered. Please use other email' // Custom message for existing email
-        });
-      } else {
-        // For other signup errors, show on both fields
-        setErrors({ 
-          email: 'signup_error', // Special marker for red border only
-          password: error // Actual error message for display
-        });
-      }
-    } else if (signupError) {
-      console.log('SignupScreen: Signup error detected:', signupError);
-      console.log('SignupScreen: Error useEffect call stack:', new Error().stack);
-      setHasSignupError(true);
-      
-      // Check if it's an existing email error
-      if (signupError.includes('Email already registered')) {
-        setErrors({ 
-          email: 'The email address you provided is already registered. Please use other email' // Custom message for existing email
-        });
-      } else {
-        // For other signup errors, show on both fields
-        setErrors({ 
-          email: 'signup_error', // Special marker for red border only
-          password: signupError // Actual error message for display
-        });
-      }
-    } else if (isSocialError && socialError) {
-      setHasSignupError(true);
-      setErrors({ 
-        email: 'signup_error', // Special marker for red border only
-        password: socialError // Actual error message for display
-      });
-    } else {
-      setHasSignupError(false);
-    }
-  }, [isError, error, signupError, isSocialError, socialError]);
+  // Error handling is now done in the onError callback of useRegisterMutation
+  // No need for this useEffect anymore
 
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
@@ -131,7 +128,7 @@ const SignupScreen: React.FC = () => {
     if (!formData.name) {
       newErrors.name = ERROR_MESSAGES.REQUIRED_FIELD;
     } else if (formData.name.length < VALIDATION_RULES.NAME_MIN_LENGTH) {
-      newErrors.name = 'Name must be at least 2 characters long';
+      newErrors.name = t('auth.nameTooShort');
     }
 
     if (!formData.email) {
@@ -150,15 +147,15 @@ const SignupScreen: React.FC = () => {
     if (!formData.password) {
       newErrors.password = ERROR_MESSAGES.REQUIRED_FIELD;
     } else if (formData.password.length < VALIDATION_RULES.PASSWORD_MIN_LENGTH) {
-      newErrors.password = 'Your password must be at least 8 characters long and include special characters.';
+      newErrors.password = t('auth.passwordTooShort');
     } else if (!/(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])/.test(formData.password)) {
-      newErrors.password = 'Your password must be at least 8 characters long and include special characters.';
+      newErrors.password = t('auth.passwordTooShort');
     }
 
     if (!formData.confirmPassword) {
       newErrors.confirmPassword = ERROR_MESSAGES.REQUIRED_FIELD;
     } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
+      newErrors.confirmPassword = t('auth.passwordsDoNotMatch');
     }
 
     setErrors(newErrors);
@@ -183,6 +180,7 @@ const SignupScreen: React.FC = () => {
       name: formData.name,
       phone: formData.phone || '',
       isBusiness: isBusinessAccount,
+      referralCode: formData.referralCode || '',
     });
     await register({
       email: formData.email,
@@ -190,6 +188,7 @@ const SignupScreen: React.FC = () => {
       name: formData.name,
       phone: formData.phone || '', // Optional phone number
       isBusiness: isBusinessAccount,
+      referralCode: formData.referralCode || undefined, // Optional referral code
     });
     console.log('SignupScreen: Signup function completed');
   };
@@ -286,14 +285,34 @@ const SignupScreen: React.FC = () => {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.subHeader}>
-            <Text style={styles.subtitle}>Sign Up</Text>
+            <Text style={styles.subtitle}>{t('auth.signup')}</Text>
             {/* <Text style={styles.subtitle}>Please register to continue</Text> */}
           </View>
 
           <View style={styles.form}>
             <TextInput
-              label="Email *"
-              placeholder="Enter your email"
+              label={`${t('auth.name')} *`}
+              placeholder={t('auth.enterName')}
+              value={formData.name}
+              onChangeText={(text) => {
+                setFormData({ ...formData, name: text });
+                if (errors.name) {
+                  setErrors({ ...errors, name: '' });
+                }
+                if (signupError) {
+                  clearSignupError();
+                  setHasSignupError(false);
+                }
+              }}
+              autoCapitalize="words"
+              autoCorrect={false}
+              error={errors.name}
+              labelStyle={styles.signupLabel}
+            />
+
+            <TextInput
+              label={`${t('auth.email')} *`}
+              placeholder={t('auth.enterEmail')}
               value={formData.email}
               onChangeText={(text) => {
                 setFormData({ ...formData, email: text });
@@ -329,27 +348,6 @@ const SignupScreen: React.FC = () => {
                   clearSignupError();
                   setHasSignupError(false);
                 }
-              }}
-              keyboardType="phone-pad"
-              autoCapitalize="none"
-              autoCorrect={false}
-              error={errors.phone}
-              labelStyle={styles.signupLabel}
-            /> */}
-
-            <TextInput
-              label="Name *"
-              placeholder="Enter your name"
-              value={formData.name}
-              onChangeText={(text) => {
-                setFormData({ ...formData, name: text });
-                if (errors.name) {
-                  setErrors({ ...errors, name: '' });
-                }
-                if (signupError) {
-                  clearSignupError();
-                  setHasSignupError(false);
-                }
                 if (isError) {
                   setErrors({ ...errors, name: '' });
                 }
@@ -358,11 +356,11 @@ const SignupScreen: React.FC = () => {
               autoCorrect={false}
               error={errors.name}
               labelStyle={styles.signupLabel}
-            />
+            />*/}
 
             <TextInput
-              label="Password *"
-              placeholder="Enter your password"
+              label={`${t('auth.password')} *`}
+              placeholder={t('auth.enterPassword')}
               value={formData.password}
               onChangeText={(text) => {
                 setFormData({ ...formData, password: text });
@@ -387,8 +385,8 @@ const SignupScreen: React.FC = () => {
             />
 
             <TextInput
-              label="Confirm Password *"
-              placeholder="Re-enter your password"
+              label={`${t('auth.confirmPassword')} *`}
+              placeholder={t('auth.reEnterPassword')}
               value={formData.confirmPassword}
               onChangeText={(text) => {
                 setFormData({ ...formData, confirmPassword: text });
@@ -406,14 +404,18 @@ const SignupScreen: React.FC = () => {
             />
 
             <TextInput
-              label="Referral Code"
-              placeholder="Enter referral code"
+              label={t('auth.referralCode')}
+              placeholder={t('auth.enterReferralCode')}
               value={formData.referralCode}
               onChangeText={(text) => {
                 setFormData({ ...formData, referralCode: text });
+                if (errors.referralCode) {
+                  setErrors({ ...errors, referralCode: '' });
+                }
               }}
               autoCapitalize="characters"
               autoCorrect={false}
+              error={errors.referralCode}
               labelStyle={styles.signupLabel}
             />
 
@@ -458,7 +460,7 @@ const SignupScreen: React.FC = () => {
                     <Ionicons name="checkmark" size={16} color={COLORS.white} />
                   )}
                 </View>
-                <Text style={styles.checkboxText}>Register as Business Account</Text>
+                <Text style={styles.checkboxText}>{t('auth.registerAsBusinessAccount')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -472,16 +474,16 @@ const SignupScreen: React.FC = () => {
                   )}
                 </View>
                 <Text style={styles.checkboxText}>
-                  I agree to the{' '}
-                  <Text style={styles.linkText}>Terms of Service</Text>
-                  {' '}and{' '}
-                  <Text style={styles.linkText}>Privacy Policy</Text>
+                  {t('auth.agreeToTerms')}{' '}
+                  <Text style={styles.linkText}>{t('auth.termsOfService')}</Text>
+                  {' '}{t('auth.and')}{' '}
+                  <Text style={styles.linkText}>{t('auth.privacyPolicy')}</Text>
                 </Text>
               </TouchableOpacity>
             </View>
 
             <Button
-              title="Register"
+              title={t('auth.register')}
               onPress={handleSignup}
               disabled={isLoading || !formData.email || !formData.password || !formData.confirmPassword || !formData.name || !agreeToTerms}
               loading={isLoading}
@@ -495,9 +497,9 @@ const SignupScreen: React.FC = () => {
             />
 
             <View style={styles.loginContainer}>
-              <Text style={styles.loginText}>Already have an account? </Text>
+              <Text style={styles.loginText}>{t('auth.alreadyHaveAccount')} </Text>
               <TouchableOpacity onPress={handleLogin}>
-                <Text style={styles.loginLink}>Log in</Text>
+                <Text style={styles.loginLink}>{t('auth.logIn')}</Text>
               </TouchableOpacity>
             </View>
           </View>

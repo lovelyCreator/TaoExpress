@@ -17,22 +17,40 @@ import * as Clipboard from 'expo-clipboard';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../../constants';
 import { RootStackParamList } from '../../types';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useAppSelector } from '../../store/hooks';
+import { translations } from '../../i18n/translations';
 
 type ShareAppScreenNavigationProp = StackNavigationProp<RootStackParamList, 'ShareApp'>;
 
 const ShareAppScreen: React.FC = () => {
   const navigation = useNavigation<ShareAppScreenNavigationProp>();
+  const locale = useAppSelector((state) => state.i18n.locale) as 'en' | 'ko' | 'zh';
+  
+  // Translation function
+  const t = (key: string, params?: { [key: string]: string }) => {
+    const keys = key.split('.');
+    let value: any = translations[locale as keyof typeof translations];
+    for (const k of keys) {
+      value = value?.[k];
+    }
+    if (params && typeof value === 'string') {
+      Object.keys(params).forEach(paramKey => {
+        value = value.replace(`{${paramKey}}`, params[paramKey]);
+      });
+    }
+    return value || key;
+  };
 
   // App sharing information
   const appName = 'TodayMall';
   const appUrl = 'https://todaymall.app'; // Replace with your actual app URL
-  const shareMessage = `Check out ${appName}! 🎁\n\nJoin now and get exclusive discounts on all products!\n\nDownload here: ${appUrl}`;
+  const shareMessage = t('shareApp.shareMessage', { appName, appUrl });
 
   const handleSharePoster = async () => {
     try {
       const result = await Share.share({
         message: shareMessage,
-        title: `Share ${appName}`,
+        title: t('shareApp.shareTitle', { appName }),
         url: appUrl, // iOS only
       });
 
@@ -42,14 +60,14 @@ const ShareAppScreen: React.FC = () => {
           console.log('Shared with activity type:', result.activityType);
         } else {
           // Shared successfully
-          Alert.alert('Success', 'Thank you for sharing!');
+          Alert.alert(t('shareApp.success'), t('shareApp.thankYouForSharing'));
         }
       } else if (result.action === Share.dismissedAction) {
         // Dismissed
         console.log('Share dismissed');
       }
     } catch (error: any) {
-      Alert.alert('Error', error.message);
+      Alert.alert(t('shareApp.error'), error.message);
     }
   };
 
@@ -65,11 +83,11 @@ const ShareAppScreen: React.FC = () => {
       });
 
       if (result.action === Share.sharedAction) {
-        Alert.alert('Success', 'Link copied and shared!');
+        Alert.alert(t('shareApp.success'), t('shareApp.linkCopiedAndShared'));
       }
     } catch (error: any) {
       // If share fails, at least the link is copied
-      Alert.alert('Link Copied', 'The app link has been copied to your clipboard!');
+      Alert.alert(t('shareApp.linkCopied'), t('shareApp.linkCopiedToClipboard'));
     }
   };
 
@@ -78,7 +96,7 @@ const ShareAppScreen: React.FC = () => {
       <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
         <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
       </TouchableOpacity>
-      <Text style={styles.headerTitle}>Share</Text>
+      <Text style={styles.headerTitle}>{t('shareApp.title')}</Text>
       <View style={styles.placeholder} />
     </View>
   );
@@ -113,14 +131,14 @@ const ShareAppScreen: React.FC = () => {
               <Text style={styles.appNameKorean}>Mall</Text>
               
               <View style={styles.appSharingBadge}>
-                <Text style={styles.appSharingText}>APPsharing</Text>
+                <Text style={styles.appSharingText}>{t('shareApp.appSharing')}</Text>
               </View>
 
               <View style={styles.messageContainer}>
-                <Text style={styles.mainMessage}>Join now and get</Text>
-                <Text style={styles.mainMessage}>exclusive discounts!</Text>
+                <Text style={styles.mainMessage}>{t('shareApp.joinNow')}</Text>
+                <Text style={styles.mainMessage}>{t('shareApp.exclusiveDiscounts')}</Text>
                 <Text style={styles.subMessage}>
-                  Share with friends and enjoy amazing deals together
+                  {t('shareApp.shareWithFriends')}
                 </Text>
               </View>
 
@@ -148,7 +166,7 @@ const ShareAppScreen: React.FC = () => {
             activeOpacity={0.7}
           >
             <Ionicons name="image-outline" size={20} color={COLORS.text.primary} />
-            <Text style={styles.shareButtonText}>Share Poster</Text>
+            <Text style={styles.shareButtonText}>{t('shareApp.sharePoster')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -157,7 +175,7 @@ const ShareAppScreen: React.FC = () => {
             activeOpacity={0.7}
           >
             <Ionicons name="link-outline" size={20} color={COLORS.text.primary} />
-            <Text style={styles.shareButtonText}>Share Link</Text>
+            <Text style={styles.shareButtonText}>{t('shareApp.shareLink')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -165,17 +183,17 @@ const ShareAppScreen: React.FC = () => {
         <View style={styles.infoContainer}>
           <View style={styles.infoCard}>
             <Ionicons name="gift-outline" size={24} color={COLORS.accentPink} />
-            <Text style={styles.infoTitle}>Invite Friends</Text>
+            <Text style={styles.infoTitle}>{t('shareApp.inviteFriends')}</Text>
             <Text style={styles.infoText}>
-              Share the app with your friends and both get rewards!
+              {t('shareApp.inviteFriendsText')}
             </Text>
           </View>
 
           <View style={styles.infoCard}>
             <Ionicons name="star-outline" size={24} color="#FFD700" />
-            <Text style={styles.infoTitle}>Exclusive Deals</Text>
+            <Text style={styles.infoTitle}>{t('shareApp.exclusiveDeals')}</Text>
             <Text style={styles.infoText}>
-              Get access to special discounts and promotions
+              {t('shareApp.exclusiveDealsText')}
             </Text>
           </View>
         </View>

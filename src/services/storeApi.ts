@@ -2,7 +2,7 @@ import { ApiResponse, StoreResponse, OrderStatsResponse } from '../types';
 import { getStoredToken } from './authApi';
 
 // API base URL - using environment variable with fallback to local endpoint
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://221.138.36.200:5000/api/v1';
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://todaymall.co.kr/api/v1';
 
 // Helper function to get auth headers
 const getAuthHeaders = async () => {

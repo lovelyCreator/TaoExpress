@@ -19,6 +19,8 @@ import { COLORS, FONTS, SHADOWS, SPACING } from '../../constants';
 import { RootStackParamList } from '../../types';
 import { Audio } from 'expo-av';
 import * as ImagePicker from 'expo-image-picker';
+import { useAppSelector } from '../../store/hooks';
+import { useTranslation } from '../../hooks/useTranslation';
 
 type ChatRouteProp = RouteProp<RootStackParamList, 'Chat'>;
 type ChatScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Chat'>;
@@ -33,13 +35,14 @@ interface Message {
 const ChatScreen: React.FC = () => {
   const route = useRoute<ChatRouteProp>();
   const navigation = useNavigation<ChatScreenNavigationProp>();
+  const { t } = useTranslation();
   
   console.log('ChatScreen rendered with params:', route.params);
   
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      text: "Hello and welcome to Roland Official Shop! We're thrilled to have you here. If you have any questions or need assistance, feel free to ask. Happy shopping!",
+      text: t('chat.welcomeMessage'),
       isUser: false,
       timestamp: new Date(),
     }
@@ -153,7 +156,7 @@ const ChatScreen: React.FC = () => {
       setRecording(recording);
       setIsRecording(true);
       setIsListening(true);
-      setListeningText('Listening...');
+      setListeningText(t('chat.listening'));
     } catch (error) {
       console.error('Failed to start recording:', error);
       Alert.alert('Error', 'Failed to start recording. Please try again.');
@@ -397,9 +400,9 @@ const ChatScreen: React.FC = () => {
           <View style={styles.sellerAvatar} />
           <View style={styles.sellerDetails}>
             <Text style={styles.sellerName}>
-              {route.params?.userId ? `Seller ${route.params.userId}` : 'Roland Official Shop'}
+              {route.params?.userId ? `${t('chat.seller')} ${route.params.userId}` : t('chat.rolandOfficialShop')}
             </Text>
-            <Text style={styles.sellerStatus}>Active 26 seconds ago</Text>
+            <Text style={styles.sellerStatus}>{t('chat.active')} 26 {t('chat.secondsAgo')}</Text>
           </View>
         </View>
         
@@ -428,7 +431,7 @@ const ChatScreen: React.FC = () => {
               
               <TextInput
                 style={styles.textInput}
-                placeholder="Typing here..."
+                placeholder={t('chat.typeMessage')}
                 value={inputText}
                 onChangeText={setInputText}
                 multiline
@@ -467,7 +470,7 @@ const ChatScreen: React.FC = () => {
           ) : (
             <>
               <Text style={styles.listeningText}>
-                {isRecording ? "Recording..." : (listeningText || "Listening...")}
+                {isRecording ? t('chat.recording') : (listeningText || t('chat.listening'))}
               </Text>
               
               <TouchableOpacity 
@@ -499,7 +502,7 @@ const ChatScreen: React.FC = () => {
           </TouchableOpacity>
           <View style={styles.modalContainer}>
             {/* <View style={styles.modalHandle} /> */}
-            <Text style={styles.modalTitle}>More</Text>
+            <Text style={styles.modalTitle}>{t('chat.more')}</Text>
             
             <View style={styles.optionsGrid}>
               <TouchableOpacity 
@@ -509,7 +512,7 @@ const ChatScreen: React.FC = () => {
                 <View style={styles.optionIcon}>
                   <Ionicons name="images-outline" size={24} color={COLORS.text.primary} />
                 </View>
-                <Text style={styles.optionText}>Gallery</Text>
+                <Text style={styles.optionText}>{t('chat.gallery')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity 
@@ -519,7 +522,7 @@ const ChatScreen: React.FC = () => {
                 <View style={styles.optionIcon}>
                   <Ionicons name="camera-outline" size={24} color={COLORS.text.primary} />
                 </View>
-                <Text style={styles.optionText}>Camera</Text>
+                <Text style={styles.optionText}>{t('chat.camera')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity 
@@ -529,7 +532,7 @@ const ChatScreen: React.FC = () => {
                 <View style={styles.optionIcon}>
                   <Ionicons name="cube-outline" size={24} color={COLORS.text.primary} />
                 </View>
-                <Text style={styles.optionText}>Products</Text>
+                <Text style={styles.optionText}>{t('chat.products')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity 
@@ -539,7 +542,7 @@ const ChatScreen: React.FC = () => {
                 <View style={styles.optionIcon}>
                   <Ionicons name="document-text-outline" size={24} color={COLORS.text.primary} />
                 </View>
-                <Text style={styles.optionText}>Order</Text>
+                <Text style={styles.optionText}>{t('chat.order')}</Text>
               </TouchableOpacity>
             </View>
           </View>

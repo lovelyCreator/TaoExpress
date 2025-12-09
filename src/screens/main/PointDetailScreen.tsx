@@ -10,6 +10,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { COLORS, FONTS, SPACING } from '../../constants';
+import { useAppSelector } from '../../store/hooks';
+import { translations } from '../../i18n/translations';
 
 interface PointTransaction {
   id: number;
@@ -25,12 +27,23 @@ interface PointTransaction {
 
 const PointDetailScreen = () => {
   const navigation = useNavigation();
+  const locale = useAppSelector((state) => state.i18n.locale) as 'en' | 'ko' | 'zh';
+  
+  // Translation function
+  const t = (key: string) => {
+    const keys = key.split('.');
+    let value: any = translations[locale as keyof typeof translations];
+    for (const k of keys) {
+      value = value?.[k];
+    }
+    return value || key;
+  };
 
   // Sample point transactions
   const pointTransactions: PointTransaction[] = [
     {
       id: 1,
-      title: 'Register to get points',
+      title: t('profile.registerToGetPoints'),
       orderId: '996',
       date: '2025-11-11',
       time: '07:11:28',
@@ -41,7 +54,7 @@ const PointDetailScreen = () => {
     },
     {
       id: 2,
-      title: 'Purchase reward',
+      title: t('profile.purchaseReward'),
       orderId: '1024',
       date: '2024-11-18',
       time: '14:30:15',
@@ -52,7 +65,7 @@ const PointDetailScreen = () => {
     },
     {
       id: 3,
-      title: 'Used for discount',
+      title: t('profile.usedForDiscount'),
       orderId: '1025',
       date: '2024-11-17',
       time: '10:22:45',
@@ -63,7 +76,7 @@ const PointDetailScreen = () => {
     },
     {
       id: 4,
-      title: 'Daily check-in bonus',
+      title: t('profile.dailyCheckInBonus'),
       date: '2024-11-15',
       time: '09:05:12',
       pointsBefore: 120,
@@ -73,7 +86,7 @@ const PointDetailScreen = () => {
     },
     {
       id: 5,
-      title: 'Referral bonus',
+      title: t('profile.referralBonus'),
       date: '2024-11-12',
       time: '16:20:33',
       pointsBefore: 130,
@@ -93,7 +106,7 @@ const PointDetailScreen = () => {
         >
           <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Point Detail</Text>
+        <Text style={styles.headerTitle}>{t('profile.pointDetail')}</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -108,19 +121,19 @@ const PointDetailScreen = () => {
               <View style={styles.cardHeader}>
                 <Text style={styles.transactionTitle}>{transaction.title}</Text>
                 {transaction.orderId && (
-                  <Text style={styles.orderId}>Order ID: {transaction.orderId}</Text>
+                  <Text style={styles.orderId}>{t('profile.orderId')}: {transaction.orderId}</Text>
                 )}
               </View>
 
               <View style={styles.cardBody}>
                 <View style={styles.pointInfo}>
                   <View style={styles.pointRow}>
-                    <Text style={styles.pointLabel}>Before:</Text>
-                    <Text style={styles.pointValue}>Point {transaction.pointsBefore}</Text>
+                    <Text style={styles.pointLabel}>{t('profile.before')}:</Text>
+                    <Text style={styles.pointValue}>{t('profile.point')} {transaction.pointsBefore}</Text>
                   </View>
                   <View style={styles.pointRow}>
-                    <Text style={styles.pointLabel}>After:</Text>
-                    <Text style={styles.pointValue}>Point {transaction.pointsAfter}</Text>
+                    <Text style={styles.pointLabel}>{t('profile.after')}:</Text>
+                    <Text style={styles.pointValue}>{t('profile.point')} {transaction.pointsAfter}</Text>
                   </View>
                 </View>
 

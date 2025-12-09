@@ -14,6 +14,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 
 import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../../constants';
 import { RootStackParamList } from '../../types';
+import { useTranslation } from '../../hooks/useTranslation';
 
 type NoteScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Note'>;
 
@@ -30,6 +31,7 @@ interface Note {
 
 const NoteScreen: React.FC = () => {
   const navigation = useNavigation<NoteScreenNavigationProp>();
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'all' | 'written' | 'unread' | 'answered'>('answered');
 
   // Sample notes data
@@ -83,7 +85,7 @@ const NoteScreen: React.FC = () => {
       <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
         <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
       </TouchableOpacity>
-      <Text style={styles.headerTitle}>In-site Message</Text>
+      <Text style={styles.headerTitle}>{t('notes.title')}</Text>
       <TouchableOpacity style={styles.addButton} onPress={handleAddNote}>
         <Ionicons name="add" size={24} color={COLORS.white} />
       </TouchableOpacity>
@@ -97,14 +99,14 @@ const NoteScreen: React.FC = () => {
           style={[styles.tab, activeTab === 'all' && styles.activeTab]}
           onPress={() => setActiveTab('all')}
         >
-          <Text style={[styles.tabText, activeTab === 'all' && styles.activeTabText]}>All</Text>
+          <Text style={[styles.tabText, activeTab === 'all' && styles.activeTabText]}>{t('notes.all')}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'written' && styles.activeTab]}
           onPress={() => setActiveTab('written')}
         >
           <Text style={[styles.tabText, activeTab === 'written' && styles.activeTabText]}>
-            Written
+            {t('notes.written')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -112,7 +114,7 @@ const NoteScreen: React.FC = () => {
           onPress={() => setActiveTab('unread')}
         >
           <Text style={[styles.tabText, activeTab === 'unread' && styles.activeTabText]}>
-            Unread
+            {t('notes.unread')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -120,7 +122,7 @@ const NoteScreen: React.FC = () => {
           onPress={() => setActiveTab('answered')}
         >
           <Text style={[styles.tabText, activeTab === 'answered' && styles.activeTabText]}>
-            Answered
+            {t('notes.answered')}
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -158,7 +160,7 @@ const NoteScreen: React.FC = () => {
       <View style={styles.emptyIconContainer}>
         <Ionicons name="mail-outline" size={80} color={COLORS.gray[300]} />
       </View>
-      <Text style={styles.emptyText}>No messages yet~</Text>
+      <Text style={styles.emptyText}>{t('notes.noMessages')}</Text>
     </View>
   );
 

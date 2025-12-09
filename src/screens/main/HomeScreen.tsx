@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   Animated,
   Alert,
   Platform,
+  FlatList,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -27,6 +28,7 @@ import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '../../constants'
 import { useAuth } from '../../context/AuthContext';
 import { useWishlist } from '../../context/WishlistContext';
 import { useForYou } from '../../context/ForYouContext';
+import { useToast } from '../../context/ToastContext';
 import { RootStackParamList, Product, NewInProduct, Store, Story } from '../../types';
 
 import companiesData from '../../data/mockCompanies.json';
@@ -34,9 +36,12 @@ import mockProductsData from '../../data/mockProducts.json';
 import { productsApi, storesApi } from '../../services/api';
 import { useCart } from '../../context/CartContext';
 import { ProductCard, PlatformMenu, SearchButton, NotificationBadge, ImagePickerModal } from '../../components';
-import { useCategoriesMutation } from '../../hooks/useCategories';
-import { useNewInProductsMutation, useTrendingProductsMutation, useForYouProductsMutation, useStoresMutation } from '../../hooks/useHomeScreenMutations';
+import { useCategoriesMutation, useCategoriesTreeMutation } from '../../hooks/useCategories';
+import { useNewInProductsMutation, useTrendingProductsMutation, useForYouProductsMutation, useStoresMutation, useRecommendationsMutation } from '../../hooks/useHomeScreenMutations';
 import { useGetWishlistMutation } from '../../hooks/useWishlistMutations'; // Add this import
+import { usePlatformStore } from '../../store/platformStore';
+import { useAppSelector } from '../../store/hooks';
+import { translations } from '../../i18n/translations';
 
 const { width } = Dimensions.get('window');
 // New In card sizing: width < 1/3 of screen, height ~1.7x width
@@ -55,6 +60,7 @@ const HomeScreen: React.FC = () => {
   
 
   const { likedProductIds, toggleWishlist, isInWishlist, refreshWishlist } = useWishlist();
+  const { showToast } = useToast();
   const { 
     products: forYouProducts, 
     offset: forYouOffset, 
@@ -94,8 +100,31 @@ const HomeScreen: React.FC = () => {
   };
   
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [useMockData, setUseMockData] = useState(true); // Use mock data for filtering demo
+  const [useMockData, setUseMockData] = useState(false); // Use API data instead of mock data
   const [imagePickerModalVisible, setImagePickerModalVisible] = useState(false);
+
+  // Recommendations hook for "More to Love"
+  const { 
+    mutate: fetchRecommendations, 
+    data: recommendationsData, 
+    isLoading: recommendationsLoading,
+    error: recommendationsError,
+    currentPage: recommendationsPage,
+    hasMore: recommendationsHasMore,
+    reset: resetRecommendations
+  } = useRecommendationsMutation({
+    onSuccess: (data, page) => {
+      console.log('Recommendations fetched successfully:', data?.length, 'items, page:', page);
+      isFetchingRecommendations.current = false;
+    },
+    onError: (error) => {
+      console.error('Recommendations fetch error:', error);
+      isFetchingRecommendations.current = false;
+    }
+  });
+  
+  // Track if we're currently fetching to prevent duplicate calls
+  const isFetchingRecommendations = useRef(false);
   const [isScrolled, setIsScrolled] = useState(false); // Track if scrolled past threshold
   
   // Update selected category when platform changes
@@ -105,14 +134,7 @@ const HomeScreen: React.FC = () => {
   }, [selectedPlatform]);
   const scrollViewRef = useRef<ScrollView>(null);
   const categoryScrollRef = useRef<ScrollView>(null);
-  const tabLayouts = useRef<{ x: number; width: number }[]>([]);
-  const indicatorX = useRef(new Animated.Value(0)).current;
-  const indicatorW = useRef(new Animated.Value(0)).current;
-  const scrollX = useRef(new Animated.Value(0)).current;
-  const categoryContainerWidthRef = useRef(0);
-  const categoryContentWidthRef = useRef(0);
   const scrollY = useRef(new Animated.Value(0)).current;
-  const HEADER_TOP_HEIGHT = 100; // Height of logo and notification row
   const SCROLL_THRESHOLD = 5; // Very fast animated color change
   
   // State for scroll to top button
@@ -122,30 +144,61 @@ const HomeScreen: React.FC = () => {
   // State for new "New In" products
   const [newInProducts, setNewInProducts] = useState<NewInProduct[]>([]);
   
-  // Debug effect to monitor newInProducts state changes
-  useEffect(() => {
-    // console.log('newInProducts state changed:', newInProducts);
-  }, [newInProducts]);
-  
-  // Debug effect to monitor forYouProducts state changes
-  useEffect(() => {
-    // console.log('forYouProducts state changed:', forYouProducts);
-  }, [forYouProducts]);
-  
-  // Debug effect to monitor pagination state changes
-  useEffect(() => {
-    // console.log('forYouOffset changed:', forYouOffset);
-    // console.log('forYouHasMore changed:', forYouHasMore);
-    // console.log('forYouLoading changed:', forYouLoading);
-  }, [forYouOffset, forYouHasMore, forYouLoading]);
-  
-  // Debug effect to monitor trendingProducts state changes
-  useEffect(() => {
-    console.log('trendingProducts state changed:', trendingProducts);
-  }, [trendingProducts]);
-  
   // Use the categories API hook
   const { mutate: fetchCategories, data: categoriesData, isLoading: categoriesLoading } = useCategoriesMutation();
+  
+  // Get locale from Redux store
+  const locale = useAppSelector((s) => s.i18n.locale) as 'en' | 'ko' | 'zh';
+  
+  // Translation function
+  const t = (key: string) => {
+    const keys = key.split('.');
+    let value: any = translations[locale as keyof typeof translations];
+    for (const k of keys) {
+      value = value?.[k];
+    }
+    return value || key;
+  };
+
+  // Helper function to navigate to product detail after checking API
+  const navigateToProductDetail = async (
+    productId: string | number,
+    source: string = selectedPlatform,
+    country: string = locale
+  ) => {
+    try {
+      // Check product detail API first
+      const response = await productsApi.getProductDetail(productId, source, country);
+      
+      if (response.success && response.data) {
+        // API call successful, navigate to product detail
+        navigation.navigate('ProductDetail', { 
+          productId: productId.toString(),
+          source: source,
+          country: country,
+        });
+      } else {
+        // API call failed, show toast and don't navigate
+        showToast(t('home.productDetailsError'), 'error');
+      }
+    } catch (error) {
+      // Error occurred, show toast and don't navigate
+      console.error('Error checking product detail:', error);
+      showToast(t('home.productDetailsError'), 'error');
+    }
+  };
+  
+  // Use the categories tree API hook
+  const { mutate: fetchCategoriesTree, data: categoriesTreeData, isLoading: categoriesTreeLoading } = useCategoriesTreeMutation({
+    onSuccess: (data) => {
+      // Store categories tree in Zustand
+      const { setCategoriesTree } = usePlatformStore.getState();
+      setCategoriesTree(data);
+    },
+    onError: (error) => {
+      console.error('Error fetching categories tree:', error);
+    }
+  });
   
   // Use the wishlist API hook to fetch initial wishlist data
   const { mutate: fetchWishlist } = useGetWishlistMutation({
@@ -223,11 +276,23 @@ const HomeScreen: React.FC = () => {
   // Fetch categories and wishlist from API when component mounts
   useEffect(() => {
     fetchCategories();
+    // Fetch categories tree for the selected platform
+    fetchCategoriesTree(selectedPlatform);
     // Fetch wishlist data when the screen loads
     if (user && !isGuest) {
       refreshWishlist(); // Use refreshWishlist from context instead of fetchWishlist
     }
   }, [user, isGuest]);
+  
+  // Fetch categories tree when platform changes
+  useEffect(() => {
+    fetchCategoriesTree(selectedPlatform);
+  }, [selectedPlatform]);
+
+  // Fetch new in products when platform or locale changes
+  useEffect(() => {
+    fetchNewInProducts(selectedPlatform, locale);
+  }, [selectedPlatform, locale]);
 
   // Update categories state when API data is received and fetch initial products
   useEffect(() => {
@@ -252,22 +317,10 @@ const HomeScreen: React.FC = () => {
       // Set the first category as active if none is selected
       if (categoryNames.length > 0 && activeCategoryTab === 'Woman') {
         setActiveCategoryTab(categoryNames[0]);
-        // Fetch new in products for the first category
-        // Handle cases where the first category might not have an id
-        const firstCategory = categoriesData.find((cat: any) => cat && (cat.name || cat.id));
-        const firstCategoryId = firstCategory?.id;
-        if (firstCategoryId !== undefined) {
-          fetchNewInProducts(
-            firstCategoryId,
-            'all',    // type
-            '[]',     // filter
-            '',       // rating_count
-            0.0,      // min_price
-            999999.0, // max_price
-            ''        // search
-          );
-        }
       }
+      
+      // Fetch new in products with platform and country
+      fetchNewInProducts(selectedPlatform, locale);
       
       // Fetch trending products with all category IDs
       // Filter out categories without IDs
@@ -311,25 +364,10 @@ const HomeScreen: React.FC = () => {
   // Fetch new in products when active category changes
   useEffect(() => {
     if (categoriesData && categoriesData.length > 0 && activeCategoryTab !== 'Woman') {
-      // Find the category ID for the active category
-      const activeCategory = categoriesData.find((category: any) => category.name === activeCategoryTab);
-      if (activeCategory && activeCategory.id !== undefined) {
-        fetchNewInProducts(
-          activeCategory.id,
-          'all',    // type
-          '[]',     // filter
-          '',       // rating_count
-          0.0,      // min_price
-          999999.0, // max_price
-          ''        // search
-        );
-      } else if (activeCategory) {
-        // console.log('Active category found but does not have an ID:', activeCategory);
-      } else {
-        // console.log('Active category not found in categoriesData');
-      }
+      // Fetch new in products with platform and country
+      fetchNewInProducts(selectedPlatform, locale);
     }
-  }, [activeCategoryTab, categoriesData]);
+  }, [activeCategoryTab, categoriesData, selectedPlatform, locale]);
 
   // Helper function to filter mock products by company and category
   const getFilteredMockProducts = (productType: 'newIn' | 'trending' | 'forYou') => {
@@ -354,6 +392,24 @@ const HomeScreen: React.FC = () => {
     // Set a default unread count for now
     setUnreadCount(25);
   }, [user?.id]);
+
+  // Fetch recommendations when component mounts or locale changes - only page 1
+  useEffect(() => {
+    const country = locale === 'zh' ? 'zh' : locale === 'ko' ? 'ko' : 'en';
+    const outMemberId = user?.id?.toString() || 'dferg0001';
+    // Only fetch page 1, no pagination
+    resetRecommendations();
+    fetchRecommendations(country, outMemberId, locale, 1, false);
+  }, [locale, user?.id]);
+
+  // Reset pagination when component unmounts
+  useEffect(() => {
+    return () => {
+      console.log('HomeScreen unmounting, resetting recommendations pagination');
+      resetRecommendations();
+      isFetchingRecommendations.current = false;
+    };
+  }, []);
 
   const loadData = async () => {
     try {
@@ -421,11 +477,17 @@ const HomeScreen: React.FC = () => {
       refreshWishlist();
     }
     
+    // Refresh new in products
+    fetchNewInProducts(selectedPlatform, locale);
+    
     setRefreshing(false);
   };
 
-  const handleProductPress = (product: Product) => {
-    navigation.navigate('ProductDetail', { productId: product.id });
+  const handleProductPress = async (product: Product) => {
+    // For "more to love" products, use offerId if available
+    const offerId = (product as any).offerId;
+    const productIdToUse = offerId || product.id;
+    await navigateToProductDetail(productIdToUse, selectedPlatform, locale);
   };
 
   const scrollToTop = () => {
@@ -483,43 +545,10 @@ const HomeScreen: React.FC = () => {
   //   // addToCart(product, 1, undefined, undefined, 0);
   // };
 
-  const handleNewInProductPress = (product: NewInProduct) => {
-    // Convert NewInProduct to a basic Product object for navigation
-    const basicProduct: Partial<Product> = {
-      id: product.id.toString(),
-      name: product.name,
-      images: [product.image],
-      // Add other required properties with default values
-      description: '',
-      price: 0,
-      category: { id: '', name: '', icon: '', image: '', subcategories: [] },
-      subcategory: '',
-      brand: '',
-      seller: { 
-        id: '', 
-        name: '', 
-        avatar: '', 
-        rating: 0, 
-        reviewCount: 0, 
-        isVerified: false, 
-        followersCount: 0, 
-        description: '', 
-        location: '', 
-        joinedDate: new Date() 
-      },
-      rating: 0,
-      reviewCount: 0,
-      inStock: true,
-      stockCount: 0,
-      tags: [],
-      isNew: true,
-      isFeatured: false,
-      isOnSale: false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    
-    navigation.navigate('ProductDetail', { productId: product.id.toString() });
+  const handleNewInProductPress = async (product: NewInProduct) => {
+    // For new in products, use offerId if available (similar to "more to love" products)
+    const offerId = product.offerId || product.id.toString();
+    await navigateToProductDetail(offerId, selectedPlatform, locale);
   };
 
   const handleStoryPress = (story: Story) => {
@@ -539,7 +568,21 @@ const HomeScreen: React.FC = () => {
           {/* App Name and Icons Row */}
           <View style={styles.headerTop}>
             <View style={styles.logoContainer}>
-              <Text style={styles.appName}>TodayMall</Text>
+              <Image
+                source={require('../../assets/icons/logo.png')}
+                style={styles.logo}
+                resizeMode="contain"
+              />
+            </View>
+            <View style={styles.headerPlatformMenu}>
+              <PlatformMenu
+                platforms={platforms}
+                selectedPlatform={selectedPlatform}
+                onSelectPlatform={setSelectedPlatform}
+                getLabel={(platform) => platform.toUpperCase()}
+                textColor={COLORS.text.primary}
+                iconColor={COLORS.text.primary}
+              />
             </View>
             <View style={styles.headerSpacer} />
             <View style={styles.headerIcons}>
@@ -547,12 +590,12 @@ const HomeScreen: React.FC = () => {
                 style={styles.iconButton}
                 onPress={() => navigation.navigate('Search' as never)}
               >
-                <Ionicons name="search" size={24} color={COLORS.white} />
+                <Ionicons name="search" size={24} color={COLORS.text.primary} />
               </TouchableOpacity>
               <NotificationBadge
                 icon="headset-outline"
                 iconSize={24}
-                iconColor={COLORS.white}
+                iconColor={COLORS.text.primary}
                 count={unreadCount}
                 badgeColor="#fa9d24ff"
                 onPress={() => {
@@ -571,10 +614,12 @@ const HomeScreen: React.FC = () => {
   const categoryScrollViewWidth = useRef(0);
 
   const renderCategoryTabs = () => {
-    const companyCategories = getCompanyCategories();
+    // Get categories from Zustand store (which uses tree data if available)
+    const { getCompanyCategories } = usePlatformStore.getState();
+    const companyCategories = getCompanyCategories(locale);
     // Add "All" as the first category
     const allCategories = [
-      { id: 'all', name: 'All' },
+      { id: 'all', name: t('home.all') },
       ...companyCategories
     ];
     
@@ -586,17 +631,6 @@ const HomeScreen: React.FC = () => {
         }}
       >
         <View style={styles.categoryTabsRow}>
-          <View style={styles.platformMenuContainer}>
-            <PlatformMenu
-              platforms={platforms}
-              selectedPlatform={selectedPlatform}
-              onSelectPlatform={setSelectedPlatform}
-              getLabel={(platform) => platform.toUpperCase()}
-              textColor={COLORS.text.primary}
-              iconColor={COLORS.text.primary}
-            />
-          </View>
-          
           <ScrollView 
             ref={categoryScrollRef}
             horizontal 
@@ -655,12 +689,12 @@ const HomeScreen: React.FC = () => {
                       const firstCategory = categoriesData.find((cat: any) => cat && (cat.name || cat.id));
                       const firstCategoryId = firstCategory?.id;
                       if (firstCategoryId !== undefined) {
-                        fetchNewInProducts(firstCategoryId, 'all', '[]', '', 0.0, 999999.0, '');
+                        fetchNewInProducts(selectedPlatform, locale);
                       }
                     } else {
                       const matchedCategory = categoriesData.find((cat: any) => cat.name === category.name);
                       if (matchedCategory && matchedCategory.id !== undefined) {
-                        fetchNewInProducts(matchedCategory.id, 'all', '[]', '', 0.0, 999999.0, '');
+                        fetchNewInProducts(selectedPlatform, locale);
                       }
                     }
                     
@@ -751,7 +785,7 @@ const HomeScreen: React.FC = () => {
             const productData: Product = {
               id: product.id.toString(),
               name: product.name,
-              images: [productImage],
+              image: productImage,
               price: price,
               originalPrice: product.originalPrice,
               discount: product.discount,
@@ -783,11 +817,17 @@ const HomeScreen: React.FC = () => {
               createdAt: new Date(),
               updatedAt: new Date(),
               orderCount: 0,
-            };
+            } as Product & { offerId?: string | number; source?: string };
+            
+            // Preserve offerId and source for wishlist and product detail navigation
+            if (product.offerId) {
+              (productData as any).offerId = product.offerId;
+            }
+            (productData as any).source = product.source || selectedPlatform;
             
             const handleLike = async () => {
               if (!user || isGuest) {
-                alert('Please login first');
+                alert(t('home.pleaseLogin'));
                 return;
               }
               try {
@@ -804,7 +844,7 @@ const HomeScreen: React.FC = () => {
                 variant="horizontal"
                 onPress={() => handleNewInProductPress(product)}
                 onLikePress={handleLike}
-                isLiked={likedProductIds.includes(product.id.toString())}
+                isLiked={isInWishlist(product.id.toString(), productData)}
                 showLikeButton={true}
                 showDiscountBadge={true}
                 showRating={true}
@@ -887,10 +927,10 @@ const HomeScreen: React.FC = () => {
   );
 
   const renderTrendingProducts = () => {
-    // Use filtered mock data for demo
+    // Use new in products from API
     const productsToShow = useMockData 
-      ? getFilteredMockProducts('trending')
-      : trendingProducts;
+      ? getFilteredMockProducts('newIn')
+      : newInProducts;
     
     if (!Array.isArray(productsToShow) || productsToShow.length === 0) {
       return null;
@@ -898,80 +938,62 @@ const HomeScreen: React.FC = () => {
     
     return (
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>New In</Text>
+        <Text style={styles.sectionTitle}>{t('home.newIn')}</Text>
         <ScrollView 
           horizontal 
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.trendingProductsContainer}
         >
-          {productsToShow.slice(0, 6).map((product: any) => {
+          {productsToShow.slice(0, 15).map((product: any) => {
             if (!product || !product.id) {
               return null;
             }
             
             // Parse variation data if it exists
             let price = product.price || 0;
-            let productImage = '';
+            let productImage = product.image || '';
             
-            if (product.variation) {
-              try {
-                const variations = JSON.parse(product.variation);
-                if (Array.isArray(variations) && variations.length > 0 && variations[0].options && variations[0].options.length > 0) {
-                  price = variations[0].options[0].price;
-                  productImage = variations[0].options[0].image;
-                }
-              } catch (e) {
-                console.error('Error parsing variations:', e);
-              }
-            }
-            
-            // Create a proper Product object
+            // Convert to Product type for display
             const productData: Product = {
-              id: product.id?.toString() || '',
-              name: product.name || 'Unknown Product',
-              description: product.description || '',
+              id: product.id.toString(),
+              name: product.name,
+              image: productImage,
               price: price,
               originalPrice: product.originalPrice,
               discount: product.discount,
-              images: product.images && product.images.length > 0 
-                ? product.images 
-                : productImage 
-                  ? [productImage]
-                  : [`https://picsum.photos/seed/trending${product.id}/400/500`],
-              category: product.category || { id: '', name: '', icon: '', image: '', subcategories: [] },
-              subcategory: product.subcategory || '',
-              brand: product.brand || '',
-              seller: product.seller || {
-                id: '',
-                name: '',
-                avatar: '',
-                rating: 0,
-                reviewCount: 0,
-                isVerified: false,
-                followersCount: 0,
-                description: '',
-                location: '',
-                joinedDate: new Date()
+              description: '',
+              category: { id: '', name: '', icon: '', image: '', subcategories: [] },
+              subcategory: '',
+              brand: '',
+              seller: { 
+                id: '', 
+                name: '', 
+                avatar: '', 
+                rating: 0, 
+                reviewCount: 0, 
+                isVerified: false, 
+                followersCount: 0, 
+                description: '', 
+                location: '', 
+                joinedDate: new Date() 
               },
               rating: product.rating || 0,
-              reviewCount: product.reviewCount || product.rating_count || 0,
-              inStock: product.inStock !== undefined ? product.inStock : true,
-              stockCount: product.stockCount || product.stock_count || 0,
-              sizes: product.sizes || [],
-              colors: product.colors || [],
-              tags: product.tags || [],
-              isNew: product.isNew !== undefined ? product.isNew : false,
-              isFeatured: product.isFeatured !== undefined ? product.isFeatured : false,
-              isOnSale: product.isOnSale !== undefined ? product.isOnSale : false,
-              createdAt: product.createdAt ? new Date(product.createdAt) : new Date(),
-              updatedAt: product.updatedAt ? new Date(product.updatedAt) : new Date(),
-              rating_count: product.rating_count || 0,
-              orderCount: (product as any).order_count || 0,
+              reviewCount: product.ratingCount || 0,
+              rating_count: product.ratingCount || 0,
+              inStock: true,
+              stockCount: 0,
+              tags: [],
+              isNew: true,
+              isFeatured: false,
+              isOnSale: false,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              orderCount: 0,
             };
             
             const handleLike = async () => {
               if (!user || isGuest) {
-                alert('Please login first');
+                alert(t('home.pleaseLogin'));
                 return;
               }
               try {
@@ -983,12 +1005,12 @@ const HomeScreen: React.FC = () => {
             
             return (
               <ProductCard
-                key={`trending-${product.id}`}
+                key={`newin-${product.id}`}
                 product={productData}
                 variant="horizontal"
-                onPress={() => handleProductPress(productData)}
+                onPress={() => handleNewInProductPress(product)}
                 onLikePress={handleLike}
-                isLiked={likedProductIds.includes(product.id.toString())}
+                isLiked={isInWishlist(product.id.toString(), productData)}
                 showLikeButton={true}
                 showDiscountBadge={true}
                 showRating={true}
@@ -1000,92 +1022,19 @@ const HomeScreen: React.FC = () => {
     );
   };
 
-  const renderMoreToLove = () => {
-    // Use filtered mock data for demo
-    const productsToDisplay = useMockData 
-      ? getFilteredMockProducts('forYou')
-      : forYouProducts || [];
-    
-    if (!Array.isArray(productsToDisplay) || productsToDisplay.length === 0) {
-      return null;
-    }
-    
-    return (
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>More to Love</Text>
-        <View style={styles.newInGridContainer}>
-          {productsToDisplay.map((product, index) => {
+  // Memoize render item for better performance
+  const renderMoreToLoveItem = useCallback(({ item: product, index }: { item: Product; index: number }) => {
             if (!product || !product.id) {
               return null;
             }
             
-            // Parse variation data if it exists
-            let price = product.price || 0;
-            let productImage = '';
-            
-            if (product.variation) {
-              try {
-                const variations = JSON.parse(product.variation);
-                if (Array.isArray(variations) && variations.length > 0 && variations[0].options && variations[0].options.length > 0) {
-                  price = variations[0].options[0].price;
-                  productImage = variations[0].options[0].image;
-                }
-              } catch (e) {
-                console.error('Error parsing variations:', e);
-              }
-            }
-            
-            // Create a proper Product object
-            const productData: Product = {
-              id: product.id?.toString() || '',
-              name: product.name || 'Unknown Product',
-              description: product.description || '',
-              price: price,
-              originalPrice: product.originalPrice,
-              discount: product.discount,
-              images: product.images && product.images.length > 0 
-                ? product.images 
-                : productImage 
-                  ? [productImage]
-                  : [`https://picsum.photos/seed/foryou${product.id || index}/400/500`],
-              category: product.category || { id: '', name: '', icon: '', image: '', subcategories: [] },
-              subcategory: product.subcategory || '',
-              brand: product.brand || '',
-              seller: product.seller || {
-                id: '',
-                name: '',
-                avatar: '',
-                rating: 0,
-                reviewCount: 0,
-                isVerified: false,
-                followersCount: 0,
-                description: '',
-                location: '',
-                joinedDate: new Date()
-              },
-              rating: product.rating || 0,
-              reviewCount: product.reviewCount || product.rating_count || 0,
-              inStock: product.inStock !== undefined ? product.inStock : true,
-              stockCount: product.stockCount || product.stock_count || 0,
-              sizes: product.sizes || [],
-              colors: product.colors || [],
-              tags: product.tags || [],
-              isNew: product.isNew !== undefined ? product.isNew : false,
-              isFeatured: product.isFeatured !== undefined ? product.isFeatured : false,
-              isOnSale: product.isOnSale !== undefined ? product.isOnSale : false,
-              createdAt: product.createdAt ? new Date(product.createdAt) : new Date(),
-              updatedAt: product.updatedAt ? new Date(product.updatedAt) : new Date(),
-              rating_count: product.rating_count || 0,
-              orderCount: (product as any).order_count || 0,
-            };
-            
             const handleLike = async () => {
               if (!user || isGuest) {
-                alert('Please login first');
+                alert(t('home.pleaseLogin'));
                 return;
               }
               try {
-                await toggleWishlist(productData);
+                await toggleWishlist(product);
               } catch (error) {
                 console.error('Error toggling wishlist:', error);
               }
@@ -1094,30 +1043,75 @@ const HomeScreen: React.FC = () => {
             return (
               <ProductCard
                 key={`moretolove-${product.id || index}`}
-                product={productData}
+                product={product}
                 variant="moreToLove"
-                onPress={() => handleProductPress(productData)}
+                onPress={() => handleProductPress(product)}
                 onLikePress={handleLike}
-                isLiked={likedProductIds.includes(product.id?.toString())}
+                isLiked={isInWishlist(product.id?.toString() || '', product)}
                 showLikeButton={true}
                 showDiscountBadge={true}
                 showRating={true}
               />
             );
-          })}
+  }, [user, isGuest, toggleWishlist, handleProductPress, likedProductIds]);
+
+  // Memoize products list to prevent unnecessary re-renders
+  const memoizedRecommendations = useMemo(() => {
+    return recommendationsData || [];
+  }, [recommendationsData]);
+
+  const renderMoreToLove = () => {
+    // Use recommendations API data for "More to Love"
+    const productsToDisplay = memoizedRecommendations;
+    
+    if (!Array.isArray(productsToDisplay) || productsToDisplay.length === 0) {
+      // Show loading state if fetching
+      if (recommendationsLoading) {
+        return (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>{t('home.moreToLove')}</Text>
+            <View style={styles.loadingContainer}>
+              <Text style={styles.loadingText}>{t('home.loadingRecommendations')}</Text>
+            </View>
+          </View>
+        );
+      }
+      return null;
+    }
+    
+    return (
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>More to Love</Text>
+        <FlatList
+          data={productsToDisplay}
+          renderItem={renderMoreToLoveItem}
+          keyExtractor={(item, index) => `moretolove-${item.id?.toString() || index}-${index}`}
+          numColumns={2}
+          scrollEnabled={false}
+          nestedScrollEnabled={true}
+          columnWrapperStyle={styles.newInGridContainer}
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          initialNumToRender={10}
+          updateCellsBatchingPeriod={50}
+          ListFooterComponent={() => (
+            <>
           {/* Loading indicator for pagination */}
-          {forYouLoading && forYouOffset > 1 && (
+          {recommendationsLoading && recommendationsPage > 1 && (
             <View style={styles.loadingMoreContainer}>
-              <Text style={styles.loadingMoreText}>Loading more products...</Text>
+              <Text style={styles.loadingMoreText}>{t('home.loadingMoreRecommendations')}</Text>
             </View>
           )}
           {/* End of list indicator */}
-          {!forYouHasMore && productsToDisplay.length > 0 && (
+          {!recommendationsHasMore && productsToDisplay.length > 0 && (
             <View style={styles.endOfListContainer}>
-              <Text style={styles.endOfListText}>You've reached the end</Text>
+              <Text style={styles.endOfListText}>{t('home.reachedEnd')}</Text>
             </View>
           )}
-        </View>
+            </>
+          )}
+        />
       </View>
     );
   };
@@ -1161,8 +1155,19 @@ const HomeScreen: React.FC = () => {
           }).start(() => setShowScrollToTop(false));
         }
         
+        // Infinite scroll for recommendations - fetch next page when scrolling to bottom
         const paddingToEnd = 20;
         const isCloseToBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - paddingToEnd;
+        
+        // If user is close to bottom and there are more recommendations to fetch
+        if (isCloseToBottom && recommendationsHasMore && !recommendationsLoading && !isFetchingRecommendations.current) {
+          const country = locale === 'zh' ? 'zh' : locale === 'ko' ? 'ko' : 'en';
+          const outMemberId = user?.id?.toString() || 'dferg0001';
+          const nextPage = recommendationsPage + 1;
+          console.log('Fetching more recommendations, page:', nextPage, 'hasMore:', recommendationsHasMore, 'currentPage:', recommendationsPage);
+          isFetchingRecommendations.current = true;
+          fetchRecommendations(country, outMemberId, locale, nextPage, true);
+        }
         
         // If user is close to bottom and there are more products to fetch
         if (isCloseToBottom && forYouHasMore && !forYouLoading) {
@@ -1195,7 +1200,7 @@ const HomeScreen: React.FC = () => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <Text>Loading...</Text>
+          <Text>{t('home.loading')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -1205,8 +1210,8 @@ const HomeScreen: React.FC = () => {
     <SafeAreaView style={styles.container}>
       <View style={styles.gradientBackgroundFixed}>
         <LinearGradient
-          colors={['#FF0055', '#ff8676ff', '#fca8afff', '#FFFFFF']}
-          locations={[0, 0.4, 0.7, 1]}
+          colors={['#FFF5F5', '#FFE8E8', '#FFF0F0', '#FFFFFF']}
+          locations={[0, 0.3, 0.6, 1]}
           style={styles.gradientFill}
           start={{ x: 0, y: 0 }}
           end={{ x: 0, y: 1 }}
@@ -1215,7 +1220,7 @@ const HomeScreen: React.FC = () => {
       
       <View style={styles.fixedTopBars}>
         {renderHeader()}
-        {renderCategoryTabs()}
+        {/* {renderCategoryTabs()} */}
       </View>
       
       <Animated.ScrollView
@@ -1233,7 +1238,7 @@ const HomeScreen: React.FC = () => {
           {/* {renderQuickCategories()} */}
           {renderBrandCarousel()}
           {renderTrendingProducts()}
-          {renderNewInCards()}
+          {/* {renderNewInCards()} */}
           {renderMoreToLove()}
         </View>
       </Animated.ScrollView>
@@ -1303,12 +1308,18 @@ const styles = StyleSheet.create({
   contentWrapper: {
     backgroundColor: 'transparent',
     // minHeight: '100%',
-    marginBottom: 50,
+    marginBottom: 100,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: FONTS.sizes.md,
+    color: COLORS.text.secondary,
+    fontWeight: '500',
+    marginTop: SPACING.md,
   },
   header: {
     zIndex: 10,
@@ -1334,8 +1345,11 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   logo: {
-    width: 160,
-    height: 80,
+    width: 120,
+    height: 40,
+  },
+  headerPlatformMenu: {
+    marginLeft: SPACING.md,
   },
   headerSpacer: {
     flex: 1,
@@ -1376,15 +1390,7 @@ const styles = StyleSheet.create({
   categoryTabsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  platformMenuContainer: {
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: SPACING.xs,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: COLORS.white,
-    borderRadius: BORDER_RADIUS.md,
-    marginLeft: SPACING.md,
+    paddingHorizontal: SPACING.md,
   },
   categoryScrollView: {
     flex: 1,

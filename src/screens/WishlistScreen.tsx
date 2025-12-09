@@ -36,12 +36,15 @@ const WishlistScreen: React.FC = () => {
   useEffect(() => {
     // Refresh wishlist data when the screen is focused
     if (isAuthenticated) {
+      console.log('📱 WishlistScreen: Setting up focus listener');
       const unsubscribe = navigation.addListener('focus', () => {
+        console.log('📱 WishlistScreen: Screen focused, refreshing wishlist');
+        console.log('📱 WishlistScreen: Current wishlistItems count:', wishlistItems.length);
         refreshWishlist();
       });
       return unsubscribe;
     }
-  }, [navigation, isAuthenticated]);
+  }, [navigation, isAuthenticated, refreshWishlist, wishlistItems.length]);
 
   // If not authenticated, show login prompt
   if (!isAuthenticated) {
@@ -159,7 +162,7 @@ const WishlistScreen: React.FC = () => {
         
         <View style={styles.productInfo}>
           <TouchableOpacity onPress={() => handleProductPress(item)}>
-            <Text style={styles.productName} numberOfLines={1}>
+            <Text style={styles.productName} numberOfLines={2}>
               {item.name}
             </Text>
           </TouchableOpacity>

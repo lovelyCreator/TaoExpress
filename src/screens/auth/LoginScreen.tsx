@@ -15,9 +15,11 @@ import GoogleIcon from '../../assets/icons/GoogleIcon';
 import { Button, TextInput } from '../../components';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
-import { useLoginMutation, useSocialLoginMutation } from '../../hooks/useAuthMutations';
+import { useLoginMutation, useSocialLoginMutation, useResendVerificationMutation } from '../../hooks/useAuthMutations';
 import { useToast } from '../../hooks/useToast';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS, VALIDATION_RULES, ERROR_MESSAGES } from '../../constants';
+import { useAppSelector } from '../../store/hooks';
+import { translations } from '../../i18n/translations';
 
 // GoogleSignin.configure({
 //   webClientId: '504835766110-ionim2k1keti3uhom9quotmifkimg42o.apps.googleusercontent.com',
@@ -56,6 +58,17 @@ const LoginScreen: React.FC = () => {
   const navigation = useNavigation();
   const { loginError, clearLoginError, isGuest, setAuthenticatedUser, clearNavigateToProfile, setNavigateToProfile } = useAuth();
   const { showToast, ToastComponent } = useToast();
+  const locale = useAppSelector((state) => state.i18n.locale) as 'en' | 'ko' | 'zh';
+  
+  // Translation function
+  const t = (key: string) => {
+    const keys = key.split('.');
+    let value: any = translations[locale as keyof typeof translations];
+    for (const k of keys) {
+      value = value?.[k];
+    }
+    return value || key;
+  };
   
   const { mutate: login, isLoading, isError, error, isSuccess, data } = useLoginMutation({
     onSuccess: (data) => {
@@ -94,9 +107,35 @@ const LoginScreen: React.FC = () => {
         setNavigateToProfile();
       }
     },
-    onError: (error) => {
-      // Error is handled by the hook and will be available in the error state
-      console.log('LoginScreen: Login mutation error:', error);
+    onError: (error, errorCode) => {
+      // Handle specific error codes
+      console.log('LoginScreen: Login mutation error:', error, 'Code:', errorCode);
+      
+      // Special handling for EMAIL_NOT_VERIFIED - resend code and navigate
+      if (errorCode === 'EMAIL_NOT_VERIFIED') {
+        // Resend verification code and navigate to verification screen
+        handleEmailNotVerified();
+        return;
+      }
+      
+      let errorMessage = error;
+      
+      switch (errorCode) {
+        case 'INVALID_CREDENTIALS':
+          errorMessage = t('auth.invalidCredentials');
+          break;
+        case 'VALIDATION_ERROR':
+          errorMessage = error || t('auth.checkInput');
+          break;
+        default:
+          errorMessage = error || t('auth.loginFailed');
+      }
+      
+      // Set error on password field (will show below password input)
+      setErrors({ 
+        email: 'login_error', // Special marker for red border only
+        password: errorMessage // Actual error message for display
+      });
     }
   });
   
@@ -144,6 +183,20 @@ const LoginScreen: React.FC = () => {
       showToast({ message: error, type: 'error' });
     }
   });
+
+  // Resend verification code mutation
+  const { mutate: resendCode } = useResendVerificationMutation({
+    onSuccess: (data) => {
+      showToast({ message: t('auth.verificationCodeSent'), type: 'success' });
+      // Navigate to email verification screen
+      (navigation as any).navigate('EmailVerification', {
+        email: formData.email,
+      });
+    },
+    onError: (error) => {
+      showToast({ message: error || t('auth.failedToSendCode'), type: 'error' });
+    },
+  });
   
   const [formData, setFormData] = useState({
     email: '',
@@ -165,27 +218,6 @@ const LoginScreen: React.FC = () => {
     }
   }, [isSuccess, data, navigation]);
 
-  // Watch for login errors and apply them to both fields for red borders
-  // but only show error message below password field
-  useEffect(() => {
-    if (isError && error) {
-      setErrors({ 
-        email: 'login_error', // Special marker for red border only
-        password: error // Actual error message for display
-      });
-    } else if (loginError) {
-      setErrors({ 
-        email: 'login_error', // Special marker for red border only
-        password: loginError // Actual error message for display
-      });
-    } else if (isSocialError && socialError) {
-      setErrors({ 
-        email: 'login_error', // Special marker for red border only
-        password: socialError // Actual error message for display
-      });
-    }
-  }, [isError, error, loginError, isSocialError, socialError]);
-
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
 
@@ -203,6 +235,13 @@ const LoginScreen: React.FC = () => {
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  // Handle email not verified case
+  const handleEmailNotVerified = async () => {
+    console.log('LoginScreen: Email not verified, resending verification code');
+    // Resend verification code
+    await resendCode({ email: formData.email });
   };
 
   const handleLogin = async () => {
@@ -297,15 +336,15 @@ const LoginScreen: React.FC = () => {
             <View style={styles.placeholder} />
           </View>
           <View style={styles.subHeader}>
-            <Text style={styles.subtitle}>Sign In</Text>
+            <Text style={styles.subtitle}>{t('auth.signIn')}</Text>
             {/* <Text style={styles.subtitle}>Please login to continue</Text> */}
           </View>
 
 
           <View style={styles.form}>
             <TextInput
-              label="Email"
-              placeholder="Enter your email"
+              label={t('auth.email')}
+              placeholder={t('auth.enterEmail')}
               value={formData.email}
               onChangeText={(text) => {
                 setFormData({ ...formData, email: text });
@@ -327,8 +366,8 @@ const LoginScreen: React.FC = () => {
             />
 
             <TextInput
-              label="Password"
-              placeholder="Enter your password"
+              label={t('auth.password')}
+              placeholder={t('auth.enterPassword')}
               value={formData.password}
               onChangeText={(text) => {
                 setFormData({ ...formData, password: text });
@@ -355,11 +394,11 @@ const LoginScreen: React.FC = () => {
               onPress={handleForgotPassword}
               style={styles.forgotPassword}
             >
-              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+              <Text style={styles.forgotPasswordText}>{t('auth.forgotPassword')}</Text>
             </TouchableOpacity>
 
             <Button
-              title="Login"
+              title={t('auth.login')}
               onPress={handleLogin}
               disabled={isLoading || !formData.email || !formData.password}
               loading={isLoading}
@@ -386,7 +425,7 @@ const LoginScreen: React.FC = () => {
 
             <View style={styles.divider}>
               <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>Or continue with</Text>
+              <Text style={styles.dividerText}>{t('auth.orContinueWith')}</Text>
               <View style={styles.dividerLine} />
             </View>
 
@@ -433,9 +472,9 @@ const LoginScreen: React.FC = () => {
             </View>
 
             <View style={styles.signupContainer}>
-              <Text style={styles.signupText}>Don't have an account? </Text>
+              <Text style={styles.signupText}>{t('auth.dontHaveAccount')} </Text>
               <TouchableOpacity onPress={handleSignup}>
-                <Text style={styles.signupLink}>Sign up</Text>
+                <Text style={styles.signupLink}>{t('auth.signUp')}</Text>
               </TouchableOpacity>
             </View>
           </View>

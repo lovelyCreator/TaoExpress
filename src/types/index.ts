@@ -67,7 +67,7 @@ export interface Product {
   originalPrice?: number;
   discount?: number;
   discountPercentage?: number;
-  images: string[];
+  image: string;
   videos?: string[];
   category: Category;
   subcategory: string;
@@ -89,6 +89,7 @@ export interface Product {
   wishlists_count?: number; // Add wishlists_count field
   variations?: VariationData;
   avgRating?: number;
+  repurchaseRate?: string | number; // Repurchase rate from API (e.g., "42%" or 42)
 }
 
 export interface Color {
@@ -249,7 +250,7 @@ export type RootStackParamList = {
   Auth: undefined;
   Main: undefined;
   OtpVerification: undefined;
-  ProductDetail: { productId: string };
+  ProductDetail: { productId: string; source?: string; country?: string };
   SellerProfile: { sellerId: string };
   Checkout: undefined;
   OrderConfirmation: { orderId: string };
@@ -353,7 +354,7 @@ export type RootStackParamList = {
   // Other screens
   SearchResults: { query: string; filters?: SearchFilters };
   StoryView: { storyIndex?: number; productId?: string };
-  SubCategory: { categoryName: string; categoryId?: number }; // Add category ID
+  SubCategory: { categoryName: string; categoryId?: number; subcategories?: any[] }; // Add category ID and subcategories
   ProductDiscovery: { 
     subCategoryName: string;
     categoryId?: string;
@@ -474,10 +475,17 @@ export interface ShippingService {
 
 // Add the NewInProduct type for the new API response
 export interface NewInProduct {
-  id: number;
+  id: string | number;
   name: string;
   image: string;
   video: string;
+  price?: number;
+  originalPrice?: number;
+  discount?: number;
+  rating?: number;
+  ratingCount?: number;
+  sales?: number;
+  offerId?: string;
 }
 
 // Add the Store type for the store API response
@@ -526,7 +534,7 @@ export interface UseMutationOptions<T> {
 }
 
 export interface UseAddToWishlistMutationResult {
-  mutate: (itemId: string) => Promise<void>;
+  mutate: (imageUrl: string, externalId: string, price: number, title: string) => Promise<void>;
   data: { message: string } | null;
   error: string | null;
   isLoading: boolean;
@@ -969,13 +977,8 @@ export interface ForYouProduct {
 
 export interface UseNewInProductsMutationResult {
   mutate: (
-    categoryId: number,
-    type?: string,
-    filter?: string,
-    ratingCount?: string,
-    minPrice?: number,
-    maxPrice?: number,
-    search?: string
+    platform?: string,
+    country?: string
   ) => Promise<void>;
   data: NewInProduct[] | null;
   error: string | null;
@@ -1032,7 +1035,7 @@ export interface UseStoresMutationResult {
 // Add interfaces from useAuthMutations.ts
 export interface AuthUseMutationOptions {
   onSuccess?: (data: any) => void;
-  onError?: (error: string) => void;
+  onError?: (error: string, errorCode?: string) => void;
 }
 
 export interface LoginVariables {
@@ -1046,6 +1049,7 @@ export interface RegisterVariables {
   name: string;
   phone: string;
   isBusiness: boolean;
+  referralCode?: string;
 }
 
 export interface GuestLoginVariables {
@@ -1063,7 +1067,13 @@ export interface UseLoginMutationResult {
 
 export interface UseRegisterMutationResult {
   mutate: (variables: RegisterVariables) => Promise<void>;
-  data: { token: string; user: Partial<User> } | null;
+  data: { 
+    token?: string; 
+    user?: Partial<User>;
+    email?: string;
+    message?: string;
+    requiresVerification?: boolean;
+  } | null;
   error: string | null;
   isLoading: boolean;
   isSuccess: boolean;
@@ -1211,6 +1221,54 @@ export interface UseCategoriesResult {
 export interface UseChildCategoriesResult {
   mutate: (parentId: number) => Promise<void>;
   data: CategoryData[] | null;
+  error: string | null;
+  isLoading: boolean;
+  isSuccess: boolean;
+  isError: boolean;
+}
+
+// Category Tree Types for 1688 API
+export interface CategoryTreeItem {
+  _id: string;
+  platform: string;
+  externalId: string;
+  parentId: string | null;
+  name: {
+    zh: string;
+    en: string;
+    ko: string;
+  };
+  level: number;
+  path: string;
+  isLeaf: boolean;
+  isActive: boolean;
+  metadata?: {
+    parentCateId: string;
+    lastFetched: string;
+  };
+  lastSyncedAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  __v?: number;
+  children: CategoryTreeItem[];
+}
+
+export interface CategoriesTreeResponse {
+  tree: CategoryTreeItem[];
+  platform: string;
+  cached: boolean;
+  totalCategories: number;
+  responseTime: string;
+}
+
+export interface UseCategoriesTreeOptions {
+  onSuccess?: (data: CategoriesTreeResponse) => void;
+  onError?: (error: string) => void;
+}
+
+export interface UseCategoriesTreeResult {
+  mutate: (platform: string) => Promise<void>;
+  data: CategoriesTreeResponse | null;
   error: string | null;
   isLoading: boolean;
   isSuccess: boolean;

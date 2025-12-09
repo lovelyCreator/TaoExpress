@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -12,10 +12,12 @@ import {
   Modal,
   StatusBar,
   Share,
+  Platform,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+// Removed WebView import - using simpler HTML rendering approach
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '../../constants';
 import { useWishlist } from '../../context/WishlistContext';
 import { useAuth } from '../../context/AuthContext';
@@ -25,6 +27,11 @@ import { useToast } from '../../context/ToastContext';
 import { ProductCard } from '../../components';
 import { PhotoCaptureModal } from '../../components';
 import mockProducts from '../../data/mockProducts.json';
+import { useProductDetailMutation, useSearchProductsByKeywordMutation } from '../../hooks/useHomeScreenMutations';
+import { usePlatformStore } from '../../store/platformStore';
+import { useAppSelector } from '../../store/hooks';
+import { ActivityIndicator } from 'react-native';
+import { Product } from '../../types';
 
 const { width } = Dimensions.get('window');
 const IMAGE_HEIGHT = 400;
@@ -32,21 +39,41 @@ const IMAGE_HEIGHT = 400;
 const ProductDetailScreen: React.FC = () => {
   const route = useRoute<any>();
   const navigation = useNavigation<any>();
-  const { productId } = route.params;
+  const { productId, offerId } = route.params;
   const { likedProductIds, toggleWishlist } = useWishlist();
   const { user, isAuthenticated } = useAuth();
   const { addToCart } = useCart();
   const { showToast } = useToast();
   
+  // Get platform and locale
+  const { selectedPlatform } = usePlatformStore();
+  const locale = useAppSelector((s) => s.i18n.locale) as 'en' | 'ko' | 'zh';
+  
+  // Product detail mutation
+  const {
+    mutate: fetchProductDetail,
+    data: productDetailData,
+    isLoading: productDetailLoading,
+    error: productDetailError,
+  } = useProductDetailMutation({
+    onSuccess: (data) => {
+      console.log('Product detail fetched successfully:', data);
+    },
+    onError: (error) => {
+      console.error('Product detail fetch error:', error);
+      showToast('Failed to load product details', 'error');
+    }
+  });
 
-
-  // Find product from mock data
+  // Find product from mock data or API
   const [product, setProduct] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [showFullDescription, setShowFullDescription] = useState(false);
+  const [showFullSpecifications, setShowFullSpecifications] = useState(false);
   const [currentStatIndex, setCurrentStatIndex] = useState(0);
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
   const [viewerImageIndex, setViewerImageIndex] = useState(0);
@@ -60,6 +87,21 @@ const ProductDetailScreen: React.FC = () => {
     { icon: 'heart-outline', color: COLORS.accentPink, text: '3,000+ people added to cart' },
   ];
 
+  // Get similar products using the same API as "for you" products in category screen
+  // IMPORTANT: All hooks must be called before any conditional returns
+  const { 
+    mutate: fetchSimilarProducts, 
+    data: similarProductsData, 
+    isLoading: similarProductsLoading 
+  } = useSearchProductsByKeywordMutation();
+  
+  const [similarProducts, setSimilarProducts] = useState<Product[]>([]);
+  const [similarProductsPage, setSimilarProductsPage] = useState(1);
+  const [similarProductsHasMore, setSimilarProductsHasMore] = useState(true);
+  const [similarProductsLoadingMore, setSimilarProductsLoadingMore] = useState(false);
+  const isFetchingSimilarProductsRef = useRef(false);
+  const loadedPagesRef = useRef<Set<number>>(new Set());
+
   // Rotate through live stats
   useEffect(() => {
     const interval = setInterval(() => {
@@ -69,31 +111,141 @@ const ProductDetailScreen: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // Load product from API
   useEffect(() => {
-    // Load product from mock data
-    const allProducts = [
-      ...mockProducts.newIn,
-      ...mockProducts.trending,
-      ...mockProducts.forYou,
-    ];
-    console.log('Looking for product ID:', productId);
-    console.log('Available products:', allProducts.map(p => ({ id: p.id, name: p.name })));
-    
-    const foundProduct = allProducts.find((p: any) => p.id === productId);
-    if (foundProduct) {
-      console.log('Found product:', foundProduct.name);
-      console.log('Product has colors:', foundProduct.colors?.length || 0);
-      console.log('Product has sizes:', foundProduct.sizes?.length || 0);
-      setProduct(foundProduct);
-    } else {
-      console.log('Product not found for ID:', productId);
+    // For "more to love" products, use offerId if available, otherwise use productId
+    const idToUse = offerId || productId;
+    if (idToUse) {
+      setLoading(true);
+      const country = locale === 'zh' ? 'zh' : locale === 'ko' ? 'ko' : 'en';
+      fetchProductDetail(idToUse, selectedPlatform, country);
     }
-  }, [productId]);
+  }, [productId, offerId, selectedPlatform, locale]);
 
-  if (!product) {
+  // Update product when API data is received
+  useEffect(() => {
+    if (productDetailData) {
+      setProduct(productDetailData);
+      setLoading(false);
+    } else if (productDetailError) {
+      // Fallback to mock data on error
+      const allProducts = [
+        ...mockProducts.newIn,
+        ...mockProducts.trending,
+        ...mockProducts.forYou,
+      ];
+      const foundProduct = allProducts.find((p: any) => p.id === productId);
+      if (foundProduct) {
+        setProduct(foundProduct);
+      }
+      setLoading(false);
+    }
+  }, [productDetailData, productDetailError, productId]);
+  
+  // Fetch similar products when product is loaded (first page)
+  useEffect(() => {
+    if (product?.name) {
+      // Reset pagination when product changes
+      setSimilarProducts([]);
+      setSimilarProductsPage(1);
+      setSimilarProductsHasMore(true);
+      loadedPagesRef.current.clear();
+      isFetchingSimilarProductsRef.current = false;
+      // Use product name as keyword for similar products
+      const keyword = product.name;
+      loadedPagesRef.current.add(1);
+      fetchSimilarProducts(keyword, selectedPlatform, locale as 'en' | 'zh' | 'ko', 1, 20);
+    }
+  }, [product?.name, selectedPlatform, locale, fetchSimilarProducts]);
+  
+  // Update similar products when data is received
+  useEffect(() => {
+    if (similarProductsData && Array.isArray(similarProductsData)) {
+      // Filter out the current product
+      const filtered = similarProductsData
+        .filter((p: Product) => p.id?.toString() !== productId?.toString());
+      
+      // Always filter out duplicates when appending
+      setSimilarProducts(prev => {
+        if (similarProductsPage === 1) {
+          // First page, replace existing data
+          return filtered;
+        } else {
+          // Subsequent pages, append to existing data but filter out duplicates
+          const existingIds = new Set(prev.map(p => p.id?.toString()));
+          const newProducts = filtered.filter(p => !existingIds.has(p.id?.toString()));
+          return [...prev, ...newProducts];
+        }
+      });
+      
+      // Check if there are more pages (if we got a full page, there might be more)
+      setSimilarProductsHasMore(similarProductsData.length >= 20);
+      setSimilarProductsLoadingMore(false);
+      isFetchingSimilarProductsRef.current = false;
+    }
+  }, [similarProductsData, productId, similarProductsPage]);
+  
+  // Load more similar products
+  const loadMoreSimilarProducts = useCallback(() => {
+    const nextPage = similarProductsPage + 1;
+    
+    // Prevent duplicate requests for the same page
+    if (!similarProductsLoadingMore && 
+        !isFetchingSimilarProductsRef.current && 
+        similarProductsHasMore && 
+        product?.name &&
+        !loadedPagesRef.current.has(nextPage)) {
+      isFetchingSimilarProductsRef.current = true;
+      setSimilarProductsLoadingMore(true);
+      setSimilarProductsPage(nextPage);
+      loadedPagesRef.current.add(nextPage);
+      // Use product name as keyword for similar products
+      const keyword = product.name;
+      fetchSimilarProducts(keyword, selectedPlatform, locale as 'en' | 'zh' | 'ko', nextPage, 20);
+    }
+  }, [similarProductsPage, similarProductsHasMore, similarProductsLoadingMore, product?.name, selectedPlatform, locale, fetchSimilarProducts]);
+
+  // Extract image URLs from HTML description
+  const extractImagesFromHtml = useCallback((html: string): string[] => {
+    if (!html) return [];
+    
+    // Match all img tags with src attribute
+    const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
+    const images: string[] = [];
+    let match;
+    
+    while ((match = imgRegex.exec(html)) !== null) {
+      if (match[1]) {
+        images.push(match[1]);
+      }
+    }
+    
+    return images;
+  }, []);
+
+  // Get product images from API only (not from HTML description)
+  const getApiProductImages = useCallback((currentProduct: any): string[] => {
+    if (!currentProduct) return [];
+    
+    // Use images array from API, or fallback to single image
+    const apiImages = (currentProduct as any).images || [];
+    if (apiImages.length > 0) {
+      return apiImages;
+    }
+    
+    // Fallback to single image if images array is empty
+    if (currentProduct.image) {
+      return [currentProduct.image];
+    }
+    
+    return [];
+  }, []);
+
+  if (loading || productDetailLoading || !product) {
     return (
-      <View style={styles.container}>
-        <Text>Loading...</Text>
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text style={{ marginTop: SPACING.md, color: COLORS.text.secondary }}>Loading product...</Text>
       </View>
     );
   }
@@ -145,15 +297,6 @@ const ProductDetailScreen: React.FC = () => {
     showToast('Photo capture request submitted successfully', 'success');
   };
 
-  // Get similar products (other products from same category)
-  const similarProducts = [
-    ...mockProducts.newIn,
-    ...mockProducts.trending,
-    ...mockProducts.forYou,
-  ]
-    .filter((p: any) => p.id !== productId && p.category === product.category)
-    .slice(0, 6);
-
   const handleShare = async () => {
     try {
       const shareContent = {
@@ -192,8 +335,14 @@ const ProductDetailScreen: React.FC = () => {
   );
 
   const renderImageGallery = () => {
-    const totalImages = (product.images || [product.image]).length;
+    // Use only API images (not from HTML description)
+    const apiImages = getApiProductImages(product);
+    const totalImages = apiImages.length;
     const currentStat = liveStats[currentStatIndex];
+    
+    if (totalImages === 0) {
+      return null;
+    }
     
     return (
       <View style={styles.imageGalleryContainer}>
@@ -207,7 +356,7 @@ const ProductDetailScreen: React.FC = () => {
           }}
           scrollEventThrottle={16}
         >
-          {(product.images || [product.image]).map((img: string, index: number) => (
+          {apiImages.map((img: string, index: number) => (
             <TouchableOpacity
               key={index}
               activeOpacity={0.9}
@@ -228,7 +377,7 @@ const ProductDetailScreen: React.FC = () => {
         
         {/* Image indicators */}
         <View style={styles.imageIndicators}>
-          {(product.images || [product.image]).map((_: any, index: number) => (
+          {apiImages.map((_: any, index: number) => (
             <View
               key={index}
               style={[
@@ -240,12 +389,12 @@ const ProductDetailScreen: React.FC = () => {
         </View>
 
         {/* Animated live stat badge - bottom left overlay */}
-        <View style={styles.liveStatBadge}>
+        {/* <View style={styles.liveStatBadge}>
           <View style={styles.liveStatIconContainer}>
             <Ionicons name={currentStat.icon as any} size={16} color={currentStat.color} />
           </View>
           <Text style={styles.liveStatBadgeText}>{currentStat.text}</Text>
-        </View>
+        </View> */}
 
         {/* Item info bar - bottom of image */}
         <View style={styles.itemInfoBar}>
@@ -281,34 +430,65 @@ const ProductDetailScreen: React.FC = () => {
     }
   };
 
-  const renderProductInfo = () => (
-    <View style={styles.productInfoContainer}>
-      <Text style={styles.productName} numberOfLines={showFullDescription ? undefined : 2}>
-        {product.description || product.name}
-      </Text>
-      
+  const renderProductInfo = () => {
+    // Strip HTML tags from description for display
+    const stripHtml = (html: string) => {
+      if (!html) return '';
+      return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+    };
+    
+    return (
+      <View style={styles.productInfoContainer}>
+        <Text style={styles.productName} numberOfLines={showFullDescription ? undefined : 2}>
+          {product.name || 'Product'}
+        </Text>
+        
+        {/* Description with HTML stripped */}
+        {/* {product.description && (
+          <Text style={styles.productDescription} numberOfLines={showFullDescription ? undefined : 3}>
+            {stripHtml(product.description)}
+          </Text>
+        )} */}
+      </View>
+    );
+  };
+  
+  const renderRatingRow = () => {
+    // Get soldOut number from product
+    const soldOut = (product as any).soldOut || '0';
+    
+    return (
       <View style={styles.ratingRow}>
         <View style={styles.ratingContainer}>
           <Ionicons name="star" size={16} color="#FFD700" />
           <Text style={styles.ratingText}>
-            {product.rating} | all reviews {product.ratingCount}
+            {product.rating?.toFixed(1) || '0'}
           </Text>
         </View>
-        <Text style={styles.soldText}>{product.orderCount || 0} sold</Text>
+        <View style={{ flex: 1 }} />
+        <Text style={styles.soldText}>{soldOut || 0} sold</Text>
       </View>
+    );
+  };
 
-      <View style={styles.priceRow}>
-        <Text style={styles.price}>${product.price.toFixed(2)}</Text>
-        {product.originalPrice && (
-          <>
-            <Text style={styles.originalPrice}>${product.originalPrice.toFixed(2)}</Text>
+  const renderPriceRow = () => (
+    <View style={styles.priceRow}>
+      <Text style={styles.price}>¥{product.price.toFixed(2)}</Text>
+      {product.originalPrice && product.originalPrice > product.price && (
+        <>
+          <Text style={styles.originalPrice}>¥{product.originalPrice.toFixed(2)}</Text>
+          {product.discount && (
             <View style={styles.discountBadge}>
               <Text style={styles.discountText}>-{product.discount}%</Text>
             </View>
-          </>
-        )}
-      </View>
+          )}
+        </>
+      )}
+    </View>
+  );
 
+  const renderProductCode = () => (
+    <>
       {/* Product Code with Copy Button */}
       {product.productCode && (
         <View style={styles.productCodeContainer}>
@@ -332,7 +512,7 @@ const ProductDetailScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
       )}
-    </View>
+    </>
   );
 
   const renderColorSelector = () => {
@@ -414,6 +594,8 @@ const ProductDetailScreen: React.FC = () => {
 
   const renderSellerInfo = () => {
     const sellerId = product.seller?.id || 'seller_123';
+    // Use companyName from seller, which is already set in the transformation
+    const companyName = product.seller?.name || 'Seller Name';
     
     return (
       <TouchableOpacity 
@@ -421,16 +603,18 @@ const ProductDetailScreen: React.FC = () => {
         onPress={() => navigation.navigate('SellerProfile', { sellerId })}
       >
         <Image
-          source={{ uri: 'https://picsum.photos/seed/seller/100/100' }}
+          source={{ uri: product.seller?.avatar || 'https://picsum.photos/seed/seller/100/100' }}
           style={styles.sellerAvatar}
         />
         <View style={styles.sellerDetails}>
           <Text style={styles.sellerNameBold}>
-            bsbsrfywoo888Boy zTaylorkng
+            {companyName}
           </Text>
           <View style={styles.sellerStats}>
             <Ionicons name="star" size={14} color="#FFD700" />
-            <Text style={styles.sellerStatsText}>5.0 | 1.3K+ sold</Text>
+            <Text style={styles.sellerStatsText}>
+              {product.seller?.rating?.toFixed(1) || '5.0'}
+            </Text>
           </View>
         </View>
         <Ionicons name="chevron-forward" size={20} color={COLORS.gray[400]} />
@@ -476,67 +660,142 @@ const ProductDetailScreen: React.FC = () => {
     </View>
   );
 
-  const renderProductDetails = () => (
-    <View style={styles.detailsContainer}>
-      <Text style={styles.detailsTitle}>Product Details</Text>
-      {Object.entries(product.details || { Feeding: 'Bottle feeding' }).map(
-        ([key, value], index) => (
-          <View key={index} style={styles.detailRow}>
-            <Text style={styles.detailLabel}>{key}</Text>
-            <Text style={styles.detailValue}>{value as string}</Text>
-          </View>
-        )
-      )}
-      <TouchableOpacity>
-        <Text style={styles.readMoreText}>Read More</Text>
-      </TouchableOpacity>
-    </View>
-  );
-
-  const renderProductImages = () => {
-    const images = product.images || [product.image];
+  const renderProductDetails = () => {
+    const specifications = (product as any).specifications || {};
+    
+    if (!specifications || Object.keys(specifications).length === 0) {
+      return null;
+    }
+    
+    const specificationEntries = Object.entries(specifications);
+    const INITIAL_SPECS_COUNT = 5; // Show first 5 specifications initially
+    const shouldShowReadMore = specificationEntries.length > INITIAL_SPECS_COUNT;
+    const displayedSpecs = showFullSpecifications 
+      ? specificationEntries 
+      : specificationEntries.slice(0, INITIAL_SPECS_COUNT);
     
     return (
-      <View style={styles.productImagesContainer}>
-        <Text style={styles.productImagesTitle}>Product Images</Text>
-        {images.map((img: string, index: number) => (
-          <TouchableOpacity
-            key={index}
-            style={styles.productImageItem}
-            onPress={() => {
-              setViewerImageIndex(index);
-              setImageViewerVisible(true);
-            }}
-          >
-            <Image
-              source={{ uri: img }}
-              style={styles.productImageFull}
-              resizeMode="cover"
-            />
+      <View style={styles.detailsContainer}>
+        <Text style={styles.detailsTitle}>Specifications</Text>
+        {displayedSpecs.map(
+          ([key, value], index) => (
+            <View key={index} style={styles.detailRow}>
+              <Text style={styles.detailLabel}>{key}</Text>
+              <Text style={styles.detailValue} numberOfLines={0}>{String(value)}</Text>
+            </View>
+          )
+        )}
+        {shouldShowReadMore && (
+          <TouchableOpacity onPress={() => setShowFullSpecifications(!showFullSpecifications)}>
+            <Text style={styles.readMoreText}>
+              {showFullSpecifications ? 'Read Less' : 'Read More'}
+            </Text>
           </TouchableOpacity>
-        ))}
+        )}
       </View>
     );
   };
 
-  const renderSimilarProducts = () => (
-    <View style={styles.similarProductsContainer}>
-      <Text style={styles.similarProductsTitle}>Similar Products</Text>
-      <View style={styles.similarProductsGrid}>
-        {similarProducts.map((item: any, index: number) => (
-          <View key={index} style={styles.similarProductItem}>
-            <ProductCard
-              product={item}
-              variant="moreToLove"
-              onPress={() => navigation.push('ProductDetail', { productId: item.id })}
-              onLikePress={() => toggleWishlist(item)}
-              isLiked={likedProductIds.includes(item.id)}
-            />
-          </View>
-        ))}
+  const renderProductDescription = () => {
+    // Render HTML description by extracting images and text
+    if (!product || !product.description) {
+      return null;
+    }
+    
+    // Extract images from HTML
+    const descriptionImages = extractImagesFromHtml(product.description);
+    
+    // Strip HTML tags and get plain text
+    const stripHtml = (html: string) => {
+      if (!html) return '';
+      return html
+        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') // Remove scripts
+        .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '') // Remove styles
+        .replace(/<[^>]*>/g, ' ') // Remove HTML tags
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/\s+/g, ' ')
+        .trim();
+    };
+    
+    const plainText = stripHtml(product.description);
+    
+    return (
+      <View style={styles.productDescriptionContainer}>
+        <Text style={styles.productDescriptionTitle}>Product Description</Text>
+        <View style={styles.htmlContentContainer}>
+          {/* Display images from HTML description */}
+          {descriptionImages.length > 0 && (
+            <View style={styles.descriptionImagesContainer}>
+              {descriptionImages.map((imgUrl: string, index: number) => (
+                <Image
+                  key={index}
+                  source={{ uri: imgUrl }}
+                  style={styles.descriptionImage}
+                  resizeMode="contain"
+                />
+              ))}
+            </View>
+          )}
+          
+          {/* Display plain text description */}
+          {plainText && (
+            <View style={styles.descriptionTextContainer}>
+              <Text style={styles.descriptionText}>{plainText}</Text>
+            </View>
+          )}
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
+
+  const renderSimilarProducts = () => {
+    if (similarProducts.length === 0 && !similarProductsLoading && !similarProductsLoadingMore) {
+      return null;
+    }
+    
+    return (
+      <View style={styles.similarProductsContainer}>
+        <Text style={styles.similarProductsTitle}>For You</Text>
+        <FlatList
+          data={similarProducts}
+          renderItem={({ item }) => (
+            <View style={styles.similarProductItem}>
+              <ProductCard
+                product={item}
+                variant="moreToLove"
+                onPress={() => navigation.push('ProductDetail', { productId: item.id })}
+                onLikePress={() => toggleWishlist(item)}
+                isLiked={likedProductIds.includes(item.id?.toString())}
+              />
+            </View>
+          )}
+          keyExtractor={(item, index) => `similar-${item.id?.toString() || index}-${index}`}
+          numColumns={2}
+          scrollEnabled={false}
+          nestedScrollEnabled={true}
+          columnWrapperStyle={styles.similarProductsGrid}
+          onEndReached={loadMoreSimilarProducts}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={() => {
+            if (similarProductsLoadingMore) {
+              return (
+                <View style={styles.loadingMoreContainer}>
+                  <ActivityIndicator size="small" color={COLORS.primary} />
+                  <Text style={styles.loadingMoreText}>Loading more...</Text>
+                </View>
+              );
+            }
+            return null;
+          }}
+        />
+      </View>
+    );
+  };
 
   const renderBottomBar = () => (
     <View style={styles.bottomBar}>
@@ -626,7 +885,8 @@ const ProductDetailScreen: React.FC = () => {
   );
 
   const renderImageViewer = () => {
-    const images = product.images || [product.image];
+    // Use only API images for viewer
+    const images = getApiProductImages(product);
     
     return (
       <Modal
@@ -689,14 +949,16 @@ const ProductDetailScreen: React.FC = () => {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {renderImageGallery()}
         {renderProductInfo()}
+        {renderRatingRow()}
+        {renderPriceRow()}
         {renderColorSelector()}
         {renderSizeSelector()}
         {renderSellerInfo()}
-        {renderReviews()}
+        {/* {renderReviews()} */}
         {renderProductDetails()}
-        {renderProductImages()}
+        {renderProductDescription()}
         {renderSimilarProducts()}
-        <View style={{ height: 100 }} />
+        <View style={{ height: 200 }} />
       </ScrollView>
 
       {renderBottomBar()}
@@ -833,8 +1095,7 @@ const styles = StyleSheet.create({
   },
   productInfoContainer: {
     padding: SPACING.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.gray[200],
+    paddingBottom: 0,
   },
   productName: {
     fontSize: FONTS.sizes.lg,
@@ -842,10 +1103,25 @@ const styles = StyleSheet.create({
     color: COLORS.text.primary,
     marginBottom: SPACING.sm,
   },
+  productDescription: {
+    fontSize: FONTS.sizes.md,
+    color: COLORS.text.secondary,
+    lineHeight: 20,
+    marginTop: SPACING.sm,
+    marginBottom: SPACING.sm,
+  },
+  soldOutText: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.text.secondary,
+    marginTop: SPACING.xs,
+    fontWeight: '500',
+  },
   ratingRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: SPACING.lg,
     marginBottom: SPACING.md,
+    marginTop: SPACING.sm,
   },
   ratingContainer: {
     flexDirection: 'row',
@@ -864,6 +1140,7 @@ const styles = StyleSheet.create({
   priceRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: SPACING.lg,
   },
   price: {
     fontSize: 24,
@@ -1082,15 +1359,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingVertical: SPACING.sm,
+    alignItems: 'flex-start',
   },
   detailLabel: {
     fontSize: FONTS.sizes.sm,
     color: COLORS.text.secondary,
+    flex: 1,
+    marginRight: SPACING.md,
   },
   detailValue: {
     fontSize: FONTS.sizes.sm,
     color: COLORS.text.primary,
     fontWeight: '500',
+    flex: 2,
+    flexWrap: 'wrap',
+    textAlign: 'right',
   },
   readMoreText: {
     fontSize: FONTS.sizes.sm,
@@ -1110,13 +1393,43 @@ const styles = StyleSheet.create({
     paddingTop: SPACING.lg,
     paddingBottom: SPACING.md,
   },
-  productImageItem: {
+  productDescriptionContainer: {
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.gray[200],
+    backgroundColor: COLORS.white,
+  },
+  productDescriptionTitle: {
+    fontSize: FONTS.sizes.lg,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.lg,
+    paddingBottom: SPACING.md,
+  },
+  htmlContentContainer: {
+    width: '100%',
+    backgroundColor: COLORS.white,
+    paddingHorizontal: SPACING.lg,
+    paddingBottom: SPACING.lg,
+  },
+  descriptionImagesContainer: {
+    width: '100%',
+    marginBottom: SPACING.md,
+  },
+  descriptionImage: {
+    width: '100%',
+    height: 300,
+    marginBottom: SPACING.md,
+    backgroundColor: COLORS.gray[100],
+    borderRadius: BORDER_RADIUS.md,
+  },
+  descriptionTextContainer: {
     width: '100%',
   },
-  productImageFull: {
-    width: '100%',
-    height: width,
-    backgroundColor: COLORS.gray[100],
+  descriptionText: {
+    fontSize: FONTS.sizes.md,
+    color: COLORS.text.primary,
+    lineHeight: 24,
   },
   similarProductsContainer: {
     padding: SPACING.lg,
@@ -1128,12 +1441,22 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md,
   },
   similarProductsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: SPACING.sm,
+    justifyContent: 'space-between',
   },
   similarProductItem: {
     width: (width - SPACING.lg * 2 - SPACING.sm) / 2,
+  },
+  loadingMoreContainer: {
+    paddingVertical: SPACING.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: SPACING.sm,
+  },
+  loadingMoreText: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.text.secondary,
+    marginLeft: SPACING.sm,
   },
   bottomBar: {
     position: 'absolute',
@@ -1215,7 +1538,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: COLORS.black,
     borderRadius: 50, // Full round button
-    paddingVertical: SPACING.lg,
+    // paddingVertical: SPACING.smmd,
     justifyContent: 'center',
     alignItems: 'center',
     gap: SPACING.sm,
@@ -1232,7 +1555,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.primary,
     borderRadius: 50, // Full round button
-    paddingVertical: SPACING.lg,
+    paddingVertical: SPACING.smmd,
     justifyContent: 'center',
     alignItems: 'center',
     ...SHADOWS.md,

@@ -18,6 +18,7 @@ import { COLORS, FONTS, SPACING } from '../../constants';
 import { RootStackParamList } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { useAppSelector } from '../../store/hooks';
+import { translations } from '../../i18n/translations';
 
 
 type ProfileScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Main'>;
@@ -28,6 +29,16 @@ const ProfileScreen: React.FC = () => {
   const currentLocale = useAppSelector((state) => state.i18n.locale);
   const badgePulse = useRef(new Animated.Value(1)).current;
   const notificationCount = 1; // You can make this dynamic
+  
+  // Translation function
+  const t = (key: string) => {
+    const keys = key.split('.');
+    let value: any = translations[currentLocale as keyof typeof translations];
+    for (const k of keys) {
+      value = value?.[k];
+    }
+    return value || key;
+  };
 
   // Map language codes to flag emojis
   const getLanguageFlag = (locale: string) => {
@@ -95,7 +106,7 @@ const ProfileScreen: React.FC = () => {
     <View
       style={styles.header}
     >
-      <Text style={styles.headerTitle}>My Profile</Text>
+      <Text style={styles.headerTitle}>{t('profile.title')}</Text>
       <View style={styles.headerIcons}>
         <TouchableOpacity 
           style={styles.headerIcon}
@@ -150,32 +161,32 @@ const ProfileScreen: React.FC = () => {
             </View>
             <View style={styles.userDetails}>
               <Text style={styles.userName}>
-                {user?.name || 'User'}
+                {user?.name || t('profile.user')}
               </Text>
               <View style={styles.userBadge}>
                 <Ionicons name="checkmark-circle" size={16} color="#4CAF50" />
-                <Text style={styles.verifiedText}>Verified Member</Text>
+                <Text style={styles.verifiedText}>{t('profile.verifiedMember')}</Text>
               </View>
               <TouchableOpacity 
                 style={styles.editButton}
                 onPress={() => navigation.navigate('ProfileSettings')}
               >
                 <Ionicons name="pencil" size={14} color={COLORS.primary} />
-                <Text style={styles.editText}>Edit Profile</Text>
+                <Text style={styles.editText}>{t('profile.editProfile')}</Text>
               </TouchableOpacity>
             </View>
           </View>
         ) : (
           <View style={styles.authSection}>
             <Text style={styles.welcomeText}>
-              Welcome to TodayMall!
+              {t('profile.welcome')}
             </Text>
             <Text style={styles.loginPrompt}>
-              Login to access more services
+              {t('profile.loginPrompt')}
             </Text>
             <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
               <Ionicons name="log-in-outline" size={20} color={COLORS.white} />
-              <Text style={styles.loginButtonText}>Login</Text>
+              <Text style={styles.loginButtonText}>{t('profile.login')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -205,7 +216,7 @@ const ProfileScreen: React.FC = () => {
             <Ionicons name="diamond-outline" size={24} color="#4A90E2" />
           </View>
           <Text style={styles.statValue}>100</Text>
-          <Text style={styles.statLabel}>Points</Text>
+          <Text style={styles.statLabel}>{t('profile.points')}</Text>
         </TouchableOpacity>
         <View style={styles.statDivider} />
         <TouchableOpacity 
@@ -216,7 +227,7 @@ const ProfileScreen: React.FC = () => {
             <Ionicons name="heart-outline" size={24} color="#26D0CE" />
           </View>
           <Text style={styles.statValue}>0</Text>
-          <Text style={styles.statLabel}>Wishlist</Text>
+          <Text style={styles.statLabel}>{t('profile.wishlist')}</Text>
         </TouchableOpacity>
         <View style={styles.statDivider} />
         <TouchableOpacity 
@@ -227,7 +238,7 @@ const ProfileScreen: React.FC = () => {
             <Ionicons name="ticket-outline" size={24} color="#FF9500" />
           </View>
           <Text style={styles.statValue}>1</Text>
-          <Text style={styles.statLabel}>Coupons</Text>
+          <Text style={styles.statLabel}>{t('profile.coupons')}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -239,26 +250,26 @@ const ProfileScreen: React.FC = () => {
       // 1. START: Place New Orders
       {
         icon: 'bag-outline',
-        title: 'Buy Order',
+        title: t('profile.buyOrder'),
         onPress: () => navigation.navigate('BuyList'),
       },
       
       // 2. SETUP: Required for Buying (Address & Payment)
       {
         icon: 'location-outline',
-        title: 'Address',
+        title: t('profile.address'),
         onPress: () => navigation.navigate('AddressBook', { fromShippingSettings: false }),
       },
       {
         icon: 'card-outline',
-        title: 'Bank Card',
+        title: t('profile.bankCard'),
         onPress: () => navigation.navigate('PaymentMethods' as never),
       },
       
       // 3. ISSUES: Problems with Orders/Products
       {
         icon: 'alert-circle-outline',
-        title: 'Problem Product',
+        title: t('profile.problemProduct'),
         onPress: () => navigation.navigate('ProblemProduct' as never),
       },
     ];
@@ -268,21 +279,21 @@ const ProfileScreen: React.FC = () => {
       // Support & Help
       {
         icon: 'help-circle-outline',
-        title: 'Help Center',
+        title: t('profile.helpCenter'),
         onPress: () => navigation.navigate('HelpCenter'),
       },
       
       // Personal Features
       {
         icon: 'document-text-outline',
-        title: 'Note',
+        title: t('profile.note'),
         onPress: () => navigation.navigate('Note' as never),
       },
       
       // Social Features
       {
         icon: 'share-outline',
-        title: 'Share App',
+        title: t('profile.shareApp'),
         onPress: () => navigation.navigate('ShareApp' as never),
       },
       

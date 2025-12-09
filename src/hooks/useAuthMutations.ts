@@ -42,15 +42,16 @@ export const useLoginMutation = (options?: AuthUseMutationOptions): UseLoginMuta
         options?.onSuccess?.(response.data);
       } else {
         const errorMessage = response.error || 'Login failed';
+        const errorCode = response.errorCode;
         setError(errorMessage);
         setIsError(true);
-        options?.onError?.(errorMessage);
+        options?.onError?.(errorMessage, errorCode);
       }
     } catch (err) {
       const errorMessage = 'An unexpected error occurred. Please try again.';
       setError(errorMessage);
       setIsError(true);
-      options?.onError?.(errorMessage);
+      options?.onError?.(errorMessage, undefined);
     } finally {
       setIsLoading(false);
     }
@@ -100,7 +101,8 @@ export const useRegisterMutation = (options?: AuthUseMutationOptions): UseRegist
         variables.password,
         variables.name,
         variables.phone,
-        variables.isBusiness
+        variables.isBusiness,
+        variables.referralCode
       );
       
       if (response.success && response.data) {
@@ -110,17 +112,18 @@ export const useRegisterMutation = (options?: AuthUseMutationOptions): UseRegist
         options?.onSuccess?.(response.data);
       } else {
         const errorMessage = response.error || 'Registration failed';
-        console.log("Signup Api Failed:", errorMessage);
+        const errorCode = response.errorCode;
+        console.log("Signup Api Failed:", errorMessage, "Code:", errorCode);
         setError(errorMessage);
         setIsError(true);
-        options?.onError?.(errorMessage);
+        options?.onError?.(errorMessage, errorCode);
       }
     } catch (err) {
       const errorMessage = 'An unexpected error occurred. Please try again.';
-      console.log("Signup Failed:", errorMessage);
+      console.log("Signup Failed:", errorMessage, err);
       setError(errorMessage);
       setIsError(true);
-      options?.onError?.(errorMessage);
+      options?.onError?.(errorMessage, undefined);
     } finally {
       setIsLoading(false);
     }
@@ -260,15 +263,16 @@ export const useVerifyEmailMutation = (options?: AuthUseMutationOptions) => {
         options?.onSuccess?.(response.data);
       } else {
         const errorMessage = response.error || 'Verification failed';
+        const errorCode = response.errorCode;
         setError(errorMessage);
         setIsError(true);
-        options?.onError?.(errorMessage);
+        options?.onError?.(errorMessage, errorCode);
       }
     } catch (err) {
       const errorMessage = 'An unexpected error occurred';
       setError(errorMessage);
       setIsError(true);
-      options?.onError?.(errorMessage);
+      options?.onError?.(errorMessage, undefined);
     } finally {
       setIsLoading(false);
     }

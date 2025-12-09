@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,6 +18,10 @@ import { RouteProp } from '@react-navigation/native';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '../../constants';
 import { RootStackParamList } from '../../types';
 import { usePlatformStore } from '../../store/platformStore';
+import { useAppSelector } from '../../store/hooks';
+import { Image } from 'react-native';
+
+const { width } = Dimensions.get('window');
 
 type SubCategoryScreenNavigationProp = StackNavigationProp<RootStackParamList, 'SubCategory'>;
 type SubCategoryScreenRouteProp = RouteProp<RootStackParamList, 'SubCategory'>;
@@ -24,34 +29,106 @@ type SubCategoryScreenRouteProp = RouteProp<RootStackParamList, 'SubCategory'>;
 interface SubSubCategory {
   id: string;
   name: string;
+  image?: string;
+  subsubcategories?: any[];
 }
 
 const SubCategoryScreen: React.FC = () => {
   const navigation = useNavigation<SubCategoryScreenNavigationProp>();
   const route = useRoute<SubCategoryScreenRouteProp>();
-  const { categoryName, categoryId } = route.params;
+  const { categoryName, categoryId: categoryIdParam, subcategories: passedSubcategories } = route.params;
+  // Convert categoryId to string if it's a number, or use empty string if undefined
+  const categoryId = categoryIdParam !== undefined && categoryIdParam !== null 
+    ? categoryIdParam.toString() 
+    : '';
   
   const [subSubCategories, setSubSubCategories] = useState<SubSubCategory[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredSubSubCategories, setFilteredSubSubCategories] = useState<SubSubCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isShowingSubcategories, setIsShowingSubcategories] = useState(false);
   
   // Get Zustand store
-  const { getCompanyCategories, selectedPlatform } = usePlatformStore();
+  const { getCompanyCategories, getSubcategoriesFromTree, selectedPlatform, categoriesTree } = usePlatformStore();
+  
+  // Get locale from Redux store
+  const locale = useAppSelector((s) => s.i18n.locale) as 'en' | 'ko' | 'zh';
 
-  // Effect to load subsubcategories from mock data
+  // Effect to load subcategories or subsubcategories
   useEffect(() => {
     setIsLoading(true);
-    const companyCategories = getCompanyCategories();
     
-    // Find the category and subcategory to get subsubcategories
+    console.log('SubCategoryScreen - categoryId:', categoryId, 'categoryIdParam:', categoryIdParam);
+    console.log('SubCategoryScreen - passedSubcategories:', passedSubcategories);
+    
+    // If subcategories are passed from navigation, use them directly
+    if (passedSubcategories && passedSubcategories.length > 0) {
+      console.log('Using passed subcategories:', passedSubcategories.length);
+      setIsShowingSubcategories(true);
+      const formattedSubcategories: SubSubCategory[] = passedSubcategories.map((sub: any) => ({
+        id: sub.id || sub._id || '',
+        name: typeof sub.name === 'object' ? (sub.name[locale] || sub.name.en || sub.name) : (sub.name || ''),
+        subsubcategories: sub.subsubcategories || sub.children || [],
+      }));
+      setSubSubCategories(formattedSubcategories);
+      setFilteredSubSubCategories(formattedSubcategories);
+      setIsLoading(false);
+      return;
+    }
+    
+    // Otherwise, try to load from store/tree
+    const companyCategories = getCompanyCategories(locale);
+    
+    // Normalize categoryId for comparison (handle both string and number)
+    const normalizedCategoryId = categoryId?.toString();
+    
+    // Check if categoryId is a top-level category (showing subcategories)
+    const topLevelCategory = companyCategories.find((cat: any) => {
+      const catId = cat.id?.toString();
+      return catId === normalizedCategoryId;
+    });
+    
+    if (topLevelCategory) {
+      // This is a top-level category, show all its subcategories
+      setIsShowingSubcategories(true);
+      
+      // Try to get from categories tree first
+      if (categoriesTree && categoriesTree.tree) {
+        const subcategories = getSubcategoriesFromTree(normalizedCategoryId, locale);
+        console.log('Subcategories from tree:', subcategories);
+        const formattedSubcategories: SubSubCategory[] = subcategories.map((sub: any) => ({
+          id: sub.id || sub._id,
+          name: sub.name || '',
+        }));
+        setSubSubCategories(formattedSubcategories);
+        setFilteredSubSubCategories(formattedSubcategories);
+      } else {
+        // Fallback to mock data
+        const subcategories = topLevelCategory.subcategories || [];
+        console.log('Subcategories from mock data:', subcategories);
+        const formattedSubcategories: SubSubCategory[] = subcategories.map((sub: any) => ({
+          id: sub.id,
+          name: typeof sub.name === 'object' ? (sub.name[locale] || sub.name.en || sub.name) : sub.name,
+        }));
+        setSubSubCategories(formattedSubcategories);
+        setFilteredSubSubCategories(formattedSubcategories);
+      }
+    } else {
+      // This is a subcategory, show its subsubcategories
+      setIsShowingSubcategories(false);
     let foundSubSubCategories: SubSubCategory[] = [];
     
     for (const category of companyCategories) {
       if (category.subcategories) {
-        const subcategory = category.subcategories.find((sub: any) => sub.id === categoryId);
+          const subcategory = category.subcategories.find((sub: any) => {
+            const subId = sub.id?.toString();
+            return subId === normalizedCategoryId;
+          });
         if (subcategory && subcategory.subsubcategories) {
-          foundSubSubCategories = subcategory.subsubcategories;
+            foundSubSubCategories = subcategory.subsubcategories.map((subSub: any) => ({
+              id: subSub.id,
+              name: typeof subSub.name === 'object' ? (subSub.name[locale] || subSub.name.en || subSub.name) : subSub.name,
+            }));
           break;
         }
       }
@@ -59,8 +136,10 @@ const SubCategoryScreen: React.FC = () => {
     
     setSubSubCategories(foundSubSubCategories);
     setFilteredSubSubCategories(foundSubSubCategories);
+    }
+    
     setIsLoading(false);
-  }, [categoryId, selectedPlatform]);
+  }, [categoryId, selectedPlatform, locale, categoriesTree, passedSubcategories]);
 
   // Effect to filter subsubcategories based on search query
   useEffect(() => {
@@ -75,10 +154,64 @@ const SubCategoryScreen: React.FC = () => {
   }, [searchQuery, subSubCategories]);
 
   const handleSubSubCategorySelect = (subSubCategory: SubSubCategory) => {
-    // Navigate to ProductDiscovery with the selected subsubcategory
+    if (isShowingSubcategories) {
+      // If showing subcategories, navigate to ProductDiscovery with the selected subcategory
+      // Get subsubcategories if they exist in the item
+      let localizedSubSubCategories: any[] = [];
+      if (subSubCategory.subsubcategories && subSubCategory.subsubcategories.length > 0) {
+        localizedSubSubCategories = subSubCategory.subsubcategories.map((subSubCat: any) => {
+          // If subSubCat.name is an object with zh, en, ko, extract the correct locale
+          if (subSubCat.name && typeof subSubCat.name === 'object') {
+            return {
+              ...subSubCat,
+              name: subSubCat.name[locale] || subSubCat.name.en || subSubCat.name
+            };
+          }
+          // If it's already a string, use it as is
+          return subSubCat;
+        });
+      }
+      
+      navigation.navigate('ProductDiscovery', { 
+        subCategoryName: subSubCategory.name,
+        categoryId: categoryId,
+        categoryName: categoryName,
+        subcategoryId: subSubCategory.id,
+        subsubcategories: localizedSubSubCategories,
+      });
+    } else {
+      // If showing subsubcategories, navigate to ProductDiscovery with the selected subsubcategory
+      // Find the parent category and subcategory IDs
+      const companyCategories = getCompanyCategories(locale);
+      const normalizedCategoryId = categoryId?.toString();
+      let parentCategoryId: string | undefined = undefined;
+      let parentCategoryName: string | undefined = categoryName;
+      
+      // Find the parent category that contains this subcategory
+      for (const category of companyCategories) {
+        if (category.subcategories) {
+          const subcategory = category.subcategories.find((sub: any) => {
+            const subId = sub.id?.toString();
+            return subId === normalizedCategoryId;
+          });
+          if (subcategory) {
+            parentCategoryId = category.id?.toString();
+            parentCategoryName = typeof category.name === 'object' 
+              ? (category.name[locale] || category.name.en || category.name)
+              : category.name;
+            break;
+          }
+        }
+      }
+      
     navigation.navigate('ProductDiscovery', { 
-      subCategoryName: subSubCategory.name
+        subCategoryName: subSubCategory.name,
+        categoryId: parentCategoryId || categoryId,
+        categoryName: parentCategoryName || categoryName,
+        subcategoryId: categoryId, // The current categoryId is actually the subcategory ID
+        subsubcategories: [], // We're navigating to a specific subsubcategory, so pass empty array
     });
+    }
   };
 
   const renderHeader = () => (
@@ -112,7 +245,7 @@ const SubCategoryScreen: React.FC = () => {
     </View>
   );
 
-  const renderSubSubCategoryItem = (item: SubSubCategory) => {
+  const renderSubSubCategoryItem = (item: SubSubCategory, index: number) => {
     // Add safety check for item
     if (!item) {
       console.warn('SubSubCategory item is null or undefined');
@@ -120,18 +253,30 @@ const SubCategoryScreen: React.FC = () => {
     }
     
     // Generate a safe key
-    const key = item.id || `subsubcategory-${Math.random()}`;
+    const key = item.id || `subsubcategory-${index}`;
     
     return (
       <TouchableOpacity
         key={key}
-        style={styles.categoryItem}
+        style={styles.quickCategoryItem}
         onPress={() => handleSubSubCategorySelect(item)}
       >
-        <View style={styles.categoryItemLeft}>
-          <Text style={styles.categoryText}>{item.name}</Text>
+        <View style={styles.quickCategoryImageContainer}>
+          {item.image ? (
+            <Image 
+              source={{ uri: item.image }} 
+              style={styles.quickCategoryImage}
+              resizeMode="cover"
+            />
+          ) : (
+            <Image 
+              source={require('../../assets/icons/logo.png')} 
+              style={styles.quickCategoryLogo}
+              resizeMode="contain"
+            />
+          )}
         </View>
-        <Ionicons name="chevron-forward" size={20} color={COLORS.text.secondary} />
+        <Text style={styles.quickCategoryName} numberOfLines={2}>{item.name}</Text>
       </TouchableOpacity>
     );
   };
@@ -147,7 +292,8 @@ const SubCategoryScreen: React.FC = () => {
       );
     }
 
-    if (!categoryId) {
+    // If subcategories are passed, we don't need categoryId
+    if (!categoryId && (!passedSubcategories || passedSubcategories.length === 0)) {
       return (
         <View style={styles.centeredContainer}>
           <Text style={styles.errorText}>Category ID not provided</Text>
@@ -183,8 +329,10 @@ const SubCategoryScreen: React.FC = () => {
     }
 
     return (
-      <View style={styles.categoriesContainer}>
-        {validSubSubCategories.map(renderSubSubCategoryItem)}
+      <View style={styles.quickCategoriesContainer}>
+        <View style={styles.quickCategoriesGrid}>
+          {validSubSubCategories.map((item, index) => renderSubSubCategoryItem(item, index))}
+        </View>
       </View>
     );
   };
@@ -249,6 +397,45 @@ const styles = StyleSheet.create({
   },
   categoriesContainer: {
     marginHorizontal: SPACING.md,
+  },
+  quickCategoriesContainer: {
+    backgroundColor: COLORS.white,
+    paddingVertical: SPACING.lg,
+  },
+  quickCategoriesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: SPACING.md,
+    justifyContent: 'space-between',
+  },
+  quickCategoryItem: {
+    width: (width - SPACING.lg * 2 - SPACING.sm * 2) / 3,
+    alignItems: 'center',
+    marginBottom: SPACING.md,
+  },
+  quickCategoryImageContainer: {
+    width: (width - SPACING.lg * 2 - SPACING.sm * 2) / 3,
+    height: (width - SPACING.lg * 2 - SPACING.sm * 2) / 3,
+    borderRadius: 8,
+    backgroundColor: COLORS.gray[100],
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: SPACING.sm,
+    overflow: 'hidden',
+  },
+  quickCategoryImage: {
+    width: '100%',
+    height: '100%',
+  },
+  quickCategoryLogo: {
+    width: '80%',
+    height: '55%',
+  },
+  quickCategoryName: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.text.primary,
+    textAlign: 'center',
+    fontWeight: '500',
   },
   categoryItem: {
     flexDirection: 'row',
