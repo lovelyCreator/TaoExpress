@@ -126,7 +126,7 @@ export const translations = {
     },
     product: {
       addToCart: 'Add to cart',
-      buyNow: 'Buy Now',
+      buyNow: 'Checkout',
       quantity: 'Quantity',
       color: 'Color',
       size: 'Size',
@@ -792,7 +792,7 @@ Supports credit and check cards from various banks for recharging and payments.`
     },
     product: {
       addToCart: '加入购物车',
-      buyNow: '立即购买',
+      buyNow: '查看',
       quantity: '数量',
       color: '颜色',
       size: '尺寸',
@@ -1486,7 +1486,7 @@ Supports credit and check cards from various banks for recharging and payments.`
     },
     product: {
       addToCart: '장바구니 담기',
-      buyNow: '바로 구매',
+      buyNow: '점검',
       quantity: '수량',
       color: '색상',
       size: '사이즈',

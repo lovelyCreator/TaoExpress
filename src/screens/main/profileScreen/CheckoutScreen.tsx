@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -21,6 +21,9 @@ import { useAuth } from '../../../context/AuthContext';
 import { Address, PaymentMethod } from '../../../types';
 import { useRoute, RouteProp } from '@react-navigation/native';
 import PhotoCaptureModal from '../../../components/PhotoCaptureModal';
+import { useGetCartMutation } from '../../../hooks/useGetCartMutation';
+import { useCreateOrderMutation } from '../../../hooks/useCreateOrderMutation';
+import { useToast } from '../../../context/ToastContext';
 
 type CheckoutScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Checkout'>;
 
@@ -51,7 +54,14 @@ const CheckoutScreen: React.FC = () => {
       promoCode: '',
     });
   };
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
+  const { showToast } = useToast();
+  
+  // Check if we're coming from product detail page (Buy Now)
+  const productFromRoute = route.params?.product;
+  const quantityFromRoute = route.params?.quantity || 1;
+  const selectedVariationsFromRoute = route.params?.selectedVariations || {};
+  const isBuyNowFlow = !!productFromRoute;
   
   const [selectedAddress, setSelectedAddress] = useState<Address | null>(
     route.params?.selectedAddress || null
@@ -67,6 +77,148 @@ const CheckoutScreen: React.FC = () => {
     request: string;
     photos: string[];
   } | null>(null);
+  const [isLoadingCart, setIsLoadingCart] = useState(!isBuyNowFlow); // Don't load if we have product from route
+  const fetchCartRef = useRef<(() => Promise<void>) | null>(null);
+
+  // Map cart data from API to local cart state
+  const mapCartData = useCallback((data: any) => {
+    if (!data || !data.cart) {
+      setCart({
+        items: [],
+        total: 0,
+        subtotal: 0,
+        tax: 0,
+        shipping: 0,
+        discount: 0,
+        promoCode: '',
+      });
+      setIsLoadingCart(false);
+      return;
+    }
+
+    const cartData = data.cart;
+    let rawItems = cartData.items || [];
+    
+    // For Buy Now flow, filter to only show the product from route
+    if (isBuyNowFlow && productFromRoute) {
+      const productId = productFromRoute.id || productFromRoute.offerId?.toString() || '';
+      const offerId = productFromRoute.offerId?.toString() || productFromRoute.id?.toString() || '';
+      
+      // Filter cart items to only include the product we're buying
+      rawItems = rawItems.filter((item: any) => {
+        const itemOfferId = item.offerId?.toString() || '';
+        const itemProductId = item.productId?.toString() || '';
+        return itemOfferId === offerId || itemProductId === productId || itemOfferId === productId;
+      });
+    }
+    
+    // Map items to match the expected structure in renderOrderItems
+    const items = rawItems.map((item: any) => {
+      const price = parseFloat(item.skuInfo?.price || item.skuInfo?.consignPrice || item.price || '0');
+      const quantity = item.quantity || 1;
+      
+      // Extract variations from skuAttributes
+      const variations = (item.skuInfo?.skuAttributes || []).map((attr: any) => ({
+        name: attr.attributeNameTrans || attr.attributeName || '',
+        value: attr.valueTrans || attr.value || '',
+      }));
+      
+      // Extract color and size from variations if available
+      const colorVariation = variations.find((v: any) => 
+        v.name.toLowerCase().includes('color') || v.name.toLowerCase().includes('colour')
+      );
+      const sizeVariation = variations.find((v: any) => 
+        v.name.toLowerCase().includes('size')
+      );
+      
+      return {
+        id: item._id || item.offerId?.toString() || '',
+        _id: item._id,
+        offerId: item.offerId,
+        productId: item.offerId?.toString() || '',
+        quantity: quantity,
+        price: price,
+        selectedColor: colorVariation ? { name: colorVariation.value } : null,
+        selectedSize: sizeVariation ? sizeVariation.value : null,
+        product: {
+          id: item.offerId?.toString() || '',
+          name: item.subjectTrans || item.subject || '',
+          image: item.imageUrl || '',
+          price: price,
+        },
+        // Keep original data for reference
+        originalData: item,
+      };
+    });
+    
+    // Calculate totals
+    const subtotal = items.reduce((sum: number, item: any) => {
+      return sum + (item.price * item.quantity);
+    }, 0);
+    
+    const shipping = 0; // Calculate shipping if needed
+    const tax = 0; // Calculate tax if needed
+    const discount = 0; // Calculate discount if needed
+    const total = subtotal + shipping + tax - discount;
+
+    setCart({
+      items: items,
+      total: total,
+      subtotal: subtotal,
+      tax: tax,
+      shipping: shipping,
+      discount: discount,
+      promoCode: cartData.promoCode || '',
+    });
+    setIsLoadingCart(false);
+  }, [isBuyNowFlow, productFromRoute]);
+
+  // Fetch cart items
+  const { mutate: fetchCart } = useGetCartMutation({
+    onSuccess: (data) => {
+      console.log('Cart fetched successfully in Checkout:', data);
+      mapCartData(data);
+    },
+    onError: (error) => {
+      console.error('Failed to fetch cart in Checkout:', error);
+      setIsLoadingCart(false);
+      // Don't show error toast, just keep cart empty
+    },
+  });
+
+  // Store fetchCart in ref to avoid dependency issues
+  useEffect(() => {
+    fetchCartRef.current = fetchCart;
+  }, [fetchCart]);
+
+  // Note: For Buy Now flow, the product is already added to cart before navigation
+  // We fetch the cart to get the actual cart items with _id (needed for order creation)
+  // The product from route is just for reference, but we use cart items from API
+
+  // Load cart when screen comes into focus
+  // For Buy Now flow: fetch cart to get cart item IDs (product was added to cart before navigation)
+  // For normal flow: fetch all cart items
+  useFocusEffect(
+    useCallback(() => {
+      if (isAuthenticated && fetchCartRef.current) {
+        setIsLoadingCart(true);
+        // Always fetch cart to get actual cart item IDs (needed for order creation)
+        // Even in Buy Now flow, we need to fetch to get the _id of the cart item
+        fetchCartRef.current();
+      } else {
+        setIsLoadingCart(false);
+        setCart({
+          items: [],
+          total: 0,
+          subtotal: 0,
+          tax: 0,
+          shipping: 0,
+          discount: 0,
+          promoCode: '',
+        });
+      }
+    }, [isAuthenticated]) // Removed fetchCart from dependencies to prevent infinite loop
+  );
 
   useEffect(() => {
     // Set default address if available and no address from params
@@ -97,6 +249,27 @@ const CheckoutScreen: React.FC = () => {
     });
   };
 
+  // Create order mutation
+  const { mutate: createOrder, isLoading: isCreatingOrder } = useCreateOrderMutation({
+    onSuccess: (data) => {
+      console.log('Order created successfully:', data);
+      showToast('Order created successfully', 'success');
+      clearCart();
+      // Navigate to order confirmation
+      const orderId = data?.order?._id || data?.order?.orderNumber || '';
+      if (orderId) {
+        navigation.navigate('OrderConfirmation', { orderId });
+      } else {
+        // Fallback: navigate to home if order ID not available
+        navigation.navigate('Main' as never);
+      }
+    },
+    onError: (error) => {
+      console.error('Failed to create order:', error);
+      Alert.alert('Error', error || 'Failed to create order. Please try again.');
+    },
+  });
+
   const handlePlaceOrder = async () => {
     if (!selectedAddress) {
       Alert.alert('Error', 'Please select a delivery address');
@@ -111,38 +284,53 @@ const CheckoutScreen: React.FC = () => {
       return;
     }
 
-    setLoading(true);
-    try {
-      const orderData = {
-        userId: user?.id || '1',
-        items: cart.items,
-        status: 'pending' as const,
-        total: cart.total,
-        subtotal: cart.subtotal,
-        tax: cart.tax,
-        shipping: cart.shipping,
-        discount: cart.discount,
-        promoCode: cart.promoCode,
-        shippingAddress: selectedAddress,
-        billingAddress: selectedAddress, // In a real app, this might be different
-        paymentMethod: selectedPaymentMethod,
-        transferMethod: selectedTransferMethod,
-        designatedShooting: designatedShootingData,
-      };
+    // Get cart item IDs - use _id from cart items (from API)
+    const cartItemIds = cart.items
+      .map(item => item._id || item.originalData?._id)
+      .filter(id => id);
 
-      // API call removed
-      const response = { success: false, message: 'API removed' };
-      if (response.success) {
-        clearCart();
-        // navigation.navigate('OrderConfirmation', { orderId: response.data.id });
-      } else {
-        Alert.alert('Error', 'Failed to place order. Please try again.');
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to place order. Please try again.');
-    } finally {
-      setLoading(false);
+    if (cartItemIds.length === 0) {
+      Alert.alert('Error', 'Invalid cart items. Please ensure items are in your cart.');
+      return;
     }
+
+    // Map orderType from transferMethod
+    // transferMethod: 'air_ship' -> orderType: 'General'
+    // For now, default to General
+    const orderType: 'General' | 'VVIC' | 'Rocket' = 'General';
+
+    // Map transferMethod: 'air_ship' -> 'air', 'general' -> 'ship'
+    const transferMethod: 'air' | 'ship' = selectedTransferMethod === 'air_ship' ? 'air' : 'ship';
+
+    // Build itemDetails object
+    const itemDetails: Record<string, any> = {};
+    cart.items.forEach(item => {
+      const itemId = item._id || item.originalData?._id || item.id;
+      if (!itemId) return;
+
+      itemDetails[itemId] = {
+        ...(notes && { notes: notes }),
+        ...(designatedShootingData && {
+          designatedShooting: designatedShootingData.photos.map((photo) => ({
+            note: designatedShootingData.request || '',
+            photo: photo,
+          })),
+        }),
+      };
+    });
+
+    // Create order request
+    const orderRequest = {
+      cartItemIds,
+      orderType,
+      transferMethod,
+      itemDetails,
+      flow: 'general' as const,
+      addressId: selectedAddress.id,
+    };
+
+    console.log('Creating order with request:', JSON.stringify(orderRequest, null, 2));
+    createOrder(orderRequest);
   };
 
   const renderHeader = () => (
@@ -397,10 +585,32 @@ const CheckoutScreen: React.FC = () => {
     </View>
   );
 
-  const renderOrderItems = () => (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Order Items</Text>
-      {cart.items.map((item) => (
+  const renderOrderItems = () => {
+    if (isLoadingCart) {
+      return (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Order Items</Text>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color={COLORS.primary} />
+            <Text style={styles.loadingText}>Loading cart items...</Text>
+          </View>
+        </View>
+      );
+    }
+
+    if (cart.items.length === 0) {
+      return (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Order Items</Text>
+          <Text style={styles.emptyCartText}>Your cart is empty</Text>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Order Items</Text>
+        {cart.items.map((item) => (
         <View key={item.id} style={styles.orderItem}>
           <View style={styles.itemInfo}>
             <Text style={styles.itemName} numberOfLines={2}>
@@ -417,8 +627,9 @@ const CheckoutScreen: React.FC = () => {
           </Text>
         </View>
       ))}
-    </View>
-  );
+      </View>
+    );
+  };
 
   const renderOrderSummary = () => (
     <View style={styles.section}>
@@ -941,6 +1152,23 @@ const styles = StyleSheet.create({
   },
   transferTypeSelected: {
     color: COLORS.primary,
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: SPACING.lg,
+    gap: SPACING.sm,
+  },
+  loadingText: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.text.secondary,
+  },
+  emptyCartText: {
+    fontSize: FONTS.sizes.base,
+    color: COLORS.text.secondary,
+    textAlign: 'center',
+    padding: SPACING.lg,
   },
 });
 

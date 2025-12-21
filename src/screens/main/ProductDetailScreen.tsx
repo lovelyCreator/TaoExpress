@@ -36,6 +36,7 @@ import { useToast } from '../../context/ToastContext';
 import { useWishlistStatus } from '../../hooks/useWishlistStatus';
 import { useAddToWishlistMutation } from '../../hooks/useAddToWishlistMutation';
 import { useDeleteFromWishlistMutation } from '../../hooks/useDeleteFromWishlistMutation';
+import { useGetCartMutation } from '../../hooks/useGetCartMutation';
 import HeartPlusIcon from '../../assets/icons/HeartPlusIcon';
 import FamilyStarIcon from '../../assets/icons/FamilyStarIcon';
 import ArrowBackIcon from '../../assets/icons/ArrowBackIcon';
@@ -55,7 +56,7 @@ const ProductDetailScreen: React.FC = () => {
   const route = useRoute<any>();
   const navigation = useNavigation<any>();
   const { productId, offerId, productData: initialProductData, source: routeSource, country: routeCountry } = route.params;
-  console.log("[ProductDetailScreen] routeSource:", routeSource);
+  // console.log("[ProductDetailScreen] routeSource:", routeSource);
   // Use wishlist status hook to check if products are liked based on external IDs
   const { isProductLiked, refreshExternalIds, addExternalId, removeExternalId } = useWishlistStatus();
   const { user, isAuthenticated } = useAuth();
@@ -134,7 +135,7 @@ const ProductDetailScreen: React.FC = () => {
     }
   };
   
-  // Add to cart mutation
+  // Add to cart mutation (for Add to Cart button)
   const { mutate: addToCart, isLoading: isAddingToCart } = useAddToCartMutation({
     onSuccess: (data) => {
       console.log('Product added to cart successfully:', data);
@@ -147,16 +148,108 @@ const ProductDetailScreen: React.FC = () => {
       showToast(error || t('product.failedToAdd') || 'Failed to add product to cart', 'error');
     },
   });
-  
+
   // Get platform and locale
   const { selectedPlatform } = usePlatformStore();
   const locale = useAppSelector((s) => s.i18n.locale) as 'en' | 'ko' | 'zh';
   const { t } = useTranslation();
   const { showToast } = useToast();
   
+  // Get cart mutation to fetch cart after adding product (for Buy Now - navigates to Payment)
+  const { mutate: fetchCart } = useGetCartMutation({
+    onSuccess: (data) => {
+      console.log('Cart fetched after Buy Now:', data);
+      // Find the cart item we just added
+      const cartData = data?.cart;
+      const cartItems = cartData?.items || [];
+      
+      // Find the item that matches our product
+      const productIdForUrl = product?.offerId || product?.id || productId || offerId || '';
+      const addedCartItem = cartItems.find((item: any) => 
+        item.offerId?.toString() === productIdForUrl.toString() ||
+        item.productId?.toString() === productIdForUrl.toString()
+      );
+      
+      if (!addedCartItem) {
+        showToast('Failed to find cart item. Please try again.', 'error');
+        return;
+      }
+      
+      // Format the item for Payment screen (similar to CartScreen)
+      const price = parseFloat(addedCartItem.skuInfo?.price || addedCartItem.skuInfo?.consignPrice || addedCartItem.price || product?.price || '0');
+      const productQuantity = quantity;
+      
+      // Extract color and size from variations
+      const variations = (addedCartItem.skuInfo?.skuAttributes || []).map((attr: any) => ({
+        name: attr.attributeNameTrans || attr.attributeName || '',
+        value: attr.valueTrans || attr.value || '',
+      }));
+      
+      const colorVariation = variations.find((v: any) =>
+        v.name.toLowerCase().includes('color') || v.name.toLowerCase().includes('colour')
+      );
+      const sizeVariation = variations.find((v: any) =>
+        v.name.toLowerCase().includes('size')
+      );
+      
+      const paymentItem = {
+        id: addedCartItem.id || addedCartItem._id || productIdForUrl.toString(),
+        _id: addedCartItem._id, // Cart item ID from backend
+        name: product?.name || product?.subjectTrans || product?.subject || addedCartItem.subjectTrans || '',
+        color: colorVariation?.value || selectedVariations[Object.keys(selectedVariations).find(k => k.toLowerCase().includes('color')) || ''] || undefined,
+        size: sizeVariation?.value || selectedVariations[Object.keys(selectedVariations).find(k => k.toLowerCase().includes('size')) || ''] || undefined,
+        price: price,
+        quantity: productQuantity,
+        image: product?.images?.[0] || product?.image || addedCartItem.imageUrl || '',
+      };
+      
+      const totalAmount = price * productQuantity;
+      
+      // Navigate directly to Payment page (like CartScreen does)
+      navigation.navigate('Payment', {
+        items: [paymentItem],
+        totalAmount: totalAmount,
+        fromCart: false, // Indicate this is from Buy Now, not cart
+        selectedAddress: user?.addresses?.find(addr => addr.isDefault) || user?.addresses?.[0],
+      });
+    },
+    onError: (error) => {
+      console.error('Failed to fetch cart after Buy Now:', error);
+      showToast('Failed to proceed. Please try again.', 'error');
+    },
+  });
+
+  // Add to cart mutation for Buy Now (then navigates to Payment page)
+  const { mutate: addToCartForBuyNow, isLoading: isAddingToCartForBuyNow } = useAddToCartMutation({
+    onSuccess: (data) => {
+      console.log('Product added to cart for Buy Now:', data);
+      // Fetch cart to get the cart item _id needed for Payment screen
+      fetchCart();
+    },
+    onError: (error) => {
+      console.error('Failed to add product to cart for Buy Now:', error);
+      showToast(error || 'Failed to proceed. Please try again.', 'error');
+    },
+  });
+  
   // Use source from route params if available, otherwise use selectedPlatform
-  const source = routeSource || selectedPlatform || '1688';
-  const country = routeCountry || locale;
+  // Memoize to prevent infinite loops - only depend on route params, not store values
+  const source = useMemo(() => routeSource || selectedPlatform || '1688', [routeSource, selectedPlatform]);
+  const country = useMemo(() => routeCountry || locale, [routeCountry, locale]);
+  
+  // Use refs to track the actual values used for fetching (to avoid re-fetching when store values change)
+  const sourceRef = useRef(source);
+  const countryRef = useRef(country);
+  
+  // Update refs when source/country change, but only if they're from route params
+  useEffect(() => {
+    if (routeSource) sourceRef.current = routeSource;
+    else if (selectedPlatform) sourceRef.current = selectedPlatform;
+    else sourceRef.current = '1688';
+    
+    if (routeCountry) countryRef.current = routeCountry;
+    else countryRef.current = locale;
+  }, [routeSource, routeCountry, selectedPlatform, locale]);
 
   // Use product data from navigation params if available, otherwise fetch
   const [product, setProduct] = useState<any>(initialProductData || null);
@@ -607,7 +700,7 @@ const ProductDetailScreen: React.FC = () => {
   });
 
   // Fetch product detail if productId is available and no initialProductData
-  // Only fetch once per productId
+  // Only fetch once per productId - use route params in dependencies to avoid infinite loops
   useEffect(() => {
     if (initialProductData) {
       setProduct(initialProductData);
@@ -629,16 +722,18 @@ const ProductDetailScreen: React.FC = () => {
         if (!alreadyFetched && !isFetchingDetail) {
           hasFetchedProductRef.current = currentProductId; // Mark as fetching
           setLoading(true);
+          const fetchSource = sourceRef.current;
+          const fetchCountry = countryRef.current;
           console.log('📦 [ProductDetailScreen] Fetching product detail:', {
             currentProductId,
             productId,
             offerId,
-            source,
-            country,
+            source: fetchSource,
+            country: fetchCountry,
             routeSource,
             routeCountry,
           });
-          fetchProductDetail(currentProductId, source, country);
+          fetchProductDetail(currentProductId, fetchSource, fetchCountry);
         } else if (alreadyFetched) {
           // Already fetched, don't show loading
           setLoading(false);
@@ -646,7 +741,7 @@ const ProductDetailScreen: React.FC = () => {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [productId, offerId, initialProductData, source, country]); // Removed fetchProductDetail from dependencies
+  }, [productId, offerId, initialProductData, routeSource, routeCountry]); // Use route params instead of derived source/country
   
   // Fetch related products when productId is available
   useEffect(() => {
@@ -654,25 +749,26 @@ const ProductDetailScreen: React.FC = () => {
     if (currentProductId && product) {
       // Map locale to language code
       const language = locale === 'zh' ? 'zh' : locale === 'ko' ? 'ko' : 'en';
+      const fetchSource = sourceRef.current; // Use ref to avoid infinite loops
       
-      if (source === 'taobao') {
+      if (fetchSource === 'taobao') {
         // For Taobao, use search API with product name or category as keyword
         const searchKeyword = product.name || product.subject || product.subjectTrans || '';
         if (searchKeyword) {
           console.log('🔍 [ProductDetailScreen] Fetching related products via search API for Taobao:', {
             keyword: searchKeyword,
-            source,
+            source: fetchSource,
             language,
           });
-          searchProducts(searchKeyword, source, language, 1, 20);
+          searchProducts(searchKeyword, fetchSource, language, 1, 20);
         }
       } else {
         // For non-Taobao, use related recommendations API
-        fetchRelatedRecommendations(currentProductId, 1, 10, language, source);
+        fetchRelatedRecommendations(currentProductId, 1, 10, language, fetchSource);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [productId, offerId, locale, product, source]);
+  }, [productId, offerId, locale, product, routeSource]); // Use routeSource instead of source to avoid infinite loops
   
   
   // Load more similar products
@@ -979,6 +1075,130 @@ const ProductDetailScreen: React.FC = () => {
       await addToCart(requestBody);
     } catch (error: any) {
       showToast(error?.message || t('product.failedToAdd') || 'Failed to add product to cart', 'error');
+    }
+  };
+
+  // Handle Buy Now - same logic as handleAddToCart but navigates to Checkout
+  const handleBuyNow = async () => {
+    if (!isAuthenticated) {
+      showToast(t('home.pleaseLogin') || 'Please login first', 'warning');
+      return;
+    }
+
+    if (!canAddToCart) {
+      const variationTypes = getVariationTypes();
+      if (variationTypes.length > 0) {
+        showToast(t('product.pleaseSelectOptions') || 'Please select all variations', 'warning');
+      }
+      return;
+    }
+
+    try {
+      // Reuse the same logic from handleAddToCart
+      const productSkuInfos = (product as any).productSkuInfos || [];
+      const rawVariants = (product as any).rawVariants || [];
+      const fetchSource = sourceRef.current;
+      
+      let selectedVariant: any = null;
+      let selectedSku: any = null;
+      
+      if (rawVariants.length > 0) {
+        if (Object.keys(selectedVariations).length > 0) {
+          selectedVariant = rawVariants.find((variant: any) => {
+            const variantName = variant.name || '';
+            if (!variantName) return false;
+            return Object.entries(selectedVariations).every(([variationName, selectedValue]) => {
+              const searchPattern = `${variationName}: ${selectedValue}`;
+              return variantName.toLowerCase().includes(searchPattern.toLowerCase());
+            });
+          });
+        }
+        if (!selectedVariant && rawVariants.length > 0) {
+          selectedVariant = rawVariants[0];
+        }
+      }
+      
+      let skuIdFromVariant: string | number | null = null;
+      let variantPrice: number | null = null;
+      
+      if (selectedVariant) {
+        skuIdFromVariant = selectedVariant.skuId || selectedVariant.id || null;
+        variantPrice = selectedVariant.price || null;
+      }
+      
+      if (productSkuInfos.length > 0) {
+        if (skuIdFromVariant) {
+          selectedSku = productSkuInfos.find((sku: any) => 
+            sku.skuId?.toString() === skuIdFromVariant?.toString() || 
+            sku.specId?.toString() === skuIdFromVariant?.toString()
+          );
+        }
+        
+        if (!selectedSku && Object.keys(selectedVariations).length > 0) {
+          selectedSku = productSkuInfos.find((sku: any) => {
+            const skuAttributes = sku.skuAttributes || [];
+            return Object.entries(selectedVariations).every(([variationName, selectedValue]) => {
+              return skuAttributes.some((attr: any) => {
+                const attrName = (attr.attributeNameTrans || attr.attributeName || '').toLowerCase();
+                const attrValue = attr.valueTrans || attr.value || '';
+                return attrName === variationName.toLowerCase() && attrValue === selectedValue;
+              });
+            });
+          });
+        }
+        
+        if (!selectedSku && productSkuInfos.length > 0) {
+          selectedSku = productSkuInfos[0];
+        }
+      }
+      
+      const finalSkuId = skuIdFromVariant || selectedSku?.skuId || selectedVariant?.skuId || selectedVariant?.id || '0';
+      const finalSpecId = finalSkuId.toString();
+      const finalPrice = variantPrice || selectedSku?.price || selectedSku?.consignPrice || product.price || 0;
+      
+      const productIdForUrl = product.offerId || product.id || productId || offerId || '';
+      const isTaobao = fetchSource === 'taobao';
+      const promotionUrl = isTaobao 
+        ? `https://todaymall.co.kr/${productIdForUrl}`
+        : ((product as any).promotionUrl || '');
+      
+      const skuIdValue = typeof finalSkuId === 'string' ? parseInt(finalSkuId) || 0 : finalSkuId;
+      
+      const requestBody = {
+        offerId: parseInt(productIdForUrl.toString() || '0'),
+        categoryId: parseInt((product as any).categoryId || product.category?.id || '0'),
+        subject: (product as any).subject || product.name || '',
+        subjectTrans: (product as any).subjectTrans || product.name || '',
+        imageUrl: product.images?.[0] || product.image || '',
+        promotionUrl: promotionUrl,
+        source: fetchSource,
+        skuInfo: {
+          skuId: skuIdValue,
+          specId: finalSpecId,
+          price: finalPrice.toString(),
+          amountOnSale: selectedSku?.amountOnSale || selectedVariant?.stock || 0,
+          consignPrice: finalPrice.toString(),
+          cargoNumber: selectedSku?.cargoNumber || '',
+          skuAttributes: (selectedSku?.skuAttributes || selectedVariant?.attributes || []).map((attr: any) => ({
+            attributeId: attr.attributeId || attr.propId || 0,
+            attributeName: attr.attributeName || attr.prop_name || '',
+            attributeNameTrans: attr.attributeNameTrans || attr.prop_name || attr.attributeName || '',
+            value: attr.value || attr.value_name || attr.value_desc || '',
+            valueTrans: attr.valueTrans || attr.value_name || attr.value_desc || attr.value || '',
+            skuImageUrl: attr.skuImageUrl || attr.image || '',
+          })),
+          fenxiaoPriceInfo: selectedSku?.fenxiaoPriceInfo || {
+            offerPrice: finalPrice.toString(),
+          },
+        },
+        companyName: product.seller?.name || (product as any).companyName || '',
+        sellerOpenId: product.seller?.id || (product as any).sellerOpenId || '',
+        quantity: quantity,
+      };
+      
+      await addToCartForBuyNow(requestBody);
+    } catch (error: any) {
+      showToast(error?.message || 'Failed to proceed to checkout', 'error');
     }
   };
 
@@ -1772,28 +1992,30 @@ const ProductDetailScreen: React.FC = () => {
       
       {/* Bottom row with main action buttons */}
       <View style={styles.mainActionRow}>
-        <TouchableOpacity 
-          style={styles.cameraButton}
-          onPress={() => setPhotoCaptureVisible(true)}
-        >
-          <CameraIcon width={30} height={30} color={COLORS.text.primary} />
-        </TouchableOpacity>
+        <View style={{flexDirection: 'row', alignItems: 'center', gap: SPACING.sm}}>
+          <TouchableOpacity 
+            style={styles.cameraButton}
+            onPress={() => setPhotoCaptureVisible(true)}
+          >
+            <CameraIcon width={30} height={30} color={COLORS.text.primary} />
+          </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={styles.supportAgentButton}
-          onPress={() => navigation.navigate('CustomerService')}
-        >
-          <SupportAgentIcon width={30} height={30} color={COLORS.text.primary} />
-        </TouchableOpacity>        
-        
-        {/* Cart Icon Button */}
-        <TouchableOpacity 
-          style={styles.cartIconButton}
-          onPress={() => toggleWishlist(product)}
-        >
-          {/* <Ionicons name="cart-outline" size={22} color={COLORS.text.primary} /> */}
-          <HeartIcon width={30} height={30} color={COLORS.text.primary} />
-        </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.supportAgentButton}
+            onPress={() => navigation.navigate('CustomerService')}
+          >
+            <SupportAgentIcon width={30} height={30} color={COLORS.text.primary} />
+          </TouchableOpacity>        
+          
+          {/* Cart Icon Button */}
+          <TouchableOpacity 
+            style={styles.cartIconButton}
+            onPress={() => toggleWishlist(product)}
+          >
+            {/* <Ionicons name="cart-outline" size={22} color={COLORS.text.primary} /> */}
+            <HeartIcon width={30} height={30} color={COLORS.text.primary} />
+          </TouchableOpacity>
+        </View>
         <View style={{ flexDirection: 'row'}}>
           <TouchableOpacity
             style={[styles.addToCartButton, !canAddToCart && styles.disabledButton]}
@@ -1811,36 +2033,36 @@ const ProductDetailScreen: React.FC = () => {
           </TouchableOpacity>
           
           <TouchableOpacity
-            style={[styles.buyNowButton, !canAddToCart && styles.disabledButton]}
-            disabled={!canAddToCart}
+            style={[styles.buyNowButton, (!canAddToCart || isAddingToCartForBuyNow) && styles.disabledButton]}
+            disabled={!canAddToCart || isAddingToCartForBuyNow}
             onPress={() => {
               if (!isAuthenticated) {
+                // Navigate to login page with return navigation info (same as Add to Cart)
+                navigation.navigate('Auth', {
+                  screen: 'Login',
+                  params: {
+                    returnTo: 'ProductDetail',
+                    returnParams: {
+                      productId: productId || offerId,
+                      offerId: offerId,
+                      productData: product,
+                    },
+                  },
+                } as never);
                 return;
               }
 
               if (!canAddToCart) {
                 const variationTypes = getVariationTypes();
                 if (variationTypes.length > 0) {
+                  showToast(t('product.pleaseSelectOptions') || 'Please select all variations', 'warning');
                 }
                 return;
               }
 
-              // Navigate to payment screen with current product
-              const paymentItems = [{
-                id: product.id,
-                name: product.name,
-                color: selectedColor,
-                size: selectedSize,
-                price: product.price,
-                quantity: quantity,
-                image: product.images?.[0] || product.image,
-              }];
-
-              navigation.navigate('Payment', {
-                items: paymentItems,
-                totalAmount: product.price * quantity,
-                fromCart: false,
-              });
+              // For Buy Now: Use handleAddToCart logic but with Buy Now mutation
+              // Reuse the same logic from handleAddToCart
+              handleBuyNow();
             }}
           >
             <Text style={styles.buyNowText}>{t('product.buyNow')}</Text>
@@ -2709,7 +2931,7 @@ const styles = StyleSheet.create({
   },
   mainActionRow: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
     gap: SPACING.sm,
   },
   addToCartButton: {
@@ -2729,14 +2951,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.black,
     letterSpacing: 0.5,
-    padding: SPACING.md,
+    padding: SPACING.smmd,
   },
   buyNowButton: {
     // flex: 1,
     backgroundColor: COLORS.red,
     borderTopRightRadius: BORDER_RADIUS.full, // Full round button
     borderBottomRightRadius: BORDER_RADIUS.full, // Full round button
-    paddingVertical: SPACING.smmd,
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: '#00000033',
@@ -2746,7 +2967,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.white,
     letterSpacing: 0.5,
-    paddingHorizontal: SPACING.md,
+    padding: SPACING.smmd,
   },
   disabledButton: {
     opacity: 0.5,
@@ -2797,3 +3018,4 @@ const styles = StyleSheet.create({
 });
 
 export default ProductDetailScreen;
+

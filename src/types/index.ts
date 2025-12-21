@@ -260,7 +260,7 @@ export type RootStackParamList = {
   OtpVerification: undefined;
   ProductDetail: { productId: string; source?: string; country?: string; productData?: any };
   SellerProfile: { sellerId: string };
-  Checkout: { selectedAddress?: Address };
+  Checkout: { selectedAddress?: Address; product?: any; quantity?: number; selectedVariations?: Record<string, string> };
   OrderConfirmation: { orderId: string };
   Search: { query?: string; filters?: SearchFilters };
   Category: { categoryId: string; filters?: SearchFilters };

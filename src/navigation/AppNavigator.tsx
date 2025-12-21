@@ -243,8 +243,8 @@ const RootNavigator = () => {
     return <SplashScreen />;
   }
 
-  // Set initial route based on authentication state
-  const initialRoute = isAuthenticated ? 'Main' : 'Auth';
+  // Always start with Main (homepage) - app supports guest mode
+  const initialRoute = 'Main';
 
   return (
     <RootStack.Navigator
