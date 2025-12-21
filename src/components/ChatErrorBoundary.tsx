@@ -22,7 +22,7 @@ class ChatErrorBoundary extends React.Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('Chat Error Boundary caught an error:', error, errorInfo);
+    // Chat Error Boundary caught an error
   }
 
   render() {

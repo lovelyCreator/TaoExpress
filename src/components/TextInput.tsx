@@ -12,11 +12,14 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING } from '../constants';
 
+type RoundedVariant = 'all' | 'top' | 'bottom' | 'none';
+
 interface TextInputProps extends RNTextInputProps {
   label?: string;
   error?: string;
   containerStyle?: ViewStyle;
   inputStyle?: TextStyle;
+  wrapperStyle?: ViewStyle;
   labelStyle?: TextStyle;
   errorStyle?: TextStyle;
   showError?: boolean;
@@ -26,6 +29,7 @@ interface TextInputProps extends RNTextInputProps {
   leftIcon?: string;
   rightIcon?: string;
   onRightIconPress?: () => void;
+  roundedVariant?: RoundedVariant;
 }
 
 const TextInput: React.FC<TextInputProps> = ({
@@ -33,6 +37,7 @@ const TextInput: React.FC<TextInputProps> = ({
   error,
   containerStyle,
   inputStyle,
+  wrapperStyle,
   labelStyle,
   errorStyle,
   showError = true,
@@ -42,10 +47,39 @@ const TextInput: React.FC<TextInputProps> = ({
   leftIcon,
   rightIcon,
   onRightIconPress,
+  roundedVariant = 'all',
   ...props
 }) => {
   const hasError = error && error !== 'login_error' && error !== 'signup_error';
   const hasErrorBorder = !!error;
+
+  let radiusStyle: ViewStyle = {};
+  switch (roundedVariant) {
+    case 'top':
+      radiusStyle = {
+        borderTopLeftRadius: 12,
+        borderTopRightRadius: 12,
+        borderBottomLeftRadius: 0,
+        borderBottomRightRadius: 0,
+      };
+      break;
+    case 'bottom':
+      radiusStyle = {
+        borderTopLeftRadius: 0,
+        borderTopRightRadius: 0,
+        borderBottomLeftRadius: 12,
+        borderBottomRightRadius: 12,
+      };
+      break;
+    case 'none':
+      radiusStyle = {
+        borderRadius: 0,
+      };
+      break;
+    case 'all':
+    default:
+      radiusStyle = {};
+  }
 
   return (
     <View style={[styles.container, containerStyle]}>
@@ -53,10 +87,14 @@ const TextInput: React.FC<TextInputProps> = ({
         <Text style={[styles.label, labelStyle]}>{label}</Text>
       )}
       
-      <View style={[
-        styles.inputWrapper,
-        hasErrorBorder && styles.inputError,
-      ]}>
+      <View
+        style={[
+          styles.inputWrapper,
+          radiusStyle,
+          hasErrorBorder && styles.inputError,
+          wrapperStyle,
+        ]}
+      >
         {leftIcon && (
           <Ionicons 
             name={leftIcon as any} 
@@ -80,8 +118,8 @@ const TextInput: React.FC<TextInputProps> = ({
           >
             <Ionicons
               name={secureTextEntry ? 'eye-off-outline' : 'eye-outline'}
-              size={20}
-              color={COLORS.gray[400]}
+              size={24}
+              color={COLORS.gray[600]}
             />
           </TouchableOpacity>
         )}
@@ -114,7 +152,8 @@ const TextInput: React.FC<TextInputProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: SPACING.lg,
+    // marginBottom: SPACING.lg,
+    // backgroundColor: 'white',
   },
   label: {
     fontSize: FONTS.sizes.md,

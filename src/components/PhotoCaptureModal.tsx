@@ -500,7 +500,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: COLORS.accentPink,
+    backgroundColor: COLORS.red,
     justifyContent: 'center',
     alignItems: 'center',
   },

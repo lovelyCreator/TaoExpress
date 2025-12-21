@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STORAGE_KEYS } from '../constants';
-import { User, AuthResponse, GuestResponse, LoginRequest, RegisterRequest, GustLoginRequest } from '../types';
+import { User, Address, AuthResponse, GuestResponse, LoginRequest, RegisterRequest, GustLoginRequest } from '../types';
 import axios, { AxiosError } from 'axios';
 
 // API base URL - using environment variable or fallback
@@ -132,7 +132,9 @@ export const clearAuthData = async () => {
     await AsyncStorage.multiRemove([
       STORAGE_KEYS.USER_TOKEN,
       STORAGE_KEYS.USER_DATA,
+      STORAGE_KEYS.WISHLIST_EXTERNAL_IDS, // Clear wishlist external IDs on logout
     ]);
+    console.log('Cleared auth data including wishlist external IDs');
     return true;
   } catch (error) {
     console.error('Error clearing auth data:', error);
@@ -252,19 +254,64 @@ export const login = async (email: string, password: string): Promise<{ success:
       };
     }
 
-    const { user, token, refreshToken, externalIds } = responseData.data;
+    // Extract data from new response structure
+    const { user, token, refreshToken, cartCount } = responseData.data || {};
+    
+    // Check if externalIds is provided directly (backward compatibility)
+    // Otherwise extract from user.wishlist (new structure)
+    let externalIds: string[] = [];
+    if (responseData.data?.externalIds && Array.isArray(responseData.data.externalIds)) {
+      // Use externalIds if provided directly (backward compatibility)
+      externalIds = responseData.data.externalIds.map((id: any) => id?.toString() || '').filter(Boolean);
+    } else if (user?.wishlist && Array.isArray(user.wishlist)) {
+      // Extract externalIds from wishlist items (new structure)
+      externalIds = user.wishlist.map((item: any) => {
+        const externalId = item.externalId?.toString() || '';
+        return externalId;
+      }).filter(Boolean);
+    }
+    
+    if (!user || !token) {
+      return {
+        success: false,
+        error: 'Invalid response data from server',
+      };
+    }
+    
+    // Map addresses from new structure
+    const mappedAddresses = (user.addresses || []).map((addr: any) => ({
+      id: addr._id || addr.id || '',
+      type: (addr.customerClearanceType === 'business' ? 'work' : 'home') as 'home' | 'work' | 'other',
+      name: addr.recipient || '',
+      street: addr.detailedAddress || '',
+      city: addr.mainAddress || '', // Use mainAddress if available
+      state: '', // Not provided in new structure
+      zipCode: addr.zipCode || '',
+      country: '', // Not provided in new structure
+      phone: addr.contact || '',
+      isDefault: addr.defaultAddress || false,
+      // Store additional fields as part of the address object (will be preserved in JSON)
+      personalCustomsCode: addr.personalCustomsCode || '',
+      note: addr.note || '',
+      customerClearanceType: addr.customerClearanceType || 'individual',
+    } as Address & { personalCustomsCode?: string; note?: string; customerClearanceType?: string }));
+    
+    // Map wishlist - extract externalIds from wishlist items for userData
+    const wishlistExternalIds = externalIds;
     
     // Create user object from response
     const userData: Partial<User> = {
-      id: user.id,
-      email: user.email,
-      name: user.user_id || 'User',
-      addresses: [],
-      paymentMethods: [],
-      wishlist: [],
-      followersCount: 0,
-      followingsCount: 0,
-      avatar: undefined,
+      id: user._id || user.user_id || user.id || '',
+      email: user.email || '',
+      name: user.user_id || user.email?.split('@')[0] || 'User',
+      phone: user.phone || '',
+      birthday: user.birthday || undefined,
+      addresses: mappedAddresses,
+      paymentMethods: [], // Not provided in response
+      wishlist: wishlistExternalIds, // Store externalIds as wishlist array
+      followersCount: 0, // Not provided in response
+      followingsCount: 0, // Not provided in response
+      avatar: undefined, // Not provided in response
       preferences: {
         notifications: {
           email: true,
@@ -274,18 +321,22 @@ export const login = async (email: string, password: string): Promise<{ success:
         language: 'en',
         currency: 'USD',
       },
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: user.createdAt ? new Date(user.createdAt) : new Date(),
+      updatedAt: user.updatedAt ? new Date(user.updatedAt) : new Date(),
     };
     
     console.log("LOGIN USER TOKEN", token);
     console.log("LOGIN EXTERNAL IDS", externalIds);
+    console.log("LOGIN CART COUNT", cartCount);
+    console.log("LOGIN USER DATA", userData);
     
     // Store token and user data
     await storeAuthData(token, userData);
     
     // Store refresh token
-    await AsyncStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
+    if (refreshToken) {
+      await AsyncStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
+    }
     
     // Store externalIds (wishlist IDs) to AsyncStorage
     if (externalIds && Array.isArray(externalIds)) {
@@ -295,6 +346,12 @@ export const login = async (email: string, password: string): Promise<{ success:
       // If no externalIds, store empty array
       await AsyncStorage.setItem(STORAGE_KEYS.WISHLIST_EXTERNAL_IDS, JSON.stringify([]));
     }
+    
+    // Store cartCount if provided
+    if (cartCount !== undefined) {
+      await AsyncStorage.setItem(STORAGE_KEYS.CART_COUNT, JSON.stringify(cartCount));
+      console.log("Saved cartCount to AsyncStorage:", cartCount);
+    }
 
     return {
       success: true,
@@ -302,6 +359,7 @@ export const login = async (email: string, password: string): Promise<{ success:
         token,
         refreshToken,
         user: userData,
+        cartCount,
       },
     };
   } catch (error) {
@@ -564,11 +622,37 @@ export const getStoredUserData = async (): Promise<User | null> => {
   }
 };
 
-// Change password API
-export const changePassword = async (
-  currentPassword: string,
-  newPassword: string
-): Promise<{ success: boolean; data?: any; error?: string }> => {
+// Get profile API
+export interface GetProfileResponse {
+  success: boolean;
+  message?: string;
+  data?: {
+    user: {
+      _id: string;
+      email: string;
+      user_id: string;
+      phone?: string;
+      isBusiness?: boolean;
+      isEmailVerified?: boolean;
+      authProvider?: string;
+      wishlist?: string[];
+      points?: number;
+      addresses?: any[];
+      createdAt?: string;
+      updatedAt?: string;
+      referralCode?: string;
+      lastLogin?: string;
+      birthday?: string;
+      gender?: string;
+      mainAddress?: string;
+      pictureUrl?: string;
+      [key: string]: any;
+    };
+  };
+  error?: string;
+}
+
+export const getProfile = async (): Promise<GetProfileResponse> => {
   try {
     const token = await getStoredToken();
     
@@ -579,97 +663,311 @@ export const changePassword = async (
       };
     }
     
-    const requestBody = {
-      // name: '', // This seems to be required by the API but can be empty
-      // email: '', // This seems to be required by the API but can be empty
-      password: newPassword,
-      // current_password: currentPassword,
-      button_type: 'change_password'
-    };
+    const url = `${API_BASE_URL}/users/profile`;
+    console.log('Sending get profile request to:', url);
     
-    // MOCK DATA: Commented out API call
-    // const response = await apiClient.post(
-    //   '/customer/update-profile',
-    //   requestBody,
-    //   {
-    //     headers: {
-    //       'Authorization': `Bearer ${token}`,
-    //       'Content-Type': 'application/json',
-    //     },
-    //   }
-    // );
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true',
+      },
+    });
     
-    // MOCK DATA: Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
+    console.log('Get profile response status:', response.status);
     
-    // MOCK DATA: Return mock response
-    const mockResponse = {
-      data: {
-        message: 'Password changed successfully',
-      }
-    };
-    const response = { data: mockResponse.data };
+    const responseText = await response.text();
+    console.log('Get profile response text:', responseText.substring(0, 500));
     
-    // Validate response data
-    if (!response.data) {
+    let responseData;
+    try {
+      responseData = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('Failed to parse response as JSON:', parseError);
       return {
         success: false,
-        error: 'Invalid response from server',
+        error: 'Invalid response from server. Please try again.',
+      };
+    }
+    
+    if (!response.ok) {
+      return {
+        success: false,
+        error: responseData?.message || `Request failed with status ${response.status}`,
+      };
+    }
+    
+    if (responseData.status !== 'success') {
+      return {
+        success: false,
+        error: responseData?.message || 'Failed to get profile',
       };
     }
     
     return {
       success: true,
-      data: response.data,
+      message: responseData.message || 'Profile retrieved successfully',
+      data: responseData.data,
     };
-  } catch (error) {
-    console.error('Change password error:', error,);
+  } catch (error: any) {
+    console.error('Get profile error:', error);
     
-    // Handle axios errors
-    if (axios.isAxiosError(error)) {
-      const axiosError = error as AxiosError;
-      
-      // Handle network errors
-      if (!axiosError.response) {
-        return {
-          success: false,
-          error: 'Network error. Please check your connection and try again.',
-        };
-      }
-      
-      // Handle response errors
-      const errorData = axiosError.response.data as any;
-      
-      // Try to parse error data if it's a string
-      let parsedErrorData = errorData;
-      if (typeof errorData === 'string') {
-        try {
-          // Try to fix malformed JSON by adding closing brace if missing
-          let fixedJson: string = errorData;
-          if (fixedJson.trim().endsWith(',')) {
-            fixedJson = fixedJson.trim().slice(0, -1);
-          }
-          if (!fixedJson.trim().endsWith('}')) {
-            fixedJson = fixedJson.trim() + '}';
-          }
-          parsedErrorData = JSON.parse(fixedJson);
-        } catch (parseError) {
-          // If parsing fails, use the original string
-          console.error('Error parsing error response:', parseError);
-        }
-      }
-      
-      console.log("Change Password Error Confirm!", errorData);
+    // Handle network errors
+    if (error instanceof TypeError && error.message.includes('Network request failed')) {
       return {
         success: false,
-        error: parsedErrorData?.message || parsedErrorData?.error || 'Failed to change password',
+        error: 'Network error. Please check your connection and try again.',
       };
     }
     
-    // Handle other errors
     return {
       success: false,
-      error: 'An unexpected error occurred. Please try again.',
+      error: error.message || 'An unexpected error occurred. Please try again.',
+    };
+  }
+};
+
+// Update profile API
+export interface UpdateProfileRequest {
+  user_id?: string;
+  phone?: string;
+  isBusiness?: boolean;
+  gender?: string;
+  birthday?: string;
+  picture?: string; // File URI for the picture
+}
+
+export interface UpdateProfileResponse {
+  success: boolean;
+  message?: string;
+  data?: {
+    user: {
+      _id: string;
+      email: string;
+      user_id: string;
+      phone?: string;
+      isBusiness?: boolean;
+      gender?: string;
+      birthday?: string;
+      pictureUrl?: string;
+      wishlist?: string[];
+      addresses?: any[];
+      [key: string]: any;
+    };
+  };
+  error?: string;
+}
+
+export const updateProfile = async (
+  request: UpdateProfileRequest
+): Promise<UpdateProfileResponse> => {
+  try {
+    const token = await getStoredToken();
+    
+    if (!token) {
+      return {
+        success: false,
+        error: 'No authentication token found. Please log in again.',
+      };
+    }
+    
+    const url = `${API_BASE_URL}/users/profile`;
+    console.log('Sending update profile request to:', url);
+    
+    // Create FormData
+    const formData = new FormData();
+    
+    // Add text fields if provided
+    if (request.user_id) {
+      formData.append('user_id', request.user_id);
+    }
+    if (request.phone) {
+      formData.append('phone', request.phone);
+    }
+    if (request.gender) {
+      formData.append('gender', request.gender);
+    }
+    if (request.birthday) {
+      formData.append('birthday', request.birthday);
+    }
+    if (request.isBusiness !== undefined) {
+      // FormData in React Native accepts boolean, but we'll convert to string for consistency
+      formData.append('isBusiness', String(request.isBusiness));
+    }
+    
+    // Add picture file if provided
+    if (request.picture) {
+      // In React Native, we need to create a file object from the URI
+      const fileUri = request.picture;
+      const filename = fileUri.split('/').pop() || 'photo.jpg';
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `image/${match[1]}` : 'image/jpeg';
+      
+      // React Native FormData format for file upload
+      formData.append('picture', {
+        uri: fileUri,
+        name: filename,
+        type: type,
+      } as any);
+    }
+    
+    console.log('Update profile request fields:', {
+      user_id: request.user_id,
+      phone: request.phone,
+      gender: request.gender,
+      birthday: request.birthday,
+      isBusiness: request.isBusiness,
+      hasPicture: !!request.picture,
+    });
+    
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'ngrok-skip-browser-warning': 'true',
+        // Don't set Content-Type - browser/React Native will set it automatically with boundary
+      },
+      body: formData,
+    });
+    
+    console.log('Update profile response status:', response.status);
+    
+    const responseText = await response.text();
+    console.log('Update profile response text:', responseText.substring(0, 500));
+    
+    let responseData;
+    try {
+      responseData = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('Failed to parse response as JSON:', parseError);
+      return {
+        success: false,
+        error: 'Invalid response from server. Please try again.',
+      };
+    }
+    
+    if (!response.ok) {
+      return {
+        success: false,
+        error: responseData?.message || `Request failed with status ${response.status}`,
+      };
+    }
+    
+    if (responseData.status !== 'success') {
+      return {
+        success: false,
+        error: responseData?.message || 'Profile update failed',
+      };
+    }
+    
+    return {
+      success: true,
+      message: responseData.message || 'Profile updated successfully',
+      data: responseData.data,
+    };
+  } catch (error: any) {
+    console.error('Update profile error:', error);
+    return {
+      success: false,
+      error: error.message || 'An unexpected error occurred. Please try again.',
+    };
+  }
+};
+
+// Change password API
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export interface ChangePasswordResponse {
+  success: boolean;
+  message?: string;
+  error?: string;
+}
+
+export const changePassword = async (
+  currentPassword: string,
+  newPassword: string
+): Promise<ChangePasswordResponse> => {
+  try {
+    const token = await getStoredToken();
+    
+    if (!token) {
+      return {
+        success: false,
+        error: 'No authentication token found. Please log in again.',
+      };
+    }
+    
+    const requestBody: ChangePasswordRequest = {
+      currentPassword,
+      newPassword,
+    };
+    
+    const url = `${API_BASE_URL}/users/change-password`;
+    console.log('Sending change password request to:', url);
+    console.log('Change password request body:', JSON.stringify({ currentPassword: '***', newPassword: '***' }, null, 2));
+    
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true',
+      },
+      body: JSON.stringify(requestBody),
+    });
+    
+    console.log('Change password response status:', response.status);
+    
+    const responseText = await response.text();
+    console.log('Change password response text:', responseText.substring(0, 500));
+    
+    let responseData;
+    try {
+      responseData = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('Failed to parse response as JSON:', parseError);
+      return {
+        success: false,
+        error: 'Invalid response from server. Please try again.',
+      };
+    }
+    
+    if (!response.ok) {
+      return {
+        success: false,
+        error: responseData?.message || `Request failed with status ${response.status}`,
+      };
+    }
+    
+    if (responseData.status !== 'success') {
+      return {
+        success: false,
+        error: responseData?.message || 'Password change failed',
+      };
+    }
+    
+    return {
+      success: true,
+      message: responseData.message || 'Password changed successfully',
+    };
+  } catch (error: any) {
+    console.error('Change password error:', error);
+    
+    // Handle network errors
+    if (error instanceof TypeError && error.message.includes('Network request failed')) {
+      return {
+        success: false,
+        error: 'Network error. Please check your connection and try again.',
+      };
+    }
+    
+    return {
+      success: false,
+      error: error.message || 'An unexpected error occurred. Please try again.',
     };
   }
 };

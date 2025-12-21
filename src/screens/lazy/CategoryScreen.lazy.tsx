@@ -4,7 +4,7 @@ import { useAppSelector } from '../../store/hooks';
 import { translations } from '../../i18n/translations';
 
 // Lazy load the CategoryScreen component
-const LazyCategoryScreen = lazy(() => import('../CategoryScreen'));
+const LazyCategoryScreen = lazy(() => import('../main/CategoryScreen'));
 
 // Export a component that wraps the lazy-loaded component with Suspense
 const CategoryScreenWithSuspense = (props: any) => {

@@ -59,6 +59,8 @@ export interface PaymentMethod {
 
 // Product Types
 export interface Product {
+  externalId: string;
+  offerId: string;
   rating_count: number;
   id: string;
   name: string;
@@ -132,6 +134,12 @@ export interface CartItem {
   selectedSize?: string;
   selectedColor?: Color;
   price: number;
+  // Additional fields from new API
+  variant?: Array<{ name: string; value: string; _id?: string }>;
+  skuAttributes?: Array<any>;
+  specId?: string;
+  offerId?: string;
+  image?: string;
 }
 
 export interface Cart {
@@ -250,14 +258,15 @@ export type RootStackParamList = {
   Auth: undefined;
   Main: undefined;
   OtpVerification: undefined;
-  ProductDetail: { productId: string; source?: string; country?: string };
+  ProductDetail: { productId: string; source?: string; country?: string; productData?: any };
   SellerProfile: { sellerId: string };
-  Checkout: undefined;
+  Checkout: { selectedAddress?: Address };
   OrderConfirmation: { orderId: string };
   Search: { query?: string; filters?: SearchFilters };
   Category: { categoryId: string; filters?: SearchFilters };
   EditProfile: undefined;
   AddressBook: { fromShippingSettings?: boolean };
+  SelectAddress: { selectedAddressId?: string; onSelect?: (address: Address) => void };
   AddNewAddress: { fromShippingSettings?: boolean };
   EditAddress: { address: Address; fromShippingSettings?: boolean };
   EditFinanceAddress: { address: Address };
@@ -274,7 +283,7 @@ export type RootStackParamList = {
   HelpSection: { section: string; title: string };
   HelpArticle: { articleId: string; title: string };
   LanguageSettings: undefined;
-  ImageSearch: { imageUri: string };
+  ImageSearch: { imageUri: string; imageBase64?: string };
   Store: { storeId: string };
   // Seller screens
   MyStore: undefined;
@@ -324,7 +333,7 @@ export type RootStackParamList = {
   Charge: undefined;
   PointDetail: undefined;
   Coupon: undefined;
-  BuyList: undefined;
+  BuyList: { initialTab?: 'category' | 'waiting' | 'end' | 'progressing' } | undefined;
   ProblemProduct: undefined;
   Note: undefined;
   LeaveNote: undefined;
@@ -337,13 +346,16 @@ export type RootStackParamList = {
     storeId?: string; 
     productId?: string; 
     orderId?: string;
+    orderNumber?: string; // For order inquiry
+    inquiryId?: string; // For existing inquiry
+    inquiryDetail?: any; // Inquiry details from API (to avoid re-fetching)
     sellerId?: string;
     orderDetails?: CustomerOrderDetails;
   };
   ChattingMembers: undefined,
   ChatSearch: undefined,
   CustomerService: undefined,
-  OrderInquiry: undefined,
+  OrderInquiry: { orderNumber?: string },
   ChatProducts: { 
     sellerId?: string;
   };
@@ -354,13 +366,21 @@ export type RootStackParamList = {
   // Other screens
   SearchResults: { query: string; filters?: SearchFilters };
   StoryView: { storyIndex?: number; productId?: string };
-  SubCategory: { categoryName: string; categoryId?: number; subcategories?: any[] }; // Add category ID and subcategories
+  SubCategory: { categoryName: string; categoryId?: string | number; subcategories?: any[] }; // Add category ID and subcategories
+  Sub2Category: { 
+    subCategoryName: string; 
+    categoryId?: string | number; 
+    subcategoryId?: string | number;
+    categoryName?: string;
+    subsubcategories?: any[];
+  };
   ProductDiscovery: { 
     subCategoryName: string;
     categoryId?: string;
     categoryName?: string;
     subcategoryId?: string;
     subsubcategories?: any[];
+    source?: string; // Platform/source (e.g., 'taobao', '1688')
   };
   Reviews: { productId: string };
   Following: undefined;
@@ -371,6 +391,8 @@ export type RootStackParamList = {
   Explore: undefined;
   // Order Success screen
   OrderSuccess: undefined;
+  // 404 Not Found screen
+  NotFound: { message?: string; title?: string } | undefined;
 };
 
 export type AuthStackParamList = {
@@ -385,8 +407,8 @@ export type AuthStackParamList = {
 export type MainTabParamList = {
   Home: undefined;
   Category: undefined; // Changed back from 'Explore' to 'Category'
+  Live: undefined;
   Cart: undefined;
-  Like: undefined;
   Profile: undefined;
 };
 
@@ -1107,21 +1129,22 @@ export interface CartUseMutationOptions {
 
 // Types for cart operations
 export interface AddToCartParams {
-  itemId: number;
+  offerId: string;
+  specId: string;
   quantity: number;
-  variation: number;
-  option: number;
 }
 
 export interface UpdateCartItemParams {
-  cartId: number;
+  cartItemId: string;
   quantity: number;
-  variation: number;
-  option: number;
 }
 
 export interface RemoveFromCartParams {
-  cartId: number;
+  cartItemId: string;
+}
+
+export interface DeleteCartBatchParams {
+  itemIds: string[];
 }
 
 // Checkout Order Params
@@ -1582,3 +1605,4 @@ export interface CreateAddressRequest {
 export interface UpdateAddressRequest extends CreateAddressRequest {
   id: number;
 }
+

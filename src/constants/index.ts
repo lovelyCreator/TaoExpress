@@ -1,4 +1,4 @@
-import { Dimensions } from 'react-native';
+import { Dimensions, Platform } from 'react-native';
 
 // Screen Dimensions
 export const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -10,22 +10,25 @@ export const COLORS = {
   primary: '#FF0055', // Pure red
   primaryDark: '#D70015',
   primaryLight: 'rgb(255, 0, 85)',
+  red: '#FF0000',
+  lightRed: '#FF00000D',
   transparent: '#00000001',
   
   // Secondary Colors - Black variations
   secondary: '#000000', // Pure black
   secondaryDark: '#000000',
   secondaryLight: '#333333',
-  // Brand Accent - Red
   accentPink: '#FF0055',
   accentPinkLight: '#FF005599',
   
   // Neutral Colors - Clean whites and blacks
   white: '#FFFFFF',
   black: '#000000',
+  yellow: '#EFD52C',
   gray: {
     50: '#FAFAFA',
     100: '#F5F5F5',
+    150: '#F4F4F4',
     200: '#EEEEEE',
     300: '#E0E0E0',
     400: '#BDBDBD',
@@ -50,15 +53,16 @@ export const COLORS = {
   
   // Text Colors - Black, White, Red only
   text: {
-    primary: '#000000',    // Pure black for main text
+    primary: '#1C1B1F',    // Pure black for main text
     secondary: '#666666',  // Dark gray (black combination)
     disabled: '#CCCCCC',   // Light gray (black + white combination)
     inverse: '#FFFFFF',    // Pure white for dark backgrounds
-    custom: '#FF0055'      // Red for highlights and accents
+    custom: '#FF0055',
+    red: '#FF5500',     // Red for highlights and accents
   },
   
   // Border Colors - Subtle
-  border: '#EEEEEE',
+  border: '#0000001A',
   borderLight: '#F5F5F5',
   borderDark: '#E0E0E0',
   
@@ -70,8 +74,9 @@ export const COLORS = {
   gradients: {
     primary: ['#FF0055', 'rgb(255, 0, 85)'],     // Red gradient
     secondary: ['#000000', '#333333'],    // Black gradient
-    accent: ['#FF0055', '#FFFFFF'],       // Red to white
+    accent: ['#FF0055', '#FAFAFA'],       // Red to white
     success: ['#000000', '#666666'],      // Black gradient
+    authBackground: ['#FFE1D4', '#FAFAFA'] as const, // Sign-in background gradient
   },
 };
 
@@ -100,9 +105,26 @@ export const FONTS = {
     extrabold: '800' as const,
   },
   families: {
-    regular: 'System',
-    medium: 'System',
-    bold: 'System',
+    // Noto Sans is available as a system font on Android
+    // On iOS, fonts are loaded via expo-font (see App.tsx)
+    regular: Platform.OS === 'android' ? 'Noto Sans' : 'NotoSans-Regular',
+    medium: Platform.OS === 'android' ? 'Noto Sans' : 'NotoSans-Medium',
+    bold: Platform.OS === 'android' ? 'Noto Sans' : 'NotoSans-Bold',
+    // Default font family for all text
+    default: Platform.OS === 'android' ? 'Noto Sans' : 'NotoSans-Regular',
+  },
+  // Helper function to get font family based on weight
+  getFontFamily: (weight?: string | number): string => {
+    if (weight === '700' || weight === '800' || weight === '900' || weight === 'bold') {
+      return Platform.OS === 'android' ? 'Noto Sans' : 'NotoSans-Bold';
+    } else if (weight === '500' || weight === '600' || weight === 'medium' || weight === 'semibold') {
+      return Platform.OS === 'android' ? 'Noto Sans' : 'NotoSans-Medium';
+    }
+    return Platform.OS === 'android' ? 'Noto Sans' : 'NotoSans-Regular';
+  },
+  // Default text style with Noto Sans
+  defaultTextStyle: {
+    fontFamily: Platform.OS === 'android' ? 'Noto Sans' : 'NotoSans-Regular',
   },
 };
 
@@ -110,7 +132,7 @@ export const FONTS = {
 export const SPACING = {
   xs: 4,
   sm: 8,
-  smmd: 14,
+  smmd: 12,
   md: 16,
   mdlg: 20,
   lg: 24,
@@ -208,11 +230,13 @@ export const STORAGE_KEYS = {
   REFRESH_TOKEN: 'refresh_token',
   USER_DATA: 'user_data',
   CART_DATA: 'cart_data',
+  CART_COUNT: 'cart_count',
   WISHLIST_DATA: 'wishlist_data',
   ONBOARDING_COMPLETED: 'onboarding_completed',
   NOTIFICATION_SETTINGS: 'notification_settings',
   THEME_PREFERENCE: 'theme_preference',
   GUEST_ID: 'guest_id',
+  INQUIRY_UNREAD_COUNTS: 'inquiry_unread_counts', // Store unread counts per inquiry
 };
 
 // Pagination

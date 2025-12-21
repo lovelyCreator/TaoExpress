@@ -1,6 +1,4 @@
 import { create } from 'zustand';
-import companiesData from '../data/mockCompanies.json';
-import mockProductsData from '../data/mockProducts.json';
 import { CategoriesTreeResponse, CategoryTreeItem } from '../types';
 
 interface PlatformState {
@@ -37,52 +35,32 @@ export const usePlatformStore = create<PlatformState>((set, get) => ({
   },
   
   getCompanyCategories: (locale: 'en' | 'ko' | 'zh' = 'en') => {
-    const { selectedPlatform, categoriesTree } = get();
+    const { categoriesTree } = get();
     
     // If we have categories tree data, use it
     if (categoriesTree && categoriesTree.tree) {
       return get().getCategoriesFromTree(locale);
     }
     
-    // Fallback to mock data
-    const company = companiesData.companies.find(c => c.id === selectedPlatform);
-    return company?.categories || [];
+    // Mock data removed - API removed
+    return [];
   },
   
   getFilteredProducts: (type: 'newIn' | 'trending' | 'forYou') => {
-    const { selectedPlatform, selectedCategory } = get();
-    const products = mockProductsData[type] as any[];
-    
-    return products.filter((product: any) => {
-      const matchesCompany = product.company === selectedPlatform;
-      // Match by category ID
-      const matchesCategory = !selectedCategory || selectedCategory === 'all' || product.category === selectedCategory;
-      return matchesCompany && matchesCategory;
-    });
+    // Mock products data removed - API removed
+    return [];
   },
   
   getRecommendedSubcategories: (locale: 'en' | 'ko' | 'zh' = 'en') => {
-    const { selectedPlatform, selectedCategory, categoriesTree } = get();
+    const { selectedCategory, categoriesTree } = get();
     
     // If we have categories tree data, use it
     if (categoriesTree && categoriesTree.tree && selectedCategory && selectedCategory !== 'all') {
       return get().getSubcategoriesFromTree(selectedCategory, locale);
     }
     
-    // Fallback to mock data
-    const company = companiesData.companies.find(c => c.id === selectedPlatform);
-    
-    if (!company) return [];
-    
-    // If a category is selected, show its subcategories (limited to 8 for recommended section)
-    if (selectedCategory && selectedCategory !== 'all') {
-      const category = company.categories.find(c => c.id === selectedCategory);
-      return category?.subcategories || [];
-    }
-    
-    // Otherwise show first category's subcategories
-    const firstCategory = company.categories[0];
-    return firstCategory?.subcategories || [];
+    // Mock data removed - API removed
+    return [];
   },
   
   // Get top-level categories from tree

@@ -204,7 +204,6 @@ const AddressSearchModal: React.FC<AddressSearchModalProps> = ({
         setSearchResults([]);
       }
     } catch (error) {
-      console.error('Address search error:', error);
       setSearchResults([]);
     } finally {
       setIsSearching(false);
@@ -227,7 +226,7 @@ const AddressSearchModal: React.FC<AddressSearchModalProps> = ({
     >
       <View style={styles.addressItemContent}>
         <View style={styles.addressItemHeader}>
-          <Ionicons name="location" size={18} color={COLORS.accentPink} />
+          <Ionicons name="location" size={18} color={COLORS.red} />
           <Text style={styles.postalCode}>[{item.postalCode}]</Text>
         </View>
         <Text style={styles.roadAddress}>{item.roadAddress}</Text>
@@ -304,7 +303,7 @@ const AddressSearchModal: React.FC<AddressSearchModalProps> = ({
           <View style={styles.resultsContainer}>
             {isSearching ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={COLORS.accentPink} />
+                <ActivityIndicator size="large" color={COLORS.red} />
                 <Text style={styles.loadingText}>Searching addresses...</Text>
               </View>
             ) : searchResults.length > 0 ? (
@@ -398,7 +397,7 @@ const styles = StyleSheet.create({
     padding: SPACING.xs,
   },
   searchButton: {
-    backgroundColor: COLORS.accentPink,
+    backgroundColor: COLORS.red,
     paddingHorizontal: SPACING.lg,
     borderRadius: BORDER_RADIUS.md,
     justifyContent: 'center',
@@ -448,7 +447,7 @@ const styles = StyleSheet.create({
   postalCode: {
     fontSize: FONTS.sizes.xs,
     fontWeight: '600',
-    color: COLORS.accentPink,
+    color: COLORS.red,
     marginLeft: SPACING.xs,
   },
   roadAddress: {

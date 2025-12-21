@@ -11,23 +11,21 @@ import { Ionicons } from '@expo/vector-icons';
 import { TextInput } from '../../components';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useResetPasswordMutation } from '../../hooks/useAuthMutations';
-import { useToast } from '../../hooks/useToast';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, VALIDATION_RULES, ERROR_MESSAGES } from '../../constants';
 
 const ResetPasswordScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const { showToast, ToastComponent } = useToast();
   
   const { mutate: resetPassword, isLoading } = useResetPasswordMutation({
     onSuccess: (data) => {
-      showToast({ message: data.message || 'Password reset successfully!', type: 'success' });
+      // showToast({ message: data.message || 'Password reset successfully!', type: 'success' });
       setTimeout(() => {
         navigation.navigate('Login' as never);
       }, 1500);
     },
     onError: (error) => {
-      showToast({ message: error, type: 'error' });
+      // showToast({ message: error, type: 'error' });
     },
   });
   
@@ -64,7 +62,7 @@ const ResetPasswordScreen: React.FC = () => {
     const { token, email } = (route.params as any) || {};
     
     if (!token || !email) {
-      showToast({ message: 'Missing verification code or email', type: 'error' });
+      // showToast({ message: 'Missing verification code or email', type: 'error' });
       return;
     }
 
@@ -84,7 +82,6 @@ const ResetPasswordScreen: React.FC = () => {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      {ToastComponent}
       <View style={styles.content}>
           <View style={styles.header}>
             <TouchableOpacity
@@ -261,7 +258,7 @@ const styles = StyleSheet.create({
     width: '100%' as const,
   },
   resetButtonDisabled: {
-    backgroundColor: COLORS.accentPinkLight,
+    backgroundColor: COLORS.redLight,
     opacity: 0.6,
   },
   resetButtonText: {

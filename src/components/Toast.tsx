@@ -1,76 +1,87 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, Text, StyleSheet, Dimensions } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { COLORS, FONTS, SPACING } from '../constants';
+import { View, Text, StyleSheet, Animated, Dimensions } from 'react-native';
+import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../constants';
+
+const { width } = Dimensions.get('window');
+
+export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
 interface ToastProps {
   message: string;
-  type?: 'success' | 'error' | 'info';
+  type?: ToastType;
+  visible: boolean;
   duration?: number;
-  onHide?: () => void;
+  onHide: () => void;
 }
 
-const Toast: React.FC<ToastProps> = ({ message, type = 'info', duration = 3000, onHide }) => {
-  const opacity = useRef(new Animated.Value(0)).current;
+const Toast: React.FC<ToastProps> = ({ 
+  message, 
+  type = 'info', 
+  visible, 
+  duration = 3000,
+  onHide 
+}) => {
   const translateY = useRef(new Animated.Value(-100)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Fade in and slide down
+    if (visible) {
+      // Show animation
+      Animated.parallel([
+        Animated.spring(translateY, {
+          toValue: 0,
+          useNativeDriver: true,
+          tension: 50,
+          friction: 7,
+        }),
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
+
+      // Auto hide after duration
+      const timer = setTimeout(() => {
+        hideToast();
+      }, duration);
+
+      return () => clearTimeout(timer);
+    } else {
+      hideToast();
+    }
+  }, [visible]);
+
+  const hideToast = () => {
     Animated.parallel([
-      Animated.timing(opacity, {
-        toValue: 1,
+      Animated.timing(translateY, {
+        toValue: -100,
         duration: 300,
         useNativeDriver: true,
       }),
-      Animated.timing(translateY, {
+      Animated.timing(opacity, {
         toValue: 0,
         duration: 300,
         useNativeDriver: true,
       }),
-    ]).start();
+    ]).start(() => {
+      onHide();
+    });
+  };
 
-    // Auto hide after duration
-    const timer = setTimeout(() => {
-      Animated.parallel([
-        Animated.timing(opacity, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(translateY, {
-          toValue: -100,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-      ]).start(() => {
-        onHide?.();
-      });
-    }, duration);
-
-    return () => clearTimeout(timer);
-  }, []);
+  if (!visible) return null;
 
   const getBackgroundColor = () => {
     switch (type) {
       case 'success':
-        return '#10B981';
+        return '#10B981'; // Green
       case 'error':
-        return COLORS.error;
+        return '#EF4444'; // Red
+      case 'warning':
+        return '#F59E0B'; // Orange
       case 'info':
       default:
         return COLORS.primary;
-    }
-  };
-
-  const getIcon = () => {
-    switch (type) {
-      case 'success':
-        return 'checkmark-circle';
-      case 'error':
-        return 'alert-circle';
-      case 'info':
-      default:
-        return 'information-circle';
     }
   };
 
@@ -79,13 +90,12 @@ const Toast: React.FC<ToastProps> = ({ message, type = 'info', duration = 3000, 
       style={[
         styles.container,
         {
-          backgroundColor: getBackgroundColor(),
-          opacity,
           transform: [{ translateY }],
+          opacity,
+          backgroundColor: getBackgroundColor(),
         },
       ]}
     >
-      <Ionicons name={getIcon()} size={24} color={COLORS.white} />
       <Text style={styles.message}>{message}</Text>
     </Animated.View>
   );
@@ -94,28 +104,26 @@ const Toast: React.FC<ToastProps> = ({ message, type = 'info', duration = 3000, 
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    top: 60,
-    left: SPACING.lg,
-    right: SPACING.lg,
-    flexDirection: 'row',
-    alignItems: 'center',
+    top: 50,
+    left: SPACING.md,
+    right: SPACING.md,
     paddingVertical: SPACING.md,
     paddingHorizontal: SPACING.lg,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    borderRadius: BORDER_RADIUS.md,
     zIndex: 9999,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
   message: {
-    flex: 1,
-    marginLeft: SPACING.sm,
-    fontSize: FONTS.sizes.md,
-    fontWeight: '600',
     color: COLORS.white,
+    fontSize: FONTS.sizes.md,
+    fontWeight: '500',
+    textAlign: 'center',
   },
 });
 
 export default Toast;
+

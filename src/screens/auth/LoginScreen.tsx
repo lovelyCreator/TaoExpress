@@ -3,6 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
+  Image,
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
@@ -11,13 +12,15 @@ import {
   BackHandler,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import GoogleIcon from '../../assets/icons/GoogleIcon';
+import ArrowBackIcon from '../../assets/icons/ArrowBackIcon';
+import ArrowDownIcon from '../../assets/icons/ArrowDownIcon';
 import { Button, TextInput } from '../../components';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useNavigation, useFocusEffect, useRoute } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import { useLoginMutation, useSocialLoginMutation, useResendVerificationMutation } from '../../hooks/useAuthMutations';
-import { useToast } from '../../hooks/useToast';
-import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS, VALIDATION_RULES, ERROR_MESSAGES } from '../../constants';
+import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS, VALIDATION_RULES, ERROR_MESSAGES, SCREEN_HEIGHT } from '../../constants';
 import { useAppSelector } from '../../store/hooks';
 import { translations } from '../../i18n/translations';
 
@@ -56,8 +59,11 @@ const LoginScreen: React.FC = () => {
   // };
 
   const navigation = useNavigation();
+  const route = useRoute<any>();
+  const returnTo = route.params?.returnTo;
+  const returnParams = route.params?.returnParams;
   const { loginError, clearLoginError, isGuest, setAuthenticatedUser, clearNavigateToProfile, setNavigateToProfile } = useAuth();
-  const { showToast, ToastComponent } = useToast();
+  const { showToast } = useToast();
   const locale = useAppSelector((state) => state.i18n.locale) as 'en' | 'ko' | 'zh';
   
   // Translation function
@@ -70,11 +76,20 @@ const LoginScreen: React.FC = () => {
     return value || key;
   };
   
+  // Map language codes to flag emojis
+  const getLanguageFlag = (locale: string) => {
+    const flags: { [key: string]: string } = {
+      'en': '🇺🇸',
+      'ko': '🇰🇷',
+      'zh': '🇨🇳',
+    };
+    return flags[locale] || '🇺🇸';
+  };
+  
   const { mutate: login, isLoading, isError, error, isSuccess, data } = useLoginMutation({
     onSuccess: (data) => {
       // The AuthContext will handle updating the global state
       // This is just for side effects if needed
-      console.log('LoginScreen: Login mutation success, updating AuthContext with data:', data);
       // Update the AuthContext with the user data immediately
       if (data && data.user) {
         // Create a full User object from the partial data
@@ -101,16 +116,14 @@ const LoginScreen: React.FC = () => {
           createdAt: data.user.createdAt || new Date(),
           updatedAt: data.user.updatedAt || new Date(),
         };
-        console.log('LoginScreen: Updating AuthContext with user data:', data.user);
         setAuthenticatedUser(user);
         // Set the flag to navigate to profile after login
         setNavigateToProfile();
       }
+      showToast(t('auth.loginSuccess') || 'Login successful', 'success');
     },
     onError: (error, errorCode) => {
       // Handle specific error codes
-      console.log('LoginScreen: Login mutation error:', error, 'Code:', errorCode);
-      
       // Special handling for EMAIL_NOT_VERIFIED - resend code and navigate
       if (errorCode === 'EMAIL_NOT_VERIFIED') {
         // Resend verification code and navigate to verification screen
@@ -143,8 +156,6 @@ const LoginScreen: React.FC = () => {
   const { mutate: socialLoginMutation, isLoading: isSocialLoading, isError: isSocialError, error: socialError } = useSocialLoginMutation({
     onSuccess: async (data) => {
       // Handle successful social login - data already contains token, refreshToken, and user from backend
-      console.log('Social login successful:', data);
-      
       // Update AuthContext with user data
       const user = {
         id: data.user.id || data.user.email || Date.now().toString(),
@@ -170,31 +181,41 @@ const LoginScreen: React.FC = () => {
         updatedAt: data.user.updatedAt || new Date(),
       };
       
-      console.log('LoginScreen: Social login successful, updating AuthContext');
       setAuthenticatedUser(user);
       setNavigateToProfile();
       
-      // Navigate to main app
-      navigation.navigate('Main' as never);
+      // If we have a returnTo param, navigate back to that screen
+      if (returnTo) {
+        Promise.resolve().then(() => {
+          if (navigation.canGoBack()) {
+            navigation.goBack();
+          } else {
+            (navigation as any).navigate(returnTo, returnParams);
+          }
+        });
+      } else {
+        // Navigate to main app (default behavior)
+        navigation.navigate('Main' as never);
+      }
+      showToast(t('auth.loginSuccess') || 'Login successful', 'success');
     },
     onError: (error) => {
       // Handle social login error
-      console.log('Social login error:', error);
-      showToast({ message: error, type: 'error' });
+      showToast(error || t('auth.loginFailed') || 'Login failed', 'error');
     }
   });
 
   // Resend verification code mutation
   const { mutate: resendCode } = useResendVerificationMutation({
     onSuccess: (data) => {
-      showToast({ message: t('auth.verificationCodeSent'), type: 'success' });
+      showToast(t('auth.verificationCodeSent') || 'Verification code sent', 'success');
       // Navigate to email verification screen
       (navigation as any).navigate('EmailVerification', {
         email: formData.email,
       });
     },
     onError: (error) => {
-      showToast({ message: error || t('auth.failedToSendCode'), type: 'error' });
+      showToast(error || t('auth.failedToSendCode') || 'Failed to send code', 'error');
     },
   });
   
@@ -205,18 +226,28 @@ const LoginScreen: React.FC = () => {
   const [showPassword, setShowPassword] = useState(true); // true means password is hidden (secureTextEntry=true)
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
-  // Watch for login success and navigate to profile
+  // Watch for login success and navigate accordingly
   useEffect(() => {
-    console.log('LoginScreen: login success state changed - isSuccess:', isSuccess, 'data:', data);
     if (isSuccess && data) {
-      // Navigate to main app 
-      console.log('LoginScreen: Login successful, navigating to Main screen');
-      // Use a more reliable approach to ensure the AuthContext is updated
-      Promise.resolve().then(() => {
-        navigation.navigate('Main' as never);
-      });
+      // If we have a returnTo param, navigate back to that screen
+      if (returnTo) {
+        Promise.resolve().then(() => {
+          // Navigate back to the previous screen (ProductDetail)
+          if (navigation.canGoBack()) {
+            navigation.goBack();
+          } else {
+            // Fallback: navigate to ProductDetail with params
+            (navigation as any).navigate(returnTo, returnParams);
+          }
+        });
+      } else {
+        // Navigate to main app (default behavior)
+        Promise.resolve().then(() => {
+          navigation.navigate('Main' as never);
+        });
+      }
     }
-  }, [isSuccess, data, navigation]);
+  }, [isSuccess, data, navigation, returnTo, returnParams]);
 
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
@@ -239,7 +270,6 @@ const LoginScreen: React.FC = () => {
 
   // Handle email not verified case
   const handleEmailNotVerified = async () => {
-    console.log('LoginScreen: Email not verified, resending verification code');
     // Resend verification code
     await resendCode({ email: formData.email });
   };
@@ -253,7 +283,6 @@ const LoginScreen: React.FC = () => {
     if (!isValid) return;
 
     await login({ email: formData.email, password: formData.password });
-    console.log('LoginScreen: Login function completed');
   };
 
   // Demo login function
@@ -276,12 +305,15 @@ const LoginScreen: React.FC = () => {
     await login({ email: demoEmail, password: demoPassword });
   };
 
-  const handleSocialLogin = async (provider: 'google' | 'facebook' | 'apple' | 'twitter' | 'kakao') => {
+  const handleSocialLogin = async (provider: 'google' | 'facebook' | 'apple' | 'twitter' | 'kakao' | 'naver') => {
     try {
-      await socialLoginMutation(provider);
+      if (provider === 'naver') {
+        // TODO: Implement Naver social login when backend support is available
+        return;
+      }
+      await socialLoginMutation(provider as 'google' | 'facebook' | 'apple' | 'twitter' | 'kakao');
     } catch (error) {
-      console.log('Social login error:', error);
-      showToast({ message: error as string, type: 'error' });
+      // Social login error
     }
   };
 
@@ -290,14 +322,11 @@ const LoginScreen: React.FC = () => {
   };
 
   const handleSignup = () => {
-    console.log('LoginScreen: handleSignup called - navigating to Signup');
     navigation.navigate('Signup' as never);
   };
 
   useFocusEffect(
     React.useCallback(() => {
-      console.log('LoginScreen: useFocusEffect - screen focused');
-      
       const onBackPress = () => {
         if ((navigation as any).canGoBack && (navigation as any).canGoBack()) {
           (navigation as any).goBack();
@@ -307,7 +336,6 @@ const LoginScreen: React.FC = () => {
       const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
       
       return () => {
-        console.log('LoginScreen: useFocusEffect - screen unfocused');
         sub.remove();
       };
     }, [navigation])
@@ -315,7 +343,12 @@ const LoginScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {ToastComponent}
+      {/* Top half linear gradient background */}
+      <LinearGradient
+        colors={COLORS.gradients.authBackground}
+        style={styles.gradientBackground}
+      />
+
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -329,88 +362,117 @@ const LoginScreen: React.FC = () => {
               style={styles.backButton}
               onPress={() => navigation.goBack()}
             >
-              <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
+              <ArrowBackIcon width={12} height={20} color={COLORS.text.primary} />
             </TouchableOpacity>
-            {/* <Image source={require("../../assets/icons/logo.png")} /> */}
-            <Text style={styles.title}>TodayMall</Text>
-            <View style={styles.placeholder} />
-          </View>
-          <View style={styles.subHeader}>
-            <Text style={styles.subtitle}>{t('auth.signIn')}</Text>
-            {/* <Text style={styles.subtitle}>Please login to continue</Text> */}
-          </View>
 
+            <View style={styles.headerRight}>
+              <TouchableOpacity
+                style={styles.languageButton}
+                onPress={() => navigation.navigate('LanguageSettings' as never)}
+              >
+                <Text style={styles.flagText}>{getLanguageFlag(locale)}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
 
           <View style={styles.form}>
-            <TextInput
-              label={t('auth.email')}
-              placeholder={t('auth.enterEmail')}
-              value={formData.email}
-              onChangeText={(text) => {
-                setFormData({ ...formData, email: text });
-                if (errors.email) {
-                  setErrors({ ...errors, email: '' });
-                }
-                if (loginError) {
-                  clearLoginError();
-                }
-                if (isError) {
-                  setErrors({ ...errors, email: '', password: '' });
-                }
-              }}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              error={errors.email}
-              labelStyle={{ color: COLORS.black }}
-            />
+            {/* Toy illustration below logo and behind input fields */}
+            <View style={styles.toyContainer}>
+              {/* <View style={styles.toyShadow} /> */}
+              <Image
+                source={require('../../assets/icons/logo.png')}
+                style={styles.headerImage}
+                resizeMode="contain"
+              />
+              <Image
+                source={require('../../assets/icons/toy.png')}
+                style={styles.toyImage}
+                resizeMode="contain"
+              />
+              <Image
+                source={require('../../assets/icons/shadow.png')}
+                style={styles.shadowImage}
+                resizeMode="contain"
+              />
+            </View>
+            <View style={styles.formInputs}>
+              <View style={styles.inputContainer}>
+                <TextInput
+                  // label={t('auth.email')}
+                  placeholder={t('auth.enterEmail')}
+                  value={formData.email}
+                  onChangeText={(text) => {
+                    setFormData({ ...formData, email: text });
+                    if (errors.email) {
+                      setErrors({ ...errors, email: '' });
+                    }
+                    if (loginError) {
+                      clearLoginError();
+                    }
+                    if (isError) {
+                      setErrors({ ...errors, email: '', password: '' });
+                    }
+                  }}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  error={errors.email}
+                  labelStyle={{ color: COLORS.black }}
+                  roundedVariant="top"
+                  wrapperStyle={styles.groupInputTop}
+                  style={styles.input}
+                />
 
-            <TextInput
-              label={t('auth.password')}
-              placeholder={t('auth.enterPassword')}
-              value={formData.password}
-              onChangeText={(text) => {
-                setFormData({ ...formData, password: text });
-                if (errors.password) {
-                  setErrors({ ...errors, password: '' });
-                }
-                if (loginError) {
-                  clearLoginError();
-                }
-                if (isError) {
-                  setErrors({ ...errors, email: '', password: '' });
-                }
-              }}
-              secureTextEntry={showPassword}
-              onToggleSecure={() => setShowPassword(!showPassword)}
-              showSecureToggle={true}
-              autoCapitalize="none"
-              autoCorrect={false}
-              error={errors.password}
-              labelStyle={{ color: COLORS.black }}
-            />
+                <TextInput
+                  // label={t('auth.password')}
+                  placeholder={t('auth.enterPassword')}
+                  value={formData.password}
+                  onChangeText={(text) => {
+                    setFormData({ ...formData, password: text });
+                    if (errors.password) {
+                      setErrors({ ...errors, password: '' });
+                    }
+                    if (loginError) {
+                      clearLoginError();
+                    }
+                    if (isError) {
+                      setErrors({ ...errors, email: '', password: '' });
+                    }
+                  }}
+                  secureTextEntry={showPassword}
+                  onToggleSecure={() => setShowPassword(!showPassword)}
+                  showSecureToggle={true}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  error={errors.password}
+                  labelStyle={{ color: COLORS.black }}
+                  roundedVariant="bottom"
+                  wrapperStyle={styles.groupInputBottom}
+                  style={styles.input}
+                />
+              </View>
 
-            <TouchableOpacity
-              onPress={handleForgotPassword}
-              style={styles.forgotPassword}
-            >
-              <Text style={styles.forgotPasswordText}>{t('auth.forgotPassword')}</Text>
-            </TouchableOpacity>
+              <Button
+                title={t('auth.login')}
+                onPress={handleLogin}
+                disabled={isLoading || !formData.email || !formData.password}
+                loading={isLoading}
+                variant="danger"
+                style={
+                  (isLoading || !formData.email || !formData.password)
+                    ? { ...styles.loginButton, ...styles.loginButtonDisabled }
+                    : styles.loginButton
+                }
+                textStyle={styles.loginButtonText}
+              />
 
-            <Button
-              title={t('auth.login')}
-              onPress={handleLogin}
-              disabled={isLoading || !formData.email || !formData.password}
-              loading={isLoading}
-              variant="danger"
-              style={
-                (isLoading || !formData.email || !formData.password)
-                  ? { ...styles.loginButton, ...styles.loginButtonDisabled }
-                  : styles.loginButton
-              }
-              textStyle={styles.loginButtonText}
-            />
-
+              <TouchableOpacity
+                onPress={handleForgotPassword}
+                style={styles.forgotPassword}
+              >
+                <Text style={styles.forgotPasswordText}>{t('auth.forgotPassword')}</Text>
+              </TouchableOpacity>
+            </View>
             {/* Demo Login Button 
             <TouchableOpacity
               style={styles.demoButton}
@@ -422,60 +484,116 @@ const LoginScreen: React.FC = () => {
                 {isLoading ? 'Signing In...' : 'Demo Login'}
               </Text>
             </TouchableOpacity> */}
-
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>{t('auth.orContinueWith')}</Text>
-              <View style={styles.dividerLine} />
-            </View>
+            <Text style={styles.dividerText}>{t('auth.orContinueWith')}</Text>
 
             <View style={styles.socialButtons}>
-              <TouchableOpacity
-                style={styles.socialButton}
-                onPress={() => handleSocialLogin('apple')}
-                disabled={isSocialLoading}
-              >
-                <Ionicons name="logo-apple" size={24} color={COLORS.black} />
-              </TouchableOpacity>
-
+              {/* 1. Google */}
               <TouchableOpacity
                 style={styles.socialButton}
                 onPress={() => handleSocialLogin('google')}
                 disabled={isSocialLoading}
               >
-                <GoogleIcon width={24} height={24} />
+                <Image
+                  source={require('../../assets/icons/google.png')}
+                  style={styles.socialIcon}
+                  resizeMode="contain"
+                />
+                <Text style={styles.socialButtonText}>google</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.socialButton}
-                onPress={() => handleSocialLogin('facebook')}
-                disabled={isSocialLoading}
-              >
-                <Ionicons name="logo-facebook" size={24} color="#1877F2" />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.socialButton}
-                onPress={() => handleSocialLogin('twitter')}
-                disabled={isSocialLoading}
-              >
-                <Ionicons name="logo-twitter" size={24} color="#1DA1F2" />
-              </TouchableOpacity>
-
+              {/* 2. Kakao */}
               <TouchableOpacity
                 style={styles.socialButton}
                 onPress={() => handleSocialLogin('kakao')}
                 disabled={isSocialLoading}
               >
-                <View style={{ width: 24, height: 24, backgroundColor: '#FEE500', borderRadius: 4 }} />
+                <Image
+                  source={require('../../assets/icons/kakao.png')}
+                  style={styles.socialIcon}
+                  resizeMode="contain"
+                />
+                <Text style={styles.socialButtonText}>kakao</Text>
+              </TouchableOpacity>
+
+              {/* 3. Naver */}
+              <TouchableOpacity
+                style={styles.socialButton}
+                onPress={() => handleSocialLogin('naver')}
+                disabled={isSocialLoading}
+              >
+                <Image
+                  source={require('../../assets/icons/naver.png')}
+                  style={styles.socialIcon}
+                  resizeMode="contain"
+                />
+                <Text style={styles.socialButtonText}>naver</Text>
+              </TouchableOpacity>
+
+              {/* 4. Facebook */}
+              <TouchableOpacity
+                style={styles.socialButton}
+                onPress={() => handleSocialLogin('facebook')}
+                disabled={isSocialLoading}
+              >
+                <Image
+                  source={require('../../assets/icons/facebook.png')}
+                  style={styles.socialIcon}
+                  resizeMode="contain"
+                />
+                <Text style={styles.socialButtonText}>facebook</Text>
+              </TouchableOpacity>
+
+              {/* 5. Apple */}
+              <TouchableOpacity
+                style={styles.socialButton}
+                onPress={() => handleSocialLogin('apple')}
+                disabled={isSocialLoading}
+              >
+                <Image
+                  source={require('../../assets/icons/apple.png')}
+                  style={styles.socialIcon}
+                  resizeMode="contain"
+                />
+                <Text style={styles.socialButtonText}>apple</Text>
               </TouchableOpacity>
             </View>
 
-            <View style={styles.signupContainer}>
+            {/* Arrow down indicator below social icons */}
+            <TouchableOpacity style={styles.arrowDownContainer} onPress={handleSignup}>
+              <ArrowDownIcon width={24} height={24} color={COLORS.text.primary} />
+            </TouchableOpacity>
+
+            {/* <View style={styles.signupContainer}>
               <Text style={styles.signupText}>{t('auth.dontHaveAccount')} </Text>
               <TouchableOpacity onPress={handleSignup}>
                 <Text style={styles.signupLink}>{t('auth.signUp')}</Text>
               </TouchableOpacity>
+            </View> */}
+
+            {/* Footer bar */}
+            <View style={styles.footerContainer}>
+              {/* 1. Protection notice */}
+              <View style={styles.footerRow}>
+                <Ionicons name="shield-checkmark-outline" size={16} color="#34A853" />
+                <Text style={styles.footerProtectedText}>
+                  {t('auth.infoProtected') || 'Your information is protected'}
+                </Text>
+              </View>
+
+              {/* 2. Support text */}
+              <Text style={styles.footerSupportText}>
+                <Text style={styles.footerSupportGray}>
+                  {t('auth.supportText') || 'Supports credit and check cards from various banks for recharging and payments. '}
+                </Text>
+                <Text style={styles.footerSupportLink}>
+                  {t('auth.viewHelp') || 'View Help'}
+                </Text>
+              </Text>
+
+              {/* 3. Copyright */}
+              <Text style={styles.footerCopyright}>
+                {t('auth.copyright') || '© 2025 TodayMall. All Rights Reserved.'}
+              </Text>
             </View>
           </View>
         </ScrollView>
@@ -487,14 +605,21 @@ const LoginScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.background,
+  },
+  gradientBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: SCREEN_HEIGHT / 2,
   },
   keyboardView: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: SPACING.lg,
+    paddingHorizontal: SPACING.smmd,
   },
   header: {
     flexDirection: 'row',
@@ -505,11 +630,13 @@ const styles = StyleSheet.create({
     paddingTop: SPACING['2xl'],
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.gray[100],
+    paddingHorizontal: SPACING.xs,
+    paddingVertical: SPACING.xs,
     justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerRight: {
+    flexDirection: 'row',
     alignItems: 'center',
   },
   headerTitle: {
@@ -520,15 +647,16 @@ const styles = StyleSheet.create({
     width: 32,
   },
   headerImage: {
-    paddingVertical: SPACING['3xl'],
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center'
+    position: 'absolute',
+    width: '75%',
+    height: 210,
+    top: 0,
   },
   subHeader: {
     paddingHorizontal: SPACING.xs,
-    paddingTop: SPACING.md,
-    paddingBottom: SPACING.md,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   title: {
     fontSize: FONTS.sizes['xl'],
@@ -542,18 +670,94 @@ const styles = StyleSheet.create({
     color: COLORS.text.primary,
     marginBottom: SPACING.xs,
   },
+  languageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: SPACING.xs,
+    paddingVertical: SPACING.xs,
+  },
+  flagText: {
+    fontSize: 24,
+  },
+  toyContainer: {
+    position: 'absolute',
+    top: SPACING['2xl'], // just below logo area
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: -1, // send behind form inputs
+  },
+  toyShadow: {
+    width: 180,
+    height: 60,
+    backgroundColor: '#FF550080',
+    borderRadius: 30, // ellipse shape
+    shadowColor: '#000',
+    shadowOpacity: 0.5, // 50% shadow opacity
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
+  },
+  toyImage: {
+    marginTop: SPACING.sm,
+    width: 140,
+    height: 140,
+  },
+  shadowImage: {
+    position: 'absolute',
+    bottom: -95,
+    width: 280,
+    height: 200,
+  },
   form: {
     flex: 1,
+    position: 'relative',
     paddingHorizontal: SPACING.xs,
-    paddingBottom: SPACING['2xl'],
+  },
+  formInputs: {
+    marginTop: 180,
+    borderWidth: 2,
+    borderColor: COLORS.black,
+    borderRadius: BORDER_RADIUS.xl,
+    padding: SPACING.md,
+    paddingTop: SPACING['3xl'],
+    backgroundColor: COLORS.background,
+    shadowColor: COLORS.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+    marginBottom: SPACING.md,
   },
   inputContainer: {
-    marginBottom: SPACING.lg,
+    backgroundColor: COLORS.gray[100],
+  },
+  groupInputTop: {
+    position: 'absolute',
+    bottom:-1,
+    backgroundColor: COLORS.gray[100],
+    borderTopLeftRadius: BORDER_RADIUS.lg,
+    borderTopRightRadius: BORDER_RADIUS.lg,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    borderBottomWidth: 1,
+    borderColor: COLORS.border,
+  },
+  groupInputBottom: {
+    backgroundColor: COLORS.gray[100],
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    borderBottomLeftRadius: BORDER_RADIUS.lg,
+    borderBottomRightRadius: BORDER_RADIUS.lg,
+    borderTopWidth: 1,
+    borderColor: COLORS.border,
   },
   label: {
     fontSize: FONTS.sizes.md,
     fontWeight: '600',
-    color: COLORS.accentPink,
+    color: COLORS.red,
     marginBottom: SPACING.sm,
   },
   inputWrapper: {
@@ -603,25 +807,24 @@ const styles = StyleSheet.create({
     color: COLORS.error,
   },
   forgotPassword: {
-    alignSelf: 'flex-end',
-    marginBottom: SPACING.md,
-    marginTop: SPACING.xs,
+    alignSelf: 'flex-start',
   },
   forgotPasswordText: {
-    fontSize: FONTS.sizes.md,
-    color: COLORS.error,
-    fontWeight: '600',
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.gray[500],
+    fontWeight: '400',
   },
   loginButton: {
-    backgroundColor: COLORS.error,
-    borderRadius: BORDER_RADIUS.full,
+    marginTop: SPACING.md,
+    backgroundColor: COLORS.black,
+    borderRadius: BORDER_RADIUS.lg,
     paddingVertical: SPACING.smmd,
     alignItems: 'center',
     marginBottom: SPACING.md,
     ...SHADOWS.sm,
   },
   loginButtonDisabled: {
-    backgroundColor: COLORS.accentPinkLight,
+    // backgroundColor: COLORS.lightRed,
     opacity: 0.6,
   },
   loginButtonText: {
@@ -653,36 +856,81 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.gray[300],
   },
   dividerText: {
-    fontSize: FONTS.sizes.md,
-    color: COLORS.text.secondary,
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.gray[500],
     marginHorizontal: SPACING.lg,
-    fontWeight: '500',
+    marginBottom: SPACING.md,
+    marginTop: SPACING.sm,
+    fontWeight: '400',
+    textAlign: 'center',
   },
   socialButtons: {
     flexDirection: 'row',
     justifyContent: 'center',
     marginBottom: SPACING.md,
-    gap: SPACING.md,
+    gap: SPACING.sm,
   },
   socialButton: {
-    width: 50,
+    width: 60,
     height: 50,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.white,
-    borderRadius: 25,
-    borderWidth: 1,
-    borderColor: COLORS.gray[300],
+  },
+  socialIcon: {
+    width: 50,
+    height: 50,
   },
   socialButtonGoogle: {
     backgroundColor: '#F9FAFB',
     borderColor: COLORS.border,
   },
   socialButtonText: {
-    fontSize: FONTS.sizes.md,
+    fontSize: FONTS.sizes.xs,
+    fontWeight: '400',
+    color: COLORS.gray[500],
+    marginLeft: SPACING.xs,
+  },
+  arrowDownContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: SPACING.md,
+  },
+  footerContainer: {
+    paddingTop: SPACING['xl'],
+    // paddingVertical: SPACING.md,
+    gap: SPACING.xs,
+  },
+  footerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SPACING.xs,
+  },
+  footerProtectedText: {
+    marginLeft: SPACING.xs,
+    fontSize: FONTS.sizes.xs,
+    color: '#34A853',
     fontWeight: '500',
-    color: COLORS.text.primary,
-    marginLeft: SPACING.sm,
+    textAlign: 'center',
+  },
+  footerSupportText: {
+    fontSize: FONTS.sizes.xs,
+    lineHeight: FONTS.sizes.xs + 4,
+    textAlign: 'center',
+    paddingVertical: SPACING.sm,
+  },
+  footerSupportGray: {
+    color: COLORS.gray[500],
+  },
+  footerSupportLink: {
+    color: '#327FE5',
+    fontWeight: '500',
+  },
+  footerCopyright: {
+    fontSize: FONTS.sizes.xs,
+    color: COLORS.black,
+    marginTop: SPACING.xs,
+    textAlign: 'center',
   },
   signupContainer: {
     flexDirection: 'row',
@@ -697,7 +945,7 @@ const styles = StyleSheet.create({
   },
   signupLink: {
     fontSize: FONTS.sizes.md,
-    color: COLORS.error,
+    color: COLORS.red,
     fontWeight: '700',
   },
 });

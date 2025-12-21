@@ -17,7 +17,7 @@ interface LoadingSpinnerProps {
 
 const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   size = 'large',
-  color = COLORS.accentPink,
+  color = COLORS.red,
   message,
   style,
 }) => {

@@ -258,7 +258,7 @@ const CouponModal: React.FC<CouponModalProps> = ({
                       >
                         <View style={styles.couponContent}>
                           <View style={styles.couponLeft}>
-                            <View style={[styles.couponIcon, { backgroundColor: COLORS.accentPink }]}>
+                            <View style={[styles.couponIcon, { backgroundColor: COLORS.red }]}>
                               <Ionicons name="ticket" size={20} color={COLORS.white} />
                             </View>
                             <View style={styles.couponInfo}>
@@ -427,7 +427,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   discountBadge: {
-    backgroundColor: COLORS.accentPink,
+    backgroundColor: COLORS.red,
     paddingHorizontal: SPACING.sm,
     paddingVertical: 4,
     borderRadius: BORDER_RADIUS.sm,

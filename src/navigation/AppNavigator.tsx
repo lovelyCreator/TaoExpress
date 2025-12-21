@@ -2,12 +2,17 @@ import React, { useEffect, useState, useRef } from 'react';
 import { NavigationContainer, useNavigation } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Image } from 'react-native';
+import { Image, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { RootStackParamList, AuthStackParamList, MainTabParamList } from '../types';
 import { COLORS, DEMO_MODE } from '../constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import HomeIcon from '../assets/icons/HomeIcon';
+import CategoryIcon from '../assets/icons/CategoryIcon';
+import LiveIcon from '../assets/icons/LiveIcon';
+import CartIcon from '../assets/icons/CartIcon';
+import AccountIcon from '../assets/icons/AccountIcon';
 
 // Demo screens
 import CartScreenDemo from '../screens/demo/CartScreen.demo';
@@ -15,91 +20,77 @@ import WishlistScreenDemo from '../screens/demo/WishlistScreen.demo';
 import ProfileScreenDemo from '../screens/demo/ProfileScreen.demo';
 
 // Import screens
-import SplashScreen from '../screens/SplashScreen';
+import SplashScreen from '../screens/main/SplashScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import SignupScreen from '../screens/auth/SignupScreen';
 import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
 import ResetPasswordScreen from '../screens/auth/ResetPasswordScreen';
 import EmailVerificationScreen from '../screens/auth/EmailVerificationScreen';
 import HomeScreen from '../screens/main/HomeScreen';
-import SearchScreen from '../screens/main/SearchScreen';
+import SearchScreen from '../screens/main/searchScreen/SearchScreen';
 import CartScreen from '../screens/main/CartScreen';
-import NotificationsScreen from '../screens/main/NotificationsScreen';
-import ProfileScreen from '../screens/main/ProfileScreen';
+import LiveScreen from '../screens/main/LiveScreen';
+import ProfileScreen from '../screens/main/profileScreen/ProfileScreen';
 import ProductDetailScreen from '../screens/main/ProductDetailScreen';
-import ReviewsScreen from '../screens/main/ReviewsScreen';
-import SellerProfileScreen from '../screens/SellerProfileScreen';
-import CheckoutScreen from '../screens/CheckoutScreen';
-import OrderConfirmationScreen from '../screens/OrderConfirmationScreen';
-import SearchResultsScreen from '../screens/SearchResultsScreen';
-import EditProfileScreen from '../screens/EditProfileScreen';
-import AddressBookScreen from '../screens/AddressBookScreen';
-import AddNewAddressScreen from '../screens/AddNewAddressScreen';
-import EditAddressScreen from '../screens/EditAddressScreen';
-import EditFinanceAddressScreen from '../screens/EditFinanceAddressScreen';
-import WithdrawConfirmScreen from '../screens/main/WithdrawConfirmScreen';
-import PaymentMethodsScreen from '../screens/PaymentMethodsScreen';
-import AddPaymentMethodScreen from '../screens/AddPaymentMethodScreen';
-import OrderHistoryScreen from '../screens/OrderHistoryScreen';
-import WishlistScreen from '../screens/WishlistScreen';
-import ProfileSettingsScreen from '../screens/main/ProfileSettingsScreen';
-import HelpCenterScreen from '../screens/main/HelpCenterScreen';
-import HelpSearchScreen from '../screens/main/HelpSearchScreen';
-import HelpSectionScreen from '../screens/main/HelpSectionScreen';
-import HelpArticleScreen from '../screens/main/HelpArticleScreen';
-import LanguageSettingsScreen from '../screens/main/LanguageSettingsScreen';
-import OrderSuccessScreen from '../screens/OrderSuccessScreen';
-import PaymentScreen from '../screens/main/PaymentScreen';
-import AddAddressScreen from '../screens/main/AddAddressScreen';
-
-// Seller screens
-import StoreInformationScreen from '../screens/main/StoreInformationScreen';
-import StorePerformanceScreen from '../screens/main/StorePerformanceScreen';
+import NotFoundScreen from '../screens/main/NotFoundScreen';
+import ReviewsScreen from '../screens/main/profileScreen/ReviewsScreen';
+import SellerProfileScreen from '../screens/main/searchScreen/SellerProfileScreen';
+import CheckoutScreen from '../screens/main/profileScreen/CheckoutScreen';
+import OrderConfirmationScreen from '../screens/main/profileScreen/settingScreen/OrderConfirmationScreen';
+import SearchResultsScreen from '../screens/main/searchScreen/SearchResultsScreen';
+import EditProfileScreen from '../screens/main/profileScreen/myPageScreen/EditProfileScreen';
+import AddressBookScreen from '../screens/main/profileScreen/settingScreen/addressScreen/AddressBookScreen';
+import SelectAddressScreen from '../screens/main/profileScreen/settingScreen/addressScreen/SelectAddressScreen';
+import AddNewAddressScreen from '../screens/main/profileScreen/settingScreen/addressScreen/AddNewAddressScreen';
+import EditAddressScreen from '../screens/main/profileScreen/settingScreen/addressScreen/EditAddressScreen';
+import EditFinanceAddressScreen from '../screens/main/profileScreen/settingScreen/EditFinanceAddressScreen';
+import PaymentMethodsScreen from '../screens/main/profileScreen/settingScreen/PaymentMethodsScreen';
+import AddPaymentMethodScreen from '../screens/main/profileScreen/settingScreen/AddPaymentMethodScreen';
+import OrderHistoryScreen from '../screens/main/profileScreen/settingScreen/OrderHistoryScreen';
+import WishlistScreen from '../screens/main/WishlistScreen';
+import ProfileSettingsScreen from '../screens/main/profileScreen/myPageScreen/ProfileSettingsScreen';
+import HelpCenterScreen from '../screens/main/profileScreen/settingScreen/helpScreen/HelpCenterScreen';
+import HelpSearchScreen from '../screens/main/profileScreen/settingScreen/helpScreen/HelpSearchScreen';
+import HelpSectionScreen from '../screens/main/profileScreen/settingScreen/helpScreen/HelpSectionScreen';
+import HelpArticleScreen from '../screens/main/profileScreen/settingScreen/helpScreen/HelpArticleScreen';
+import LanguageSettingsScreen from '../screens/main/profileScreen/LanguageSettingsScreen';
+import PaymentScreen from '../screens/main/profileScreen/settingScreen/PaymentScreen';
+import AddAddressScreen from '../screens/main/profileScreen/settingScreen/addressScreen/AddAddressScreen';
 // import EditProductScreen from '../screens/main/EditProductScreen'; // Temporarily removed due to missing module
 // Order screens
-import MyOrdersScreen from '../screens/main/MyOrdersScreen';
-import DetailOrderScreen from '../screens/main/DetailOrderScreen';
-import LeaveFeedbackScreen from '../screens/main/LeaveFeedbackScreen';
+import MyOrdersScreen from '../screens/main/profileScreen/settingScreen/OrderHistoryScreen';
+import LeaveFeedbackScreen from '../screens/main/profileScreen/LeaveFeedbackScreen';
 // Settings screens
-import LocationScreen from '../screens/main/LocationScreen';
-import NotificationsSettingsScreen from '../screens/main/NotificationsSettingsScreen';
-import PrivacyPolicyScreen from '../screens/main/PrivacyPolicyScreen';
-import ChangePasswordScreen from '../screens/main/ChangePasswordScreen';
-import AffiliateMarketingScreen from '../screens/main/AffiliateMarketingScreen';
-import UnitSettingsScreen from '../screens/main/UnitSettingsScreen';
-import PaymentPasswordScreen from '../screens/main/PaymentPasswordScreen';
-import DepositScreen from '../screens/main/DepositScreen';
-import ChargeScreen from '../screens/main/ChargeScreen';
-import PointDetailScreen from '../screens/main/PointDetailScreen';
-import CouponScreen from '../screens/main/CouponScreen';
-import BuyListScreen from '../screens/main/BuyListScreen';
-import ProblemProductScreen from '../screens/main/ProblemProductScreen';
-import NoteScreen from '../screens/main/NoteScreen';
-import LeaveNoteScreen from '../screens/main/LeaveNoteScreen';
-import ShareAppScreen from '../screens/main/ShareAppScreen';
+import LocationScreen from '../screens/main/profileScreen/LocationScreen';
+import PrivacyPolicyScreen from '../screens/main/profileScreen/PrivacyPolicyScreen';
+import ChangePasswordScreen from '../screens/main/profileScreen/myPageScreen/ChangePasswordScreen';
+import AffiliateMarketingScreen from '../screens/main/profileScreen/myPageScreen/AffiliateMarketingScreen';
+import UnitSettingsScreen from '../screens/main/profileScreen/myPageScreen/UnitSettingsScreen';
+import PaymentPasswordScreen from '../screens/main/profileScreen/myPageScreen/PaymentPasswordScreen';
+import DepositScreen from '../screens/main/profileScreen/depositScreen/DepositScreen';
+import ChargeScreen from '../screens/main/profileScreen/depositScreen/ChargeScreen';
+import PointDetailScreen from '../screens/main/profileScreen/depositScreen/PointDetailScreen';
+import CouponScreen from '../screens/main/profileScreen/depositScreen/CouponScreen';
+import BuyListScreen from '../screens/main/profileScreen/settingScreen/BuyListScreen';
+import ProblemProductScreen from '../screens/main/profileScreen/settingScreen/ProblemProductScreen';
+import NoteScreen from '../screens/main/profileScreen/NoteScreen';
+import LeaveNoteScreen from '../screens/main/profileScreen/LeaveNoteScreen';
+import ShareAppScreen from '../screens/main/profileScreen/settingScreen/ShareAppScreen';
 // Chat screens
-import ChatScreen from '../screens/main/ChatScreen';
+import ChatScreen from '../screens/main/chatScreen/ChatScreen';
 import ChatErrorBoundary from '../components/ChatErrorBoundary';
-import ChatProductsScreen from '../screens/main/ChatProductsScreen';
-import ChatOrdersScreen from '../screens/main/ChatOrdersScreen';
-import ChatSettingsScreen from '../screens/main/ChatSettingsScreen';
+import ChatSettingsScreen from '../screens/main/chatScreen/ChatSettingsScreen';
 // import EditProductScreen from '../screens/main/EditProductScreen';
 import CategoryTabScreen from '../screens/main/CategoryTabScreen';
-import CategoryScreen from '../screens/CategoryScreen';
+import ProductDiscoveryScreen from '../screens/main/searchScreen/ProductDiscoveryScreen';
 import SubCategoryScreen from '../screens/main/SubCategoryScreen';
 import Sub2CategoryScreen from '../screens/main/Sub2CategoryScreen';
-import ProductDiscoveryScreen from '../screens/main/ProductDiscoveryScreen';
-import LikeScreen from '../screens/main/LikeScreen';
-import AddShippingServiceScreen from '../screens/AddShippingServiceScreen';
-import FinanceScreen from '../screens/main/FinanceScreen';
+import FinanceScreen from '../screens/main/profileScreen/settingScreen/FinanceScreen';
 import OtpVerificationScreen from '../screens/auth/OtpVerificationScreen';
-import WithdrawSuccessScreen from '../screens/main/WIthDrawSuccessScreen';
-import ChattingMemeberScreen from '../screens/main/ChattingMemberScreen';
-import ChatSearchScreen from '../screens/main/ChatSearchScreen';
-import PusherTestScreen from '../screens/main/PusherTestScreen';
-import CustomerServiceScreen from '../screens/main/CustomerServiceScreen';
-import OrderInquiryScreen from '../screens/main/OrderInquiryScreen';
-import ImageSearchScreen from '../screens/main/ImageSearchScreen';
+import ChatSearchScreen from '../screens/main/chatScreen/ChatSearchScreen';
+import CustomerServiceScreen from '../screens/main/profileScreen/CustomerServiceScreen';
+import OrderInquiryScreen from '../screens/main/profileScreen/OrderInquiryScreen';
+import ImageSearchScreen from '../screens/main/searchScreen/ImageSearchScreen';
 
 const RootStack = createStackNavigator<RootStackParamList>();
 const AuthStack = createStackNavigator<AuthStackParamList>();
@@ -167,33 +158,52 @@ const MainTabNavigator = () => {
   return (
     <MainTab.Navigator
       screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName: any;
+        tabBarIcon: ({ focused }) => {
+          const iconColor = focused ? COLORS.text.red : COLORS.black;
+          const iconSize = 24;
 
           if (route.name === 'Home') {
-            iconName = focused ? require('../assets/icons/home_focused.png') : require('../assets/icons/home.png');
+            return <HomeIcon width={iconSize} height={iconSize} color={iconColor} />;
           } else if (route.name === 'Category') {
-            iconName = focused ? require('../assets/icons/category_focused.png') : require('../assets/icons/category.png');
+            return <CategoryIcon width={iconSize} height={iconSize} color={iconColor} />;
+          } else if (route.name === 'Live') {
+            return <LiveIcon width={iconSize} height={iconSize} color={iconColor} />;
           } else if (route.name === 'Cart') {
-            iconName = focused ? require('../assets/icons/cart_focused.png') : require('../assets/icons/cart.png');
-          } else if (route.name === 'Like') {
-            iconName = focused ? require('../assets/icons/like_focused.png') : require('../assets/icons/like.png');
+            return <CartIcon width={iconSize} height={iconSize} color={iconColor} />;
           } else if (route.name === 'Profile') {
-            iconName = focused ? require('../assets/icons/person_focused.png') : require('../assets/icons/person.png');
-          } else {
-            iconName = require('../assets/icons/home.png'); // fallback to home icon
+            return <AccountIcon width={iconSize} height={iconSize} color={iconColor} />;
           }
-
-          // return <Ionicons name={iconName} size={size} color={color} />;
-          return <Image source={ iconName } style={{ width: 20, height: 20 }} resizeMode="contain" />;
+          return <HomeIcon width={iconSize} height={iconSize} color={iconColor} />;
         },
-        tabBarActiveTintColor: COLORS.black,
-        tabBarInactiveTintColor: COLORS.gray[500],
+        tabBarLabel: ({ focused, color }) => {
+          let label = '';
+          if (route.name === 'Home') label = 'Home';
+          else if (route.name === 'Category') label = 'Category';
+          else if (route.name === 'Live') label = 'Live';
+          else if (route.name === 'Cart') label = 'Cart';
+          else if (route.name === 'Profile') label = 'Account';
+          
+          return (
+            <Text
+              style={{
+                fontSize: 12,
+                color: focused ? COLORS.text.red : COLORS.black,
+                fontWeight: focused ? '600' : '400',
+              }}
+            >
+              {label}
+            </Text>
+          );
+        },
+        tabBarActiveTintColor: COLORS.text.red,
+        tabBarInactiveTintColor: COLORS.black,
         tabBarStyle: {
           backgroundColor: COLORS.white,
           borderTopColor: COLORS.borderLight,
           borderTopWidth: 1,
-          // height: 80,
+          height: 70,
+          paddingBottom: 20,
+          paddingTop: 8,
           shadowColor: COLORS.shadow,
           shadowOffset: { width: 0, height: -4 },
           shadowOpacity: 0.1,
@@ -201,15 +211,16 @@ const MainTabNavigator = () => {
           elevation: 8,
         },
         tabBarLabelStyle: {
-          display: 'none', // Hide tab labels
+          fontSize: 12,
+          marginTop: 4,
         },
         headerShown: false,
       })}
     >
       <MainTab.Screen name="Home" component={HomeScreen} />
       <MainTab.Screen name="Category" component={CategoryTabScreen} />
+      <MainTab.Screen name="Live" component={LiveScreen} />
       <MainTab.Screen name="Cart" component={DEMO_MODE ? CartScreenDemo : CartScreen} />
-      <MainTab.Screen name="Like" component={DEMO_MODE ? WishlistScreenDemo : WishlistScreen} />
       <MainTab.Screen name="Profile" component={DEMO_MODE ? ProfileScreenDemo : ProfileScreen} />
     </MainTab.Navigator>
   );
@@ -232,18 +243,29 @@ const RootNavigator = () => {
     return <SplashScreen />;
   }
 
+  // Set initial route based on authentication state
+  const initialRoute = isAuthenticated ? 'Main' : 'Auth';
+
   return (
     <RootStack.Navigator
+      initialRouteName={initialRoute}
       screenOptions={{
         headerShown: false,
         cardStyle: { backgroundColor: COLORS.background },
       }}
     >
       {/* Onboarding removed - skip directly to main screens */}
-      {(
-        <>
-          <RootStack.Screen name="Main" component={MainTabNavigator} />
-          <RootStack.Screen name="Auth" component={AuthNavigator} />
+      <>
+        <RootStack.Screen name="Main" component={MainTabNavigator} />
+        <RootStack.Screen name="Auth" component={AuthNavigator} />
+          <RootStack.Screen 
+            name="NotFound"
+            component={NotFoundScreen}
+            options={{
+              headerShown: false,
+              title: 'Page Not Found',
+            }}
+          />
           <RootStack.Screen 
             name="ProductDetail" 
             component={ProductDetailScreen}
@@ -335,19 +357,9 @@ const RootNavigator = () => {
             }}
           />
           <RootStack.Screen 
-            name="AddShippingService" 
-            component={AddShippingServiceScreen}
-            options={{
-              headerShown: false,
-              title: 'Add Shipping Service',
-              headerStyle: {
-                backgroundColor: COLORS.white,
-              },
-              headerTintColor: COLORS.text.primary,
-              headerTitleStyle: {
-                fontWeight: '600',
-              },
-            }}
+            name="ProductDiscovery"
+            component={ProductDiscoveryScreen}
+            options={{ headerShown: false }}
           />
           <RootStack.Screen 
             name="SubCategory"
@@ -355,8 +367,8 @@ const RootNavigator = () => {
             options={{ headerShown: false }}
           />
           <RootStack.Screen 
-            name="ProductDiscovery"
-            component={ProductDiscoveryScreen}
+            name="Sub2Category"
+            component={Sub2CategoryScreen}
             options={{ headerShown: false }}
           />
           <RootStack.Screen 
@@ -380,21 +392,6 @@ const RootNavigator = () => {
             options={{ headerShown: false }}
           />
           <RootStack.Screen 
-            name="Categories" 
-            component={CategoryScreen}
-            options={({ route }) => ({
-              headerShown: false,
-              title: route.params?.categoryId || 'Category',
-              headerStyle: {
-                backgroundColor: COLORS.white,
-              },
-              headerTintColor: COLORS.text.primary,
-              headerTitleStyle: {
-                fontWeight: '600',
-              },
-            })}
-          />
-          <RootStack.Screen 
             name="EditProfile" 
             component={EditProfileScreen}
             options={{
@@ -415,6 +412,21 @@ const RootNavigator = () => {
             options={{
               headerShown: false,
               title: 'Address Book',
+              headerStyle: {
+                backgroundColor: COLORS.white,
+              },
+              headerTintColor: COLORS.text.primary,
+              headerTitleStyle: {
+                fontWeight: '600',
+              },
+            }}
+          />
+          <RootStack.Screen 
+            name="SelectAddress" 
+            component={SelectAddressScreen}
+            options={{
+              headerShown: false,
+              title: 'Select Address',
               headerStyle: {
                 backgroundColor: COLORS.white,
               },
@@ -505,21 +517,6 @@ const RootNavigator = () => {
             options={{
               headerShown: false,
               title: 'Order History',
-              headerStyle: {
-                backgroundColor: COLORS.white,
-              },
-              headerTintColor: COLORS.text.primary,
-              headerTitleStyle: {
-                fontWeight: '600',
-              },
-            }}
-          />
-          <RootStack.Screen 
-            name="OrderSuccess" 
-            component={OrderSuccessScreen}
-            options={{
-              headerShown: false,
-              title: 'Order Success',
               headerStyle: {
                 backgroundColor: COLORS.white,
               },
@@ -769,21 +766,6 @@ const RootNavigator = () => {
               },
             }}
           />
-          {/* Seller screens */}
-          <RootStack.Screen 
-            name="StoreInformation" 
-            component={StoreInformationScreen}
-            options={{
-              headerShown: false,
-            }}
-          />
-          <RootStack.Screen 
-            name="StorePerformance" 
-            component={StorePerformanceScreen}
-            options={{
-              headerShown: false,
-            }}
-          />
           {/* Order screens */}
           <RootStack.Screen 
             name="MyOrders" 
@@ -791,21 +773,6 @@ const RootNavigator = () => {
             options={{
               headerShown: false,
               title: 'My Orders',
-              headerStyle: {
-                backgroundColor: COLORS.white,
-              },
-              headerTintColor: COLORS.text.primary,
-              headerTitleStyle: {
-                fontWeight: '600',
-              },
-            }}
-          />
-          <RootStack.Screen 
-            name="DetailOrder" 
-            component={DetailOrderScreen}
-            options={{
-              headerShown: false,
-              title: 'Order Details',
               headerStyle: {
                 backgroundColor: COLORS.white,
               },
@@ -852,81 +819,6 @@ const RootNavigator = () => {
             options={{
               headerShown: false,
               title: 'Finance',
-              headerStyle: {
-                backgroundColor: COLORS.white,
-              },
-              headerTintColor: COLORS.text.primary,
-              headerTitleStyle: {
-                fontWeight: '600',
-              },
-            }}
-          />
-          <RootStack.Screen 
-            name="WithdrawConfirm" 
-            component={WithdrawConfirmScreen}
-            options={{
-              headerShown: false,
-              title: 'Confirm Withdrawal',
-              headerStyle: {
-                backgroundColor: COLORS.white,
-              },
-              headerTintColor: COLORS.text.primary,
-              headerTitleStyle: {
-                fontWeight: '600',
-              },
-            }}
-          />
-          <RootStack.Screen 
-            name="WithdrawSuccess" 
-            component={WithdrawSuccessScreen}
-            options={{
-              headerShown: false,
-              title: 'Withdraw',
-              headerStyle: {
-                backgroundColor: COLORS.white,
-              },
-              headerTintColor: COLORS.text.primary,
-              headerTitleStyle: {
-                fontWeight: '600',
-              },
-            }}
-          />
-          {/* <RootStack.Screen 
-            name="Sub2Category" 
-            component={Sub2CategoryScreen}
-            options={{
-              headerShown: false,
-              title: 'Sub2 Category',
-              headerStyle: {
-                backgroundColor: COLORS.white,
-              },
-              headerTintColor: COLORS.text.primary,
-              headerTitleStyle: {
-                fontWeight: '600',
-              },
-            }}
-          /> */}
-          <RootStack.Screen 
-            name="Notifications" 
-            component={NotificationsScreen}
-            options={{
-              headerShown: false,
-              title: 'Notifications',
-              headerStyle: {
-                backgroundColor: COLORS.white,
-              },
-              headerTintColor: COLORS.text.primary,
-              headerTitleStyle: {
-                fontWeight: '600',
-              },
-            }}
-          />
-          <RootStack.Screen 
-            name="NotificationsSettings" 
-            component={NotificationsSettingsScreen}
-            options={{
-              headerShown: false,
-              title: 'NotificationsSettings',
               headerStyle: {
                 backgroundColor: COLORS.white,
               },
@@ -1013,17 +905,6 @@ const RootNavigator = () => {
           />
           {/* Chat screens */}
           <RootStack.Screen 
-            name="ChattingMembers" 
-            component={() => (
-              <ChatErrorBoundary>
-                <ChattingMemeberScreen />
-              </ChatErrorBoundary>
-            )}
-            options={{
-              headerShown: false,
-            }}
-          />
-          <RootStack.Screen 
             name="ChatSearch" 
             component={ChatSearchScreen}
             options={{
@@ -1037,20 +918,6 @@ const RootNavigator = () => {
                 <ChatScreen />
               </ChatErrorBoundary>
             )}
-            options={{
-              headerShown: false,
-            }}
-          />
-          <RootStack.Screen 
-            name="ChatProducts" 
-            component={ChatProductsScreen}
-            options={{
-              headerShown: false,
-            }}
-          />
-          <RootStack.Screen 
-            name="ChatOrders" 
-            component={ChatOrdersScreen}
             options={{
               headerShown: false,
             }}
@@ -1070,24 +937,8 @@ const RootNavigator = () => {
               },
             }}
           />
-          <RootStack.Screen 
-            name="PusherTest" 
-            component={PusherTestScreen}
-            options={{
-              headerShown: false,
-              title: 'Pusher Test',
-              headerStyle: {
-                backgroundColor: COLORS.white,
-              },
-              headerTintColor: COLORS.text.primary,
-              headerTitleStyle: {
-                fontWeight: '600',
-              },
-            }}
-          />
 
-        </>
-      )}
+      </>
     </RootStack.Navigator>
   );
 };

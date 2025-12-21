@@ -1,6 +1,17 @@
 import { useState, useCallback } from 'react';
-import { login as apiLogin, register as apiRegister, guestLogin as apiGuestLogin, loginFrontendOnly, registerFrontendOnly, changePassword as apiChangePassword } from '../services/authApi';
+import { login as apiLogin, register as apiRegister, changePassword as apiChangePassword } from '../services/authApi';
 import { User, AuthUseMutationOptions, LoginVariables, RegisterVariables, GuestLoginVariables, UseLoginMutationResult, UseRegisterMutationResult, useGuestLoginMutationResult } from '../types';
+
+// Frontend-only and guest login APIs removed - stub functions
+const loginFrontendOnly = async (_email: string, _password: string) => {
+  return { success: false, data: null, error: 'Frontend-only login API removed', errorCode: undefined };
+};
+const registerFrontendOnly = async (_data: any) => {
+  return { success: false, data: null, error: 'Frontend-only register API removed', errorCode: undefined };
+};
+const apiGuestLogin = async (_fcm_token: string) => {
+  return { success: false, data: null, error: 'Guest login API removed', errorCode: undefined };
+};
 
 // Flag to switch between frontend-only and backend modes
 const USE_FRONTEND_ONLY = false; // Set to false when backend is ready
@@ -33,8 +44,6 @@ export const useLoginMutation = (options?: AuthUseMutationOptions): UseLoginMuta
       const response = USE_FRONTEND_ONLY 
         ? await loginFrontendOnly(variables.email, variables.password)
         : await apiLogin(variables.email, variables.password);
-      
-      console.log('useLoginMutation: API response:', response);
       
       if (response.success && response.data) {
         setData(response.data);
@@ -95,7 +104,6 @@ export const useRegisterMutation = (options?: AuthUseMutationOptions): UseRegist
       //       variables.name,
       //       variables.gender
       //     );
-      console.log('Register Started:', variables);
       const response = await apiRegister(
         variables.email,
         variables.password,
@@ -106,21 +114,18 @@ export const useRegisterMutation = (options?: AuthUseMutationOptions): UseRegist
       );
       
       if (response.success && response.data) {
-        console.log("Signup API Success!", response.data);
         setData(response.data);
         setIsSuccess(true);
         options?.onSuccess?.(response.data);
       } else {
         const errorMessage = response.error || 'Registration failed';
         const errorCode = response.errorCode;
-        console.log("Signup Api Failed:", errorMessage, "Code:", errorCode);
         setError(errorMessage);
         setIsError(true);
         options?.onError?.(errorMessage, errorCode);
       }
     } catch (err) {
       const errorMessage = 'An unexpected error occurred. Please try again.';
-      console.log("Signup Failed:", errorMessage, err);
       setError(errorMessage);
       setIsError(true);
       options?.onError?.(errorMessage, undefined);
@@ -208,10 +213,10 @@ export const useChangePasswordMutation = (options?: AuthUseMutationOptions): Use
         variables.newPassword
       );
       
-      if (response.success && response.data) {
-        setData(response.data);
+      if (response.success) {
+        setData({ message: response.message || 'Password changed successfully' });
         setIsSuccess(true);
-        options?.onSuccess?.(response.data);
+        options?.onSuccess?.({ message: response.message || 'Password changed successfully' });
       } else {
         const errorMessage = response.error || 'Failed to change password';
         setError(errorMessage);

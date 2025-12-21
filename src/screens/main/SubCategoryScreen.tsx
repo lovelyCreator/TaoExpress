@@ -19,6 +19,7 @@ import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '../../constants'
 import { RootStackParamList } from '../../types';
 import { usePlatformStore } from '../../store/platformStore';
 import { useAppSelector } from '../../store/hooks';
+import { useTranslation } from '../../hooks/useTranslation';
 import { Image } from 'react-native';
 
 const { width } = Dimensions.get('window');
@@ -53,6 +54,7 @@ const SubCategoryScreen: React.FC = () => {
   
   // Get locale from Redux store
   const locale = useAppSelector((s) => s.i18n.locale) as 'en' | 'ko' | 'zh';
+  const { t } = useTranslation();
 
   // Effect to load subcategories or subsubcategories
   useEffect(() => {
@@ -155,8 +157,8 @@ const SubCategoryScreen: React.FC = () => {
 
   const handleSubSubCategorySelect = (subSubCategory: SubSubCategory) => {
     if (isShowingSubcategories) {
-      // If showing subcategories, navigate to ProductDiscovery with the selected subcategory
-      // Get subsubcategories if they exist in the item
+      // Always navigate directly to ProductDiscovery, skip Sub2CategoryScreen
+      // Pass subsubcategories if available for ProductDiscovery to use
       let localizedSubSubCategories: any[] = [];
       if (subSubCategory.subsubcategories && subSubCategory.subsubcategories.length > 0) {
         localizedSubSubCategories = subSubCategory.subsubcategories.map((subSubCat: any) => {
@@ -172,6 +174,7 @@ const SubCategoryScreen: React.FC = () => {
         });
       }
       
+      // Navigate directly to ProductDiscovery
       navigation.navigate('ProductDiscovery', { 
         subCategoryName: subSubCategory.name,
         categoryId: categoryId,
@@ -210,6 +213,7 @@ const SubCategoryScreen: React.FC = () => {
         categoryName: parentCategoryName || categoryName,
         subcategoryId: categoryId, // The current categoryId is actually the subcategory ID
         subsubcategories: [], // We're navigating to a specific subsubcategory, so pass empty array
+        source: selectedPlatform, // Pass the current platform
     });
     }
   };
@@ -232,7 +236,7 @@ const SubCategoryScreen: React.FC = () => {
       <Ionicons name="search-outline" size={24} color={COLORS.text.primary} style={styles.searchIcon} />
       <TextInput
         style={styles.searchInput}
-        placeholder="Search"
+        placeholder={t('search.placeholder')}
         value={searchQuery}
         onChangeText={setSearchQuery}
         placeholderTextColor={COLORS.gray[400]}
@@ -255,10 +259,16 @@ const SubCategoryScreen: React.FC = () => {
     // Generate a safe key
     const key = item.id || `subsubcategory-${index}`;
     
+    // Check if this is the last item in a row (every 3rd item, or last item overall)
+    const isLastInRow = (index + 1) % 3 === 0;
+    const itemStyle = isLastInRow 
+      ? [styles.quickCategoryItem, { marginRight: 0 }]
+      : styles.quickCategoryItem;
+    
     return (
       <TouchableOpacity
         key={key}
-        style={styles.quickCategoryItem}
+        style={itemStyle}
         onPress={() => handleSubSubCategorySelect(item)}
       >
         <View style={styles.quickCategoryImageContainer}>
@@ -287,7 +297,7 @@ const SubCategoryScreen: React.FC = () => {
       return (
         <View style={styles.centeredContainer}>
           <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Loading...</Text>
+          <Text style={styles.loadingText}>{t('home.loading')}</Text>
         </View>
       );
     }
@@ -406,16 +416,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     paddingHorizontal: SPACING.md,
-    justifyContent: 'space-between',
   },
   quickCategoryItem: {
-    width: (width - SPACING.lg * 2 - SPACING.sm * 2) / 3,
+    width: (width - SPACING.md * 2 - SPACING.sm * 2) / 3,
     alignItems: 'center',
     marginBottom: SPACING.md,
+    marginRight: SPACING.sm,
   },
   quickCategoryImageContainer: {
-    width: (width - SPACING.lg * 2 - SPACING.sm * 2) / 3,
-    height: (width - SPACING.lg * 2 - SPACING.sm * 2) / 3,
+    width: (width - SPACING.md * 2 - SPACING.sm * 2) / 3,
+    height: (width - SPACING.md * 2 - SPACING.sm * 2) / 3,
     borderRadius: 8,
     backgroundColor: COLORS.gray[100],
     justifyContent: 'center',

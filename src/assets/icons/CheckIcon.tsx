@@ -25,7 +25,7 @@ const CheckIcon: React.FC<CheckIconProps> = ({
           cx="12"
           cy="12"
           r="10"
-          fill={COLORS.accentPink}
+          fill={COLORS.red}
         />
         {/* White checkmark */}
         <Path

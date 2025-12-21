@@ -241,6 +241,21 @@ export const uploadVideoToCloudinary = async (uri: any, fileName: any): Promise<
 };
 
 /**
+ * Upload image to Cloudinary and return the secure URL
+ * @param uri - The URI of the image to upload
+ * @returns Promise with the secure URL of the uploaded image
+ */
+export const uploadImageToCloudinary = async (uri: string): Promise<string> => {
+  try {
+    const response = await uploadToCloudinary(uri, `profile_${Date.now()}.jpg`);
+    return response.secure_url;
+  } catch (error) {
+    console.error('Error uploading image to Cloudinary:', error);
+    throw error;
+  }
+};
+
+/**
  * Delete a resource from Cloudinary
  * @param publicId - The public ID of the resource to delete
  * @returns Promise with deletion result

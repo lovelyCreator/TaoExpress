@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   commissionBadge: {
-    backgroundColor: COLORS.accentPink,
+    backgroundColor: COLORS.red,
     paddingHorizontal: SPACING.sm,
     paddingVertical: 2,
     borderRadius: BORDER_RADIUS.sm,

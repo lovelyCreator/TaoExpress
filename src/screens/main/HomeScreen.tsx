@@ -18,63 +18,130 @@ import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import Svg, { Defs, RadialGradient as SvgRadialGradient, Stop, Rect, Mask, Circle } from 'react-native-svg';
 
 // Create animated icon component
 const AnimatedIcon = Animated.createAnimatedComponent(Ionicons);
 
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '../../constants';
 import { useAuth } from '../../context/AuthContext';
-import { useWishlist } from '../../context/WishlistContext';
-import { useForYou } from '../../context/ForYouContext';
 import { useToast } from '../../context/ToastContext';
-import { RootStackParamList, Product, NewInProduct, Store, Story } from '../../types';
+import { RootStackParamList, Product, NewInProduct, Story } from '../../types';
 
-import companiesData from '../../data/mockCompanies.json';
-import mockProductsData from '../../data/mockProducts.json';
-import { productsApi, storesApi } from '../../services/api';
-import { useCart } from '../../context/CartContext';
 import { ProductCard, PlatformMenu, SearchButton, NotificationBadge, ImagePickerModal } from '../../components';
-import { useCategoriesMutation, useCategoriesTreeMutation } from '../../hooks/useCategories';
-import { useNewInProductsMutation, useTrendingProductsMutation, useForYouProductsMutation, useStoresMutation, useRecommendationsMutation } from '../../hooks/useHomeScreenMutations';
-import { useGetWishlistMutation } from '../../hooks/useWishlistMutations'; // Add this import
 import { usePlatformStore } from '../../store/platformStore';
 import { useAppSelector } from '../../store/hooks';
 import { translations } from '../../i18n/translations';
+import HeadsetMicIcon from '../../assets/icons/HeadsetMicIcon';
+import { useNewInProductsMutation } from '../../hooks/useNewInProductsMutation';
+import { useRecommendationsMutation } from '../../hooks/useRecommendationsMutation';
+import { useWishlistStatus } from '../../hooks/useWishlistStatus';
+import { useAddToWishlistMutation } from '../../hooks/useAddToWishlistMutation';
+import { useDeleteFromWishlistMutation } from '../../hooks/useDeleteFromWishlistMutation';
+import { useSocket } from '../../context/SocketContext';
+import { inquiryApi } from '../../services/inquiryApi';
+import { useDefaultCategoriesMutation } from '../../hooks/useDefaultCategoriesMutation';
 
 const { width } = Dimensions.get('window');
-// New In card sizing: width < 1/3 of screen, height ~1.7x width
-const NEW_IN_CARD_WIDTH = Math.floor(width * 0.28);
+// New In card sizing: 3 items per line, image should be less than 1/3 of mobile width
+// Calculate: (width - left padding - right padding - 2 gaps) / 3
+// Using smaller padding and gaps to ensure 3 items fit
+const pagePadding = SPACING.sm * 2; // Left + right padding
+const gaps = SPACING.xs * 2; // 2 gaps between 3 items
+const NEW_IN_CARD_WIDTH = Math.floor((width - pagePadding - gaps) / 3);
 const NEW_IN_CARD_HEIGHT = Math.floor(NEW_IN_CARD_WIDTH * 1.55);
- const GRID_CARD_WIDTH = (width - SPACING.md * 2 - SPACING.md) / 2;
+const GRID_CARD_WIDTH = (width - SPACING.md * 2 - SPACING.md) / 2;
 
 type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Main'>;
 
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
   
-  // Access cart context directly since we've fixed the provider
-  const { addToCart } = useCart();
   const { user, isGuest } = useAuth();
-  
-
-  const { likedProductIds, toggleWishlist, isInWishlist, refreshWishlist } = useWishlist();
   const { showToast } = useToast();
-  const { 
-    products: forYouProducts, 
-    offset: forYouOffset, 
-    hasMore: forYouHasMore, 
-    isLoading: forYouLoading,
-    error: forYouError,
-    appendProducts,
-    setProducts,
-    setOffset,
-    setHasMore,
-    setLoading: setForYouLoading,
-    setError: setForYouError,
-    clearProducts
-  } = useForYou();
+  
+  // Use wishlist status hook to check if products are liked based on external IDs
+  const { isProductLiked, refreshExternalIds, addExternalId, removeExternalId } = useWishlistStatus();
+  
+  // Get locale and platform
+  const locale = useAppSelector((s) => s.i18n.locale) as 'en' | 'ko' | 'zh';
+  const { selectedPlatform, setSelectedPlatform } = usePlatformStore();
+  
+  // Add to wishlist mutation
+  const { mutate: addToWishlist } = useAddToWishlistMutation({
+    onSuccess: async (data) => {
+      showToast('Product added to wishlist', 'success');
+      // Immediately refresh external IDs to update heart icon color
+      await refreshExternalIds();
+    },
+    onError: (error) => {
+      showToast(error || 'Failed to add product to wishlist', 'error');
+    },
+  });
+
+  // Delete from wishlist mutation
+  const { mutate: deleteFromWishlist } = useDeleteFromWishlistMutation({
+    onSuccess: async (data) => {
+      showToast('Product removed from wishlist', 'success');
+      // Immediately update external IDs to update heart icon color
+      await refreshExternalIds();
+    },
+    onError: (error) => {
+      showToast(error || 'Failed to remove product from wishlist', 'error');
+    },
+  });
+  
+  // Toggle wishlist function
+  const toggleWishlist = async (product: any) => {
+    if (!user || isGuest) {
+      showToast(t('home.pleaseLogin') || 'Please login first', 'warning');
+      return;
+    }
+
+    // Get product external ID - prioritize externalId, never use MongoDB _id
+    const externalId = 
+      (product as any).externalId?.toString() ||
+      (product as any).offerId?.toString() ||
+      '';
+
+    if (!externalId) {
+      showToast('Invalid product ID', 'error');
+      return;
+    }
+
+    const isLiked = isProductLiked(product);
+    const source = (product as any).source || selectedPlatform || '1688';
+    const country = locale || 'en';
+
+    if (isLiked) {
+      // Remove from wishlist - optimistic update (removes from state and AsyncStorage immediately)
+      await removeExternalId(externalId);
+      deleteFromWishlist(externalId);
+    } else {
+      // Add to wishlist - extract required fields from product
+      const imageUrl = product.image || product.images?.[0] || '';
+      const price = product.price || 0;
+      const title = product.name || product.title || '';
+
+      if (!imageUrl || !title || price <= 0) {
+        showToast('Invalid product data', 'error');
+        return;
+      }
+
+      // Optimistic update - add to state and AsyncStorage immediately
+      await addExternalId(externalId);
+      addToWishlist({
+        externalId,
+        source,
+        country,
+        imageUrl,
+        price,
+        title,
+      });
+    }
+  };
   
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [newProducts, setNewProducts] = useState<Product[]>([]);
@@ -83,48 +150,152 @@ const HomeScreen: React.FC = () => {
   const [trendingProducts, setTrendingProducts] = useState<any[]>([]);
   const [stories, setStories] = useState<Story[]>([]);
   const [initialLoading, setInitialLoading] = useState(true); // New state for initial loading
-  const [apiStores, setApiStores] = useState<Store[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const { unreadCount: socketUnreadCount, onUnreadCountUpdated } = useSocket(); // Get total unread count from socket context
+  const [unreadCount, setUnreadCount] = useState(0); // Local state for unread count (from REST API)
   const [activeCategoryTab, setActiveCategoryTab] = useState('Woman');
   const [activeCategoryIndex, setActiveCategoryIndex] = useState(0);
-  const [selectedPlatform, setSelectedPlatform] = useState('1688');
   
   const platforms = ['1688', 'taobao', 'wsy', 'vip', 'vvic', 'myCompany'];
   
-  // Get categories for selected platform
+  // Fetch unread counts from REST API when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      const fetchUnreadCounts = async () => {
+        try {
+          const response = await inquiryApi.getUnreadCounts();
+          if (response.success && response.data) {
+            setUnreadCount(response.data.totalUnread);
+            // Note: onUnreadCountUpdated is a callback registration function, not a direct update function
+            // The socket context will handle updates via its own event listeners
+          }
+        } catch (error) {
+          // Failed to fetch unread counts
+        }
+      };
+      fetchUnreadCounts();
+    }, [onUnreadCountUpdated])
+  );
+  
+  // Update unread count from socket events (real-time updates)
+  useEffect(() => {
+    setUnreadCount(socketUnreadCount);
+  }, [socketUnreadCount]);
+  
+  // Get categories for selected platform (using store instead)
   const getCompanyCategories = () => {
-    const company = companiesData.companies.find(c => c.id === selectedPlatform);
-    return company?.categories || [];
+    // Mock data removed - using store instead
+    return [];
   };
   
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [useMockData, setUseMockData] = useState(false); // Use API data instead of mock data
   const [imagePickerModalVisible, setImagePickerModalVisible] = useState(false);
 
-  // Recommendations hook for "More to Love"
+  // Recommendations state for "More to Love"
+  const [recommendationsProducts, setRecommendationsProducts] = useState<Product[]>([]);
+  const [recommendationsPage, setRecommendationsPage] = useState(1);
+  const [hasMoreRecommendations, setHasMoreRecommendations] = useState(true);
+  const [isLoadingMoreRecommendations, setIsLoadingMoreRecommendations] = useState(false);
+  const isLoadingMoreRef = useRef(false); // Ref to prevent multiple simultaneous calls
+  const lastSuccessfulPageRef = useRef(1); // Track last successful page to revert on error
+  
+  // Default categories state
+  const [defaultCategories, setDefaultCategories] = useState<any[]>([]);
+  
+  // Recommendations API mutation
   const { 
     mutate: fetchRecommendations, 
-    data: recommendationsData, 
-    isLoading: recommendationsLoading,
-    error: recommendationsError,
-    currentPage: recommendationsPage,
-    hasMore: recommendationsHasMore,
-    reset: resetRecommendations
+    isLoading: recommendationsLoading, 
+    isError: recommendationsError 
   } = useRecommendationsMutation({
-    onSuccess: (data, page) => {
-      console.log('Recommendations fetched successfully:', data?.length, 'items, page:', page);
-      isFetchingRecommendations.current = false;
+    onSuccess: (data) => {
+      setIsLoadingMoreRecommendations(false);
+      isLoadingMoreRef.current = false; // Reset the ref flag
+      
+      if (data && data.recommendations && data.recommendations.result && Array.isArray(data.recommendations.result)) {
+        
+        // Check if there are more pages (if we got fewer items than pageSize, we've reached the end)
+        const pageSize = data.pageSize || 20;
+        const currentPageFromData = data.page || recommendationsPage;
+        const hasMore = data.recommendations.result.length >= pageSize;
+        setHasMoreRecommendations(hasMore);
+        
+        // Map API response to Product format
+        const mappedProducts = data.recommendations.result.map((item: any): Product => {
+          const price = parseFloat(item.priceInfo?.price || item.priceInfo?.consignPrice || 0);
+          const originalPrice = parseFloat(item.priceInfo?.consignPrice || item.priceInfo?.price || 0);
+          const discount = originalPrice > price && originalPrice > 0
+            ? Math.round(((originalPrice - price) / originalPrice) * 100)
+            : 0;
+          
+          const productData: Product = {
+            id: item.offerId?.toString() || '',
+            externalId: item.offerId?.toString() || '',
+            offerId: item.offerId?.toString() || '',
+            name: item.subjectTrans || item.subject || '',
+            image: item.imageUrl || '',
+            price: price,
+            originalPrice: originalPrice,
+            discount: discount,
+            description: '',
+            category: { id: '', name: '', icon: '', image: '', subcategories: [] },
+            subcategory: '',
+            brand: '',
+            seller: { 
+              id: '', 
+              name: '', 
+              avatar: '', 
+              rating: 0, 
+              reviewCount: 0, 
+              isVerified: false, 
+              followersCount: 0, 
+              description: '', 
+              location: '', 
+              joinedDate: new Date() 
+            },
+            rating: 0,
+            reviewCount: 0,
+            rating_count: 0,
+            inStock: true,
+            stockCount: 0,
+            tags: [],
+            isNew: false,
+            isFeatured: false,
+            isOnSale: discount > 0,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            orderCount: item.monthSold || 0,
+            repurchaseRate: item.repurchaseRate || '',
+          };
+          
+          // Preserve non-typed fields for navigation / tracking
+          (productData as any).source = selectedPlatform;
+          
+          return productData;
+        });
+        
+        // If it's the first page, replace products, otherwise append
+        if (currentPageFromData === 1) {
+          setRecommendationsProducts(mappedProducts);
+          lastSuccessfulPageRef.current = 1; // Update last successful page
+        } else {
+          setRecommendationsProducts(prev => [...prev, ...mappedProducts]);
+          lastSuccessfulPageRef.current = currentPageFromData; // Update last successful page
+        }
+      }
     },
     onError: (error) => {
-      console.error('Recommendations fetch error:', error);
-      isFetchingRecommendations.current = false;
-    }
+      setIsLoadingMoreRecommendations(false);
+      isLoadingMoreRef.current = false; // Reset the ref flag on error
+      // Reset page number to last successful page on error to prevent incrementing on failures
+      setRecommendationsPage(lastSuccessfulPageRef.current);
+      // Set hasMoreRecommendations to false to prevent further attempts
+      setHasMoreRecommendations(false);
+    },
   });
-  
-  // Track if we're currently fetching to prevent duplicate calls
-  const isFetchingRecommendations = useRef(false);
+  const recommendationsHasMore = false;
   const [isScrolled, setIsScrolled] = useState(false); // Track if scrolled past threshold
   
   // Update selected category when platform changes
@@ -142,13 +313,73 @@ const HomeScreen: React.FC = () => {
   const scrollToTopOpacity = useRef(new Animated.Value(0)).current;
   
   // State for new "New In" products
-  const [newInProducts, setNewInProducts] = useState<NewInProduct[]>([]);
+  const [newInProducts, setNewInProducts] = useState<any[]>([]);
+  const [currentNewInPage, setCurrentNewInPage] = useState(0);
+  const newInScrollRef = useRef<ScrollView>(null);
   
-  // Use the categories API hook
-  const { mutate: fetchCategories, data: categoriesData, isLoading: categoriesLoading } = useCategoriesMutation();
+  // Animation values for new in products
+  const newInFadeAnim = useRef(new Animated.Value(0)).current;
+  const newInScaleAnim = useRef(new Animated.Value(0.95)).current;
   
-  // Get locale from Redux store
-  const locale = useAppSelector((s) => s.i18n.locale) as 'en' | 'ko' | 'zh';
+  // New In Products API mutation
+  const { 
+    mutate: fetchNewInProducts, 
+    isLoading: newInLoading, 
+    isError: newInError 
+  } = useNewInProductsMutation({
+    onSuccess: (data) => {
+      if (data && data.products && Array.isArray(data.products)) {
+        // Map API response to product format and take only first 9 items
+        const mappedProducts = data.products
+          .slice(0, 9) // Extract only 9 items
+          .map((product: any) => {
+            // Use promotionPrice if available and hasPromotion is true, otherwise use price
+            const currentPrice = product.hasPromotion && product.promotionPrice 
+              ? parseFloat(product.promotionPrice)
+              : parseFloat(product.price || product.dropshipPrice || 0);
+            const originalPrice = parseFloat(product.originalPrice || product.price || 0);
+            // Calculate discount: if originalPrice > currentPrice, show discount
+            const discount = originalPrice > currentPrice && originalPrice > 0
+              ? Math.round(((originalPrice - currentPrice) / originalPrice) * 100)
+              : 0;
+            
+            return {
+              id: product.externalId?.toString() || product._id?.toString() || '',
+              externalId: product.externalId?.toString() || '', // Ensure externalId is preserved
+              offerId: product.externalId?.toString() || '', // Also set offerId for compatibility
+              name: product.title || product.titleOriginal || '',
+              image: product.image || '',
+              price: currentPrice,
+              originalPrice: originalPrice,
+              discount: discount,
+              rating: product.rating || 0,
+              ratingCount: product.sales || 0,
+              orderCount: product.sales || 0,
+              source: product.platform || selectedPlatform,
+            };
+          });
+        setNewInProducts(mappedProducts);
+      }
+    },
+    onError: (error) => {
+      showToast(error || t('home.loading') || 'Failed to load new products', 'error');
+    },
+  });
+
+  // Default categories API mutation
+  const { 
+    mutate: fetchDefaultCategories, 
+    isLoading: isLoadingCategories 
+  } = useDefaultCategoriesMutation({
+    onSuccess: (data) => {
+      if (data && data.categories && Array.isArray(data.categories)) {
+        setDefaultCategories(data.categories);
+      }
+    },
+    onError: (error) => {
+      // Failed to fetch default categories
+    },
+  });
   
   // Translation function
   const t = (key: string) => {
@@ -160,256 +391,111 @@ const HomeScreen: React.FC = () => {
     return value || key;
   };
 
-  // Helper function to navigate to product detail after checking API
+  // Map language codes to flag emojis
+  const getLanguageFlag = (locale: string) => {
+    const flags: { [key: string]: string } = {
+      'en': '🇺🇸',
+      'ko': '🇰🇷',
+      'zh': '🇨🇳',
+    };
+    return flags[locale] || '🇺🇸';
+  };
+
+  const isFetchingProductDetail = false;
+
+  // Helper function to navigate to product detail
   const navigateToProductDetail = async (
     productId: string | number,
     source: string = selectedPlatform,
     country: string = locale
   ) => {
-    try {
-      // Check product detail API first
-      const response = await productsApi.getProductDetail(productId, source, country);
-      
-      if (response.success && response.data) {
-        // API call successful, navigate to product detail
-        navigation.navigate('ProductDetail', { 
-          productId: productId.toString(),
-          source: source,
-          country: country,
-        });
-      } else {
-        // API call failed, show toast and don't navigate
-        showToast(t('home.productDetailsError'), 'error');
-      }
-    } catch (error) {
-      // Error occurred, show toast and don't navigate
-      console.error('Error checking product detail:', error);
-      showToast(t('home.productDetailsError'), 'error');
-    }
+    // Navigate directly without fetching product detail
+    navigation.navigate('ProductDetail', {
+      productId: productId.toString(),
+      source: source,
+      country: country,
+    });
   };
-  
-  // Use the categories tree API hook
-  const { mutate: fetchCategoriesTree, data: categoriesTreeData, isLoading: categoriesTreeLoading } = useCategoriesTreeMutation({
-    onSuccess: (data) => {
-      // Store categories tree in Zustand
-      const { setCategoriesTree } = usePlatformStore.getState();
-      setCategoriesTree(data);
-    },
-    onError: (error) => {
-      console.error('Error fetching categories tree:', error);
-    }
-  });
-  
-  // Use the wishlist API hook to fetch initial wishlist data
-  const { mutate: fetchWishlist } = useGetWishlistMutation({
-    onSuccess: (data) => {
-      // The wishlist context will automatically update likedProductIds
-      // We don't need to manually set them here as the context handles it
-      console.log('Wishlist data loaded successfully');
-    },
-    onError: (error) => {
-      console.error('Error loading wishlist:', error);
-    }
-  });
-  
-  // Use the new home screen mutation hooks
-  const { mutate: fetchNewInProducts, data: newInData } = useNewInProductsMutation({
-    onSuccess: (data) => {
-      setNewInProducts(data);
-    }
-  });
-  
-  const { mutate: fetchTrendingProducts, data: trendingData, error: trendingError } = useTrendingProductsMutation({
-    onSuccess: (data) => {
-      console.log('Trending products fetch success:', data);
-      setTrendingProducts(data);
-    },
-    onError: (error) => {
-      console.error('Trending products fetch error:', error);
-      setTrendingProducts([]);
-    }
-  });
-  
-  const { mutate: fetchForYouProducts, data: forYouData, error: forYouFetchError } = useForYouProductsMutation({
-    onSuccess: (data, offset) => {
-      console.log('For You products fetch success:', data);
-      console.log('Current forYouProducts:', forYouProducts);
-      console.log('Current forYouOffset:', forYouOffset);
-      console.log('Fetched offset:', offset);
-      
-      if (offset === 1) {
-        // First page, replace existing data
-        console.log('Setting first page of For You products');
-        setProducts(data);
-      } else {
-        // Subsequent pages, append to existing data
-        console.log('Appending to existing For You products');
-        appendProducts(data);
-      }
-      
-      // Update pagination state
-      setForYouLoading(false);
-      // Check if there are more products to fetch (based on the response structure)
-      if (data && Array.isArray(data)) {
-        // If we got less than the requested limit, there are no more products
-        setHasMore(data.length >= 10); // Using 10 since that's the limit we're requesting
-      } else {
-        setHasMore(false);
-      }
-    },
-    onError: (error) => {
-      console.error('For You products fetch error:', error);
-      setForYouLoading(false);
-      // Don't reset the existing products on error, just stop loading
-    }
-  });
-
-  const { mutate: fetchStores, data: storesData } = useStoresMutation({
-    onSuccess: (data) => {
-      setApiStores(data);
-    }
-  });
-  
-  // Initialize with default categories, will be replaced by API data
-  const [categories, setCategories] = useState<string[]>([]);
-  
-  // Fetch categories and wishlist from API when component mounts
-  useEffect(() => {
-    fetchCategories();
-    // Fetch categories tree for the selected platform
-    fetchCategoriesTree(selectedPlatform);
-    // Fetch wishlist data when the screen loads
-    if (user && !isGuest) {
-      refreshWishlist(); // Use refreshWishlist from context instead of fetchWishlist
-    }
-  }, [user, isGuest]);
-  
-  // Fetch categories tree when platform changes
-  useEffect(() => {
-    fetchCategoriesTree(selectedPlatform);
-  }, [selectedPlatform]);
-
-  // Fetch new in products when platform or locale changes
-  useEffect(() => {
-    fetchNewInProducts(selectedPlatform, locale);
-  }, [selectedPlatform, locale]);
-
-  // Update categories state when API data is received and fetch initial products
-  useEffect(() => {
-    if (categoriesData && categoriesData.length > 0) {
-      // Transform API data to extract category names and IDs
-      // Handle cases where categories might not have both id and name
-      const categoryNames = categoriesData
-        .filter((category: any) => category && (category.name || category.id))
-        .map((category: any) => {
-          if (category.name) return category.name;
-          if (category.id) return `Category ${category.id}`;
-          return 'Unknown Category';
-        });
-      setCategories(categoryNames as string[]);
-      
-      // Only clear For You products when categories change if we're on the first page
-      // This prevents clearing when we're just appending data
-      if (forYouOffset === 1) {
-        clearProducts();
-      }
-      
-      // Set the first category as active if none is selected
-      if (categoryNames.length > 0 && activeCategoryTab === 'Woman') {
-        setActiveCategoryTab(categoryNames[0]);
-      }
-      
-      // Fetch new in products with platform and country
-      fetchNewInProducts(selectedPlatform, locale);
-      
-      // Fetch trending products with all category IDs
-      // Filter out categories without IDs
-      const categoryIds = categoriesData
-        .map((cat: any) => cat.id)
-        .filter((id: any) => id !== undefined && id !== null);
-      
-      if (categoryIds.length > 0) {
-        fetchTrendingProducts(
-          categoryIds,
-          'all',        // type
-          '[]',         // filter
-          '',           // rating_count
-          0.0,          // min_price
-          9999999999.0, // max_price
-          ''            // search
-        ).catch(error => {
-          console.error('Error fetching trending products:', error);
-        });
-        
-        // Only reset pagination and fetch For You products if we're on the first page
-        if (forYouOffset === 1) {
-          setOffset(1);
-          setHasMore(true);
-          fetchForYouProducts(
-            categoryIds, 
-            1, 
-            10,
-            'all',        // type
-            '[]',         // filter
-            '',           // rating_count
-            0.0,          // min_price
-            9999999999.0, // max_price
-            ''            // search
-          ); // Fetch For You products
-        }
-      }
-    }
-  }, [categoriesData, forYouOffset]);
-
-  // Fetch new in products when active category changes
-  useEffect(() => {
-    if (categoriesData && categoriesData.length > 0 && activeCategoryTab !== 'Woman') {
-      // Fetch new in products with platform and country
-      fetchNewInProducts(selectedPlatform, locale);
-    }
-  }, [activeCategoryTab, categoriesData, selectedPlatform, locale]);
-
   // Helper function to filter mock products by company and category
   const getFilteredMockProducts = (productType: 'newIn' | 'trending' | 'forYou') => {
-    const products = mockProductsData[productType] as any[];
-    
-    return products.filter((product: any) => {
-      // Filter by company (platform)
-      const matchesCompany = product.company === selectedPlatform;
-      
-      // Filter by category
-      const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
-      
-      return matchesCompany && matchesCategory;
-    });
+    // Mock data removed - API removed
+    return [];
   };
 
   useEffect(() => {
     loadData();
   }, []);
 
+  // Fetch new in products when platform or locale changes
   useEffect(() => {
-    // Set a default unread count for now
-    setUnreadCount(25);
-  }, [user?.id]);
+    if (selectedPlatform && locale) {
+      // For Taobao, still use 1688 API for "New In" products
+      const platformForNewIn = selectedPlatform === 'taobao' ? '1688' : selectedPlatform;
+      fetchNewInProducts(platformForNewIn, locale);
+    }
+  }, [selectedPlatform, locale]);
 
-  // Fetch recommendations when component mounts or locale changes - only page 1
+  // Fetch default categories when platform changes
   useEffect(() => {
-    const country = locale === 'zh' ? 'zh' : locale === 'ko' ? 'ko' : 'en';
-    const outMemberId = user?.id?.toString() || 'dferg0001';
-    // Only fetch page 1, no pagination
-    resetRecommendations();
-    fetchRecommendations(country, outMemberId, locale, 1, false);
+    if (selectedPlatform) {
+      fetchDefaultCategories(selectedPlatform, true);
+    }
+  }, [selectedPlatform]);
+
+  // Fetch recommendations when locale or user changes
+  useEffect(() => {
+    if (locale) {
+      // Use user ID if available, otherwise use default 'dferg0001'
+      const outMemberId = user?.id?.toString() || 'dferg0001';
+      setRecommendationsPage(1);
+      lastSuccessfulPageRef.current = 1; // Reset last successful page
+      setHasMoreRecommendations(true);
+      setRecommendationsProducts([]); // Clear existing products
+      fetchRecommendations(locale, outMemberId, 1, 20);
+    }
   }, [locale, user?.id]);
 
-  // Reset pagination when component unmounts
+  // Load more recommendations (infinite scroll)
+  const loadMoreRecommendations = useCallback(() => {
+    // Prevent multiple simultaneous calls
+    if (isLoadingMoreRef.current || isLoadingMoreRecommendations || !hasMoreRecommendations || !locale) {
+      return;
+    }
+    
+    isLoadingMoreRef.current = true;
+    const nextPage = recommendationsPage + 1;
+    setIsLoadingMoreRecommendations(true);
+    setRecommendationsPage(nextPage);
+    
+    // Use user ID if available, otherwise use default 'dferg0001'
+    const outMemberId = user?.id?.toString() || 'dferg0001';
+    fetchRecommendations(locale, outMemberId, nextPage, 20);
+  }, [recommendationsPage, hasMoreRecommendations, isLoadingMoreRecommendations, locale, user?.id, fetchRecommendations]);
+
+  // Auto-scroll new in products (3 items per page, longer interval than brand)
   useEffect(() => {
-    return () => {
-      console.log('HomeScreen unmounting, resetting recommendations pagination');
-      resetRecommendations();
-      isFetchingRecommendations.current = false;
-    };
-  }, []);
+    if (newInProducts.length === 0) return;
+    
+    const itemsPerPage = 3;
+    const totalPages = Math.ceil(newInProducts.length / itemsPerPage);
+    if (totalPages <= 1) return; // No need to scroll if only one page
+    
+    const interval = setInterval(() => {
+      setCurrentNewInPage((prevPage) => {
+        const nextPage = (prevPage + 1) % totalPages;
+        
+        // Scroll to the next page (full screen width for each page)
+        newInScrollRef.current?.scrollTo({
+          x: nextPage * width,
+          animated: true,
+        });
+        
+        return nextPage;
+      });
+    }, 5000); // 5 seconds (longer than brand's 3 seconds)
+
+    return () => clearInterval(interval);
+  }, [newInProducts.length]);
 
   const loadData = async () => {
     try {
@@ -418,22 +504,10 @@ const HomeScreen: React.FC = () => {
         setLoading(true);
       }
       
-      const [featuredRes, newRes, saleRes] = await Promise.all([
-        productsApi.getFeaturedProducts(8),
-        productsApi.getNewProducts(12),
-        productsApi.getSaleProducts(6),
-      ]);
-
-      if (featuredRes.success) setFeaturedProducts(featuredRes.data);
-      if (newRes.success) setNewProducts(newRes.data);
-      if (saleRes.success) setSaleProducts(saleRes.data);
       // Set empty stories for now
       setStories([]);
-
-      // Fetch stores using the mutation
-      fetchStores('all', 1, 12);
     } catch (error) {
-      console.error('Error loading home data:', error);
+      // Error loading home data
     } finally {
       setLoading(false);
       setInitialLoading(false);
@@ -443,43 +517,6 @@ const HomeScreen: React.FC = () => {
   const onRefresh = async () => {
     setRefreshing(true);
     await loadData();
-    
-    // Clear and fetch For You products when refreshing
-    clearProducts();
-    
-    if (categoriesData && categoriesData.length > 0) {
-      // Filter out categories without IDs
-      const categoryIds = categoriesData
-        .map((cat: any) => cat.id)
-        .filter((id: any) => id !== undefined);
-      
-      if (categoryIds.length > 0) {
-        setOffset(1);
-        setHasMore(true);
-        fetchForYouProducts(
-          categoryIds, 
-          1, 
-          10,
-          'all',        // type
-          '[]',         // filter
-          '',           // rating_count
-          0.0,          // min_price
-          9999999999.0, // max_price
-          ''            // search
-        );
-      } else {
-        // console.log('No valid category IDs found during refresh, skipping For You products fetch');
-      }
-    }
-    
-    // Refresh wishlist data on pull to refresh
-    if (user && !isGuest) {
-      refreshWishlist();
-    }
-    
-    // Refresh new in products
-    fetchNewInProducts(selectedPlatform, locale);
-    
     setRefreshing(false);
   };
 
@@ -487,29 +524,13 @@ const HomeScreen: React.FC = () => {
     // For "more to love" products, use offerId if available
     const offerId = (product as any).offerId;
     const productIdToUse = offerId || product.id;
-    await navigateToProductDetail(productIdToUse, selectedPlatform, locale);
+    // Get source from product data, fallback to selectedPlatform
+    const source = (product as any).source || selectedPlatform || '1688';
+    await navigateToProductDetail(productIdToUse, source, locale);
   };
 
   const scrollToTop = () => {
     scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-  };
-
-  const handleImageSearch = async () => {
-    // Request permissions
-    const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
-    const { status: mediaStatus } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-    if (cameraStatus !== 'granted' || mediaStatus !== 'granted') {
-      Alert.alert(
-        'Permission Required',
-        'Please grant camera and photo library permissions to use image search.',
-        [{ text: 'OK' }]
-      );
-      return;
-    }
-
-    // Show the beautiful modal
-    setImagePickerModalVisible(true);
   };
 
   const handleTakePhoto = async () => {
@@ -545,36 +566,34 @@ const HomeScreen: React.FC = () => {
   //   // addToCart(product, 1, undefined, undefined, 0);
   // };
 
-  const handleNewInProductPress = async (product: NewInProduct) => {
-    // For new in products, use offerId if available (similar to "more to love" products)
-    const offerId = product.offerId || product.id.toString();
-    await navigateToProductDetail(offerId, selectedPlatform, locale);
+  const handleNewInProductPress = async (product: any) => {
+    // For new in products, use externalId or id for navigation
+    const productId = product.externalId || product.id?.toString() || product._id || '';
+    const productPlatform = product.source || product.platform || selectedPlatform;
+    await navigateToProductDetail(productId, productPlatform, locale);
   };
 
-  const handleStoryPress = (story: Story) => {
-    // Navigate to story viewer with product ID
-    console.log("Story pressed: ", story.product?.id);
-    navigation.navigate('StoryView', { 
-      storyIndex: 0,
-      productId: story.product?.id
-    });
+  const handleImageSearch = async () => {
+    const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
+    const { status: mediaStatus } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (cameraStatus !== 'granted' || mediaStatus !== 'granted') {
+      Alert.alert('Permission Required', 'Please grant camera and photo library permissions to use image search.');
+      return;
+    }
+
+    setImagePickerModalVisible(true);
   };
+
 
   const renderHeader = () => {
     return (
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <StatusBar barStyle="dark-content" backgroundColor="transparent" />
-          {/* App Name and Icons Row */}
+          {/* Top Row: Menu Button - Logo (Centered) - Notification Icon */}
           <View style={styles.headerTop}>
-            <View style={styles.logoContainer}>
-              <Image
-                source={require('../../assets/icons/logo.png')}
-                style={styles.logo}
-                resizeMode="contain"
-              />
-            </View>
-            <View style={styles.headerPlatformMenu}>
+            <View style={styles.menuButtonContainer}>
               <PlatformMenu
                 platforms={platforms}
                 selectedPlatform={selectedPlatform}
@@ -584,27 +603,84 @@ const HomeScreen: React.FC = () => {
                 iconColor={COLORS.text.primary}
               />
             </View>
-            <View style={styles.headerSpacer} />
+            <View style={styles.logoContainer}>
+              <Image
+                source={require('../../assets/icons/logo.png')}
+                style={styles.logo}
+                resizeMode="contain"
+              />
+            </View>
             <View style={styles.headerIcons}>
-              <TouchableOpacity
-                style={styles.iconButton}
-                onPress={() => navigation.navigate('Search' as never)}
+              <TouchableOpacity 
+                // style={styles.headerIcon}
+                onPress={() => navigation.navigate('LanguageSettings' as never)}
               >
-                <Ionicons name="search" size={24} color={COLORS.text.primary} />
+                <Text style={styles.flagText}>{getLanguageFlag(locale)}</Text>
               </TouchableOpacity>
               <NotificationBadge
-                icon="headset-outline"
-                iconSize={24}
-                iconColor={COLORS.text.primary}
+                customIcon={<HeadsetMicIcon width={24} height={24} color={COLORS.text.primary} />}
                 count={unreadCount}
-                badgeColor="#fa9d24ff"
+                badgeColor={COLORS.red}
                 onPress={() => {
                   navigation.navigate('CustomerService' as never);
                 }}
               />
             </View>
           </View>
+          {/* Search Button Row */}
+          <View style={styles.searchButtonContainer}>
+            <SearchButton
+              placeholder={t('category.searchPlaceholder') || 'Search products...'}
+              onPress={() => navigation.navigate('Search' as never)}
+              onCameraPress={handleImageSearch}
+              style={styles.searchButtonStyle}
+            />
+          </View>
         </View>
+      </View>
+    );
+  };
+
+  const renderCategories = () => {
+    if (isLoadingCategories) {
+      return (
+        <View style={styles.categoriesContainer}>
+          <Text style={styles.categoriesLoadingText}>{t('home.loading') || 'Loading...'}</Text>
+        </View>
+      );
+    }
+
+    if (!defaultCategories || defaultCategories.length === 0) {
+      return null;
+    }
+
+    return (
+      <View style={styles.categoriesContainer}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoriesScrollContent}
+        >
+          {defaultCategories.map((category) => {
+            const categoryName = category.name?.[locale] || category.name?.en || category.name || 'Category';
+            return (
+              <TouchableOpacity
+                key={category._id || category.externalId}
+                style={styles.categoryItem}
+                onPress={() => {
+                  // Navigate to SubCategory screen with category info
+                  navigation.navigate('SubCategory', {
+                    categoryName: categoryName,
+                    categoryId: category._id || category.externalId,
+                    subcategories: category.children || [],
+                  });
+                }}
+              >
+                <Text style={styles.categoryText}>{categoryName}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
       </View>
     );
   };
@@ -613,257 +689,181 @@ const HomeScreen: React.FC = () => {
   const categoryTabLayouts = useRef<{ [key: string]: { x: number; width: number } }>({});
   const categoryScrollViewWidth = useRef(0);
 
-  const renderCategoryTabs = () => {
-    // Get categories from Zustand store (which uses tree data if available)
-    const { getCompanyCategories } = usePlatformStore.getState();
-    const companyCategories = getCompanyCategories(locale);
-    // Add "All" as the first category
-    const allCategories = [
-      { id: 'all', name: t('home.all') },
-      ...companyCategories
-    ];
-    
-    return (
-      <View 
-        style={styles.categoryTabsContainer}
-        onLayout={(e) => {
-          categoryScrollViewWidth.current = e.nativeEvent.layout.width;
-        }}
-      >
-        <View style={styles.categoryTabsRow}>
-          <ScrollView 
-            ref={categoryScrollRef}
-            horizontal 
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.categoryTabs}
-            scrollEventThrottle={16}
-            style={styles.categoryScrollView}
-          >
-            {allCategories.map((category, index) => (
-              <TouchableOpacity
-                key={`category-${category.id}`}
-                style={styles.categoryTab}
-              onLayout={(e) => {
-                const { x, width } = e.nativeEvent.layout;
-                categoryTabLayouts.current[category.id] = { x, width };
-              }}
-              onPress={() => {
-                setSelectedCategory(category.id);
-                
-                // Auto-scroll to show the selected category
-                const layout = categoryTabLayouts.current[category.id];
-                if (layout && categoryScrollRef.current) {
-                  const scrollViewWidth = categoryScrollViewWidth.current;
-                  const itemX = layout.x;
-                  const itemWidth = layout.width;
-                  
-                  // Calculate the scroll position to center the item
-                  const scrollToX = itemX - (scrollViewWidth / 2) + (itemWidth / 2);
-                  
-                  categoryScrollRef.current.scrollTo({
-                    x: Math.max(0, scrollToX),
-                    animated: true,
-                  });
-                }
-                
-                // Refetch products for the selected category
-                console.log('Selected category:', category.name);
-                
-                // Clear existing products
-                setNewInProducts([]);
-                setTrendingProducts([]);
-                clearProducts();
-                
-                // Fetch products based on selected category
-                if (categoriesData && categoriesData.length > 0) {
-                  const categoryIds = category.id === 'all' 
-                    ? categoriesData.map((cat: any) => cat.id).filter((id: any) => id !== undefined)
-                    : categoriesData
-                        .filter((cat: any) => cat.name === category.name)
-                        .map((cat: any) => cat.id)
-                        .filter((id: any) => id !== undefined);
-                  
-                  if (categoryIds.length > 0) {
-                    // Fetch New In products
-                    if (category.id === 'all') {
-                      const firstCategory = categoriesData.find((cat: any) => cat && (cat.name || cat.id));
-                      const firstCategoryId = firstCategory?.id;
-                      if (firstCategoryId !== undefined) {
-                        fetchNewInProducts(selectedPlatform, locale);
-                      }
-                    } else {
-                      const matchedCategory = categoriesData.find((cat: any) => cat.name === category.name);
-                      if (matchedCategory && matchedCategory.id !== undefined) {
-                        fetchNewInProducts(selectedPlatform, locale);
-                      }
-                    }
-                    
-                    // Fetch Trending products
-                    fetchTrendingProducts(categoryIds, 'all', '[]', '', 0.0, 9999999999.0, '');
-                    
-                    // Fetch For You products
-                    setOffset(1);
-                    setHasMore(true);
-                    fetchForYouProducts(categoryIds, 1, 10, 'all', '[]', '', 0.0, 9999999999.0, '');
-                  }
-                }
-              }}
-            >
-              <Text style={[
-                styles.categoryTabText,
-                selectedCategory === category.id && styles.activeCategoryTabText,
-              ]}>
-                {category.name}
-              </Text>
-              {selectedCategory === category.id && (
-                <View style={styles.categoryUnderline} />
-              )}
-            </TouchableOpacity>
-          ))}
-          </ScrollView>
-        </View>
-      </View>
-    );
-  };
-
-  const renderQuickCategories = () => (
-    <View style={styles.quickCategoriesContainer}>
-      {/* <View style={styles.quickCategoriesGrid}>
-        {Array.isArray(quickCategories) && quickCategories.map((category, index) => (
-          <TouchableOpacity 
-            key={index} 
-            style={styles.quickCategoryItem}
-            onPress={() => navigation.navigate('Category', { categoryId: category.id })}
-          >
-            <Image 
-              source={typeof category.image === 'string' ? { uri: category.image } : category.image}
-              style={styles.quickCategoryImage}
-              resizeMode="cover"
-            />
-            <Text style={styles.quickCategoryName} numberOfLines={2}>{category.name}</Text>
-          </TouchableOpacity>
-        ))}
-      </View> */}
-    </View>
-  );
-
-  // const renderProductCard = (product: Product) => (
-  //   <ProductCard
-  //     product={product}
-  //     variant="default"
-  //     onAddToCart={handleAddToCart}
-  //     showQuickAdd={true}
-  //     showWishlistButton={true}
-  //   />
-  // );
-
   const renderNewInCards = () => {
-    // Use filtered mock data for demo
-    const productsToShow = useMockData 
-      ? getFilteredMockProducts('newIn')
-      : newInProducts;
-    
     // Add a safety check to ensure products is an array
-    if (!Array.isArray(productsToShow) || productsToShow.length === 0) {
+    if (!Array.isArray(newInProducts) || newInProducts.length === 0) {
+      if (newInLoading) {
+        return (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>{t('home.newIn')}</Text>
+            <View style={styles.loadingContainer}>
+              <Text style={styles.loadingText}>{t('home.loading')}</Text>
+            </View>
+          </View>
+        );
+      }
       return null;
+    }
+    
+    // Group products into pages of 3 items each
+    const itemsPerPage = 3;
+    const pages: any[][] = [];
+    for (let i = 0; i < newInProducts.length; i += itemsPerPage) {
+      pages.push(newInProducts.slice(i, i + itemsPerPage));
     }
     
     return (
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Today Deals</Text>
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.newInContainer}
+        <Text style={styles.sectionTitle}>{t('home.newIn')}</Text>
+        <Animated.View
+          style={{
+            opacity: newInFadeAnim,
+            transform: [{ scale: newInScaleAnim }],
+          }}
         >
-          {productsToShow.map((product: any) => {
-            // Parse variation data if it exists
-            let price = product.price || 0;
-            let productImage = product.image;
-            
-            // Convert to Product type
-            const productData: Product = {
-              id: product.id.toString(),
-              name: product.name,
-              image: productImage,
-              price: price,
-              originalPrice: product.originalPrice,
-              discount: product.discount,
-              description: '',
-              category: { id: '', name: '', icon: '', image: '', subcategories: [] },
-              subcategory: '',
-              brand: '',
-              seller: { 
-                id: '', 
-                name: '', 
-                avatar: '', 
-                rating: 0, 
-                reviewCount: 0, 
-                isVerified: false, 
-                followersCount: 0, 
-                description: '', 
-                location: '', 
-                joinedDate: new Date() 
-              },
-              rating: product.rating || 0,
-              reviewCount: product.ratingCount || 0,
-              rating_count: product.ratingCount || 0,
-              inStock: true,
-              stockCount: 0,
-              tags: [],
-              isNew: true,
-              isFeatured: false,
-              isOnSale: false,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-              orderCount: 0,
-            } as Product & { offerId?: string | number; source?: string };
-            
-            // Preserve offerId and source for wishlist and product detail navigation
-            if (product.offerId) {
-              (productData as any).offerId = product.offerId;
-            }
-            (productData as any).source = product.source || selectedPlatform;
-            
-            const handleLike = async () => {
-              if (!user || isGuest) {
-                alert(t('home.pleaseLogin'));
-                return;
-              }
-              try {
-                await toggleWishlist(productData);
-              } catch (error) {
-                console.error('Error toggling wishlist:', error);
-              }
-            };
-            
-            return (
-              <ProductCard
-                key={`newincard-${product.id}`}
-                product={productData}
-                variant="horizontal"
-                onPress={() => handleNewInProductPress(product)}
-                onLikePress={handleLike}
-                isLiked={isInWishlist(product.id.toString(), productData)}
-                showLikeButton={true}
-                showDiscountBadge={true}
-                showRating={true}
-              />
-            );
-          })}
-        </ScrollView>
+          <ScrollView 
+            ref={newInScrollRef}
+            horizontal 
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.newInContainer}
+            onMomentumScrollEnd={(event) => {
+              const scrollX = event.nativeEvent.contentOffset.x;
+              const pageWidth = width;
+              const page = Math.round(scrollX / pageWidth);
+              setCurrentNewInPage(page);
+            }}
+            scrollEventThrottle={16}
+          >
+          {pages.map((pageProducts, pageIndex) => (
+            <View key={`page-${pageIndex}`} style={styles.newInPage}>
+              {pageProducts.map((product: any) => {
+                // Use discount already calculated in mapping
+                const price = product.price || 0;
+                const originalPrice = product.originalPrice || price;
+                const discount = product.discount || 0;
+                
+                // Convert to Product type
+                const productData: Product = {
+                  id: product.id?.toString() || product.externalId?.toString() || '',
+                  externalId: product.externalId?.toString() || product.id?.toString() || '',
+                  offerId: product.externalId?.toString() || product.id?.toString() || '',
+                  name: product.name || '',
+                  image: product.image || '',
+                  price: price,
+                  originalPrice: originalPrice,
+                  discount: discount,
+                  description: '',
+                  category: { id: '', name: '', icon: '', image: '', subcategories: [] },
+                  subcategory: '',
+                  brand: '',
+                  seller: { 
+                    id: '', 
+                    name: '', 
+                    avatar: '', 
+                    rating: 0, 
+                    reviewCount: 0, 
+                    isVerified: false, 
+                    followersCount: 0, 
+                    description: '', 
+                    location: '', 
+                    joinedDate: new Date() 
+                  },
+                  rating: product.rating || 0,
+                  reviewCount: product.ratingCount || 0,
+                  rating_count: product.ratingCount || 0,
+                  inStock: true,
+                  stockCount: 0,
+                  tags: [],
+                  isNew: true,
+                  isFeatured: false,
+                  isOnSale: discount > 0,
+                  createdAt: new Date(),
+                  updatedAt: new Date(),
+                  orderCount: product.orderCount || 0,
+                };
+                
+                // Preserve externalId and source for navigation
+                if (product.externalId) {
+                  (productData as any).offerId = product.externalId;
+                }
+                (productData as any).source = product.source || selectedPlatform;
+                
+                const handleLike = async () => {
+                  if (!user || isGuest) {
+                    alert(t('home.pleaseLogin'));
+                    return;
+                  }
+                  try {
+                    await toggleWishlist(productData);
+                  } catch (error) {
+                    // Error toggling wishlist
+                  }
+                };
+                
+                return (
+                  <View key={`newin-${product.id || pageIndex}`} style={styles.newInCardWrapper}>
+                    <TouchableOpacity
+                      style={styles.newInCard}
+                      onPress={() => handleNewInProductPress(product)}
+                    >
+                      <Image
+                        source={{ uri: product.image }}
+                        style={styles.newInImage}
+                        resizeMode="cover"
+                      />
+                      {discount > 0 && (
+                        <View style={styles.newInDiscountBadge}>
+                          <Text style={styles.newInDiscountText}>-{discount}%</Text>
+                        </View>
+                      )}
+                      <TouchableOpacity
+                        style={styles.newInLikeButton}
+                        onPress={handleLike}
+                      >
+                        <Ionicons
+                          name={isProductLiked(productData) ? 'heart' : 'heart-outline'}
+                          size={20}
+                          color={isProductLiked(productData) ? COLORS.red : COLORS.white}
+                        />
+                      </TouchableOpacity>
+                      <View style={styles.newInInfo}>
+                        <Text style={styles.newInName} numberOfLines={2}>
+                          {product.name}
+                        </Text>
+                        <View style={styles.newInPriceContainer}>
+                          {originalPrice > price && (
+                            <Text style={styles.newInOriginalPrice}>${originalPrice.toFixed(2)}</Text>
+                          )}
+                          <Text style={styles.newInPrice}>${price.toFixed(2)}</Text>
+                        </View>
+                        {product.rating > 0 && (
+                          <View style={styles.newInRating}>
+                            <Ionicons name="star" size={12} color={COLORS.warning} />
+                            <Text style={styles.newInRatingText}>
+                              {product.rating.toFixed(1)} ({product.ratingCount || 0})
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
+            </View>
+          ))}
+          </ScrollView>
+        </Animated.View>
       </View>
     );
   };
 
   // Brand images for auto-scrolling carousel
   const brandImages = [
-    "https://picsum.photos/seed/fashion-sale/800/220",
-    "https://picsum.photos/seed/summer-collection/800/220", 
-    "https://picsum.photos/seed/new-arrivals/800/220",
-    "https://picsum.photos/seed/electronics-deal/800/220",
-    "https://picsum.photos/seed/beauty-brands/800/220",
-    "https://picsum.photos/seed/home-decor/800/220",
+    "https://res.cloudinary.com/dkdt9sum4/image/upload/v1765268306/vitaly-gariev-mYFWPgZqz0E-unsplash_wu2lva.jpg",
+    "https://res.cloudinary.com/dkdt9sum4/image/upload/v1765268305/rifki-kurniawan-PY2vX1apH3U-unsplash_qd3bf0.jpg",
+    "https://res.cloudinary.com/dkdt9sum4/image/upload/v1765268305/freestocks-_3Q3tsJ01nc-unsplash_njtfqm.jpg",
+    "https://res.cloudinary.com/dkdt9sum4/image/upload/v1765268305/shutter-speed-BQ9usyzHx_w-unsplash_yzdqip.jpg",
   ];
 
   const [currentBrandIndex, setCurrentBrandIndex] = useState(0);
@@ -923,8 +923,297 @@ const HomeScreen: React.FC = () => {
           </View>
         ))}
       </ScrollView>
+      <View style={styles.eventIcons}>
+        <Image source={require('../../assets/icons/todayevent.png')} style={styles.eventIcon} />
+        <Image source={require('../../assets/icons/coins.png')} style={styles.eventIcon} />
+        <Image source={require('../../assets/icons/live_on.png')} style={styles.eventIcon} />
+      </View>
     </View>
   );
+
+  const renderPromoCards = () => {
+    return (
+      <View style={styles.promoCardsContainer}>
+        {/* Live On Card */}
+        <TouchableOpacity style={styles.promoCard} activeOpacity={0.9}>
+          <Image
+            source={require('../../assets/icons/live_on_bg.jpg')}
+            style={styles.promoCardBackground}
+            resizeMode="cover"
+          />
+          {/* Radial gradient overlay effect - Blue */}
+          <View style={styles.promoCardGradientContainer}>
+            <Svg width={width - SPACING.md * 2} height={280} style={StyleSheet.absoluteFillObject}>
+              <Defs>
+                <SvgRadialGradient id="redGradient" cx="20%" cy="25%" r="80%">
+                  <Stop offset="0%" stopColor="#0048FF" stopOpacity="0" />
+                  <Stop offset="30%" stopColor="#0048FF" stopOpacity="0.2" />
+                  <Stop offset="60%" stopColor="#0048FF" stopOpacity="0.4" />
+                  <Stop offset="100%" stopColor="#0048FF" stopOpacity="0.8" />
+                </SvgRadialGradient>
+                <Mask id="redMask">
+                  <Rect width="100%" height="100%" fill="white" />
+                  <Rect 
+                    x={SPACING.md} 
+                    y={60} 
+                    width={width - SPACING.md * 4} 
+                    height={160} 
+                    rx={BORDER_RADIUS.md} 
+                    fill="black" 
+                  />
+                </Mask>
+              </Defs>
+              <Rect width="100%" height="100%" fill="url(#redGradient)" mask="url(#redMask)" />
+            </Svg>
+          </View>
+          {/* Inner rectangle - just border */}
+          <View style={styles.promoCardInner} />
+          {/* Content in outer rectangle */}
+          <View style={styles.promoCardContent}>
+            {/* Top row: Title and 3 dots */}
+            <View style={styles.promoCardHeader}>
+              <Text style={styles.promoCardTitle}>Live On</Text>
+              <TouchableOpacity>
+                <Ionicons name="ellipsis-horizontal" size={20} color={COLORS.white} />
+              </TouchableOpacity>
+            </View>
+            {/* Bottom row: Text and arrow button */}
+            <View style={styles.promoCardFooter}>
+              <Text style={styles.promoCardText}>Up to 50% off ✅</Text>
+              <TouchableOpacity style={styles.promoCardButton}>
+                <Ionicons name="arrow-forward" size={20} color={COLORS.white} />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+
+        {/* Coupon Card */}
+        <TouchableOpacity style={styles.promoCard} activeOpacity={0.9}>
+          <Image
+            source={require('../../assets/icons/coupon.jpg')}
+            style={styles.promoCardBackground}
+            resizeMode="cover"
+          />
+          {/* Radial gradient overlay effect - Red */}
+          <View style={styles.promoCardGradientContainer}>
+            <Svg width={width - SPACING.md * 2} height={280} style={StyleSheet.absoluteFillObject}>
+              <Defs>
+                <SvgRadialGradient id="redGradient" cx="20%" cy="25%" r="80%">
+                  <Stop offset="0%" stopColor="#FB00FF" stopOpacity="0" />
+                  <Stop offset="30%" stopColor="#FB00FF" stopOpacity="0" />
+                  <Stop offset="60%" stopColor="#FB00FF" stopOpacity="0.4" />
+                  <Stop offset="100%" stopColor="#FB00FF" stopOpacity="0.6" />
+                </SvgRadialGradient>
+                <Mask id="redMask">
+                  <Rect width="100%" height="100%" fill="white" />
+                  <Rect 
+                    x={SPACING.md} 
+                    y={60} 
+                    width={width - SPACING.md * 4} 
+                    height={160} 
+                    rx={BORDER_RADIUS.md} 
+                    fill="black" 
+                  />
+                </Mask>
+              </Defs>
+              <Rect width="100%" height="100%" fill="url(#redGradient)" mask="url(#redMask)" />
+            </Svg>
+          </View>
+          {/* Inner rectangle - just border */}
+          <View style={styles.promoCardInner} />
+          {/* Content in outer rectangle */}
+          <View style={styles.promoCardContent}>
+            {/* Top row: Title and 3 dots */}
+            <View style={styles.promoCardHeader}>
+              <Text style={styles.promoCardTitle}>Coupon</Text>
+              <TouchableOpacity>
+                <Ionicons name="ellipsis-horizontal" size={20} color={COLORS.white} />
+              </TouchableOpacity>
+            </View>
+            {/* Bottom row: Text and arrow button */}
+            <View style={styles.promoCardFooter}>
+              <Text style={styles.promoCardText}>Get exclusive deals</Text>
+              <TouchableOpacity style={styles.promoCardButton}>
+                <Ionicons name="arrow-forward" size={20} color={COLORS.white} />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  const renderTodaysItems = () => {
+    // Mock product images - replace with actual product data
+    const productImages1688 = [
+      require('../../assets/icons/1688_1.png'),
+      require('../../assets/icons/1688_2.png'),
+      require('../../assets/icons/1688_3.png'),
+      require('../../assets/icons/1688_4.png'),
+    ];
+    
+    const productImagesTaobao = [
+      require('../../assets/icons/taobao_1.png'),
+      require('../../assets/icons/taobao_2.png'),
+    ];
+
+    return (
+      <View style={styles.todaysItemsContainer}>
+        <Text style={styles.todaysItemsTitle}>Today's Items</Text>
+        <View style={styles.todaysItemsCards}>
+          {/* 1688 Card */}
+          <TouchableOpacity style={[styles.todaysItemCard, , {height: 470}]} activeOpacity={0.9}>
+            <Image
+              source={require('../../assets/icons/1688_back.jpg')}
+              style={styles.todaysItemCardBackground}
+              resizeMode="cover"
+            />
+            {/* Radial gradient overlay effect - Blue */}
+            <View style={styles.todaysItemGradientContainer}>
+              <Svg width={width - SPACING.md * 2} height={470} style={StyleSheet.absoluteFillObject}>
+                <Defs>
+                  <SvgRadialGradient id="todaysItemBlueGradient" cx="10%" cy="15%" r="60%">
+                    <Stop offset="0%" stopColor="#0906BF" stopOpacity="0.1" />
+                    <Stop offset="30%" stopColor="#0906BF" stopOpacity="0.3" />
+                    <Stop offset="60%" stopColor="#0906BF" stopOpacity="0.6" />
+                    <Stop offset="100%" stopColor="#0906BF" stopOpacity="0.8" />
+                  </SvgRadialGradient>
+                  <Mask id="todaysItemBlueMask">
+                    <Rect width="100%" height="100%" fill="white" />
+                  </Mask>
+                </Defs>
+                <Rect width="100%" height="100%" fill="url(#todaysItemBlueGradient)" mask="url(#todaysItemBlueMask)" />
+              </Svg>
+            </View>
+            {/* Product images grid - 2x2 for 1688 */}
+            <View style={[styles.todaysItemImagesContainer, styles.todaysItemImagesGrid2x2]}>
+              {productImages1688.map((image, index) => (
+                <Image
+                  key={index}
+                  source={image}
+                  style={[styles.todaysItemImage, styles.todaysItemImage2x2]}
+                  resizeMode="cover"
+                />
+              ))}
+            </View>
+            {/* Content in outer rectangle */}
+            <View style={styles.todaysItemContent}>
+              <View style={styles.todaysItemHeader}>
+                <Text style={styles.todaysItemTitle}>1688</Text>
+                <TouchableOpacity>
+                  <Ionicons name="ellipsis-horizontal" size={20} color={COLORS.white} />
+                </TouchableOpacity>
+              </View>
+              <View style={styles.todaysItemFooter}>
+                <Text style={styles.todaysItemText}>Shop now</Text>
+                <TouchableOpacity style={styles.todaysItemButton}>
+                  <Ionicons name="arrow-forward" size={20} color={COLORS.white} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </TouchableOpacity>
+
+          {/* Taobao Card */}
+          <TouchableOpacity style={[styles.todaysItemCard, , {height: 300}]} activeOpacity={0.9}>
+            <Image
+              source={require('../../assets/icons/taobao_back.jpg')}
+              style={styles.todaysItemCardBackground}
+              resizeMode="cover"
+            />
+            {/* Radial gradient overlay effect - Red */}
+            <View style={styles.todaysItemGradientContainer}>
+              <Svg width={width - SPACING.md * 2} height={300} style={StyleSheet.absoluteFillObject}>
+                <Defs>
+                  <SvgRadialGradient id="todaysItemRedGradient" cx="10%" cy="15%" r="60%">
+                    <Stop offset="0%" stopColor="#000000" stopOpacity="0.3" />
+                    <Stop offset="30%" stopColor="#000000" stopOpacity="0.3" />
+                    <Stop offset="60%" stopColor="#DC1637" stopOpacity="0.5" />
+                    <Stop offset="100%" stopColor="#DC1637" stopOpacity="0.8" />
+                  </SvgRadialGradient>
+                  <Mask id="todaysItemRedMask">
+                    <Rect width="100%" height="100%" fill="white" />
+                  </Mask>
+                </Defs>
+                <Rect width="100%" height="100%" fill="url(#todaysItemRedGradient)" mask="url(#todaysItemRedMask)" />
+              </Svg>
+            </View>
+            {/* Product images - 2 images for Taobao */}
+            <View style={[styles.todaysItemImagesContainer, styles.todaysItemImagesRow]}>
+              {productImagesTaobao.map((image, index) => (
+                <Image
+                  key={index}
+                  source={image}
+                  style={[styles.todaysItemImage, styles.todaysItemImageRow]}
+                  resizeMode="cover"
+                />
+              ))}
+            </View>
+            {/* Content in outer rectangle */}
+            <View style={styles.todaysItemContent}>
+              <View style={styles.todaysItemHeader}>
+                <Text style={styles.todaysItemTitle}>Taobao</Text>
+                <TouchableOpacity>
+                  <Ionicons name="ellipsis-horizontal" size={20} color={COLORS.white} />
+                </TouchableOpacity>
+              </View>
+              <View style={styles.todaysItemFooter}>
+                <Text style={styles.todaysItemText}>Shop now</Text>
+                <TouchableOpacity style={styles.todaysItemButton}>
+                  <Ionicons name="arrow-forward" size={20} color={COLORS.white} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
+  const renderPopularCategories = () => {
+    const popularCategories = [
+      { id: '1', platform: '1688', name: '1688👔', categoryName: 'Fashion', image: require('../../assets/icons/1688.png'), color: "#FFF8F5" },
+      { id: '2', platform: 'taobao', name: 'Taobao💄', categoryName: 'Beauty', image: require('../../assets/icons/taobao.png'), color: "#FFF6FF" },
+      { id: '3', platform: 'vip', name: 'Vip🪀', categoryName: 'Toys', image: require('../../assets/icons/vip.png'), color: '#FFF8ED' },
+      { id: '4', platform: 'vvic', name: 'VVIC🌵', categoryName: 'Garden', image: require('../../assets/icons/vvic.png'), color: '#F5FFF5'},
+      { id: '5', platform: 'wsy', name: 'WSY👟', categoryName: 'Shoes', image: require('../../assets/icons/wsy.png'), color: '#F4F4F4' },
+      { id: '6', platform: 'myCompany', name: 'Company mall🛋️', categoryName: 'Home', image: require('../../assets/icons/companymall.png'), color: '#F1FEFF' },
+    ];
+
+    // Calculate width for 3 items per row
+    const itemWidth = (width - SPACING.md * 2 - SPACING.sm * 2) / 3;
+
+    return (
+      <View style={styles.section}>
+        <View style={styles.popularCategoriesTitle}>
+          <Text style={styles.popularText}>Popular</Text>
+          <Text style={styles.categoriesText}>Categories</Text>
+          <Text style={styles.fireIcon}>🔥</Text>
+        </View>
+        <View style={styles.popularCategoriesContainer}>
+          {popularCategories.map((category) => (
+            <TouchableOpacity
+              key={category.id}
+              style={[styles.popularCategoryItem, { width: itemWidth }]}
+              onPress={() => {
+                // Navigate to category or platform selection
+                setSelectedPlatform(category.platform);
+              }}
+            >
+              <View style={[styles.popularCategoryImageContainer, { backgroundColor: category.color }]}>
+                <Image
+                  source={category.image}
+                  style={styles.popularCategoryImage}
+                  resizeMode="contain"
+                />
+              </View>
+              <Text style={styles.popularCategoryPlatform}>{category.name}</Text>
+              <Text style={styles.popularCategoryName}>{category.categoryName}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+    );
+  };
 
   const renderTrendingProducts = () => {
     // Use new in products from API
@@ -944,7 +1233,7 @@ const HomeScreen: React.FC = () => {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.trendingProductsContainer}
         >
-          {productsToShow.slice(0, 15).map((product: any) => {
+          {productsToShow.map((product: any) => {
             if (!product || !product.id) {
               return null;
             }
@@ -958,6 +1247,8 @@ const HomeScreen: React.FC = () => {
               id: product.id.toString(),
               name: product.name,
               image: productImage,
+              externalId: product.externalId?.toString() || '',
+              offerId: product.offerId?.toString() || '',
               price: price,
               originalPrice: product.originalPrice,
               discount: product.discount,
@@ -966,16 +1257,16 @@ const HomeScreen: React.FC = () => {
               subcategory: '',
               brand: '',
               seller: { 
-                id: '', 
-                name: '', 
-                avatar: '', 
-                rating: 0, 
-                reviewCount: 0, 
-                isVerified: false, 
-                followersCount: 0, 
-                description: '', 
-                location: '', 
-                joinedDate: new Date() 
+                id: '',
+                name: '',
+                avatar: '',
+                rating: 0,
+                reviewCount: 0,
+                isVerified: false,
+                followersCount: 0,
+                description: '',
+                location: '',
+                joinedDate: new Date()
               },
               rating: product.rating || 0,
               reviewCount: product.ratingCount || 0,
@@ -999,7 +1290,7 @@ const HomeScreen: React.FC = () => {
               try {
                 await toggleWishlist(productData);
               } catch (error) {
-                console.error('Error toggling wishlist:', error);
+                // Error toggling wishlist
               }
             };
             
@@ -1007,10 +1298,10 @@ const HomeScreen: React.FC = () => {
               <ProductCard
                 key={`newin-${product.id}`}
                 product={productData}
-                variant="horizontal"
+                variant="newIn"
                 onPress={() => handleNewInProductPress(product)}
                 onLikePress={handleLike}
-                isLiked={isInWishlist(product.id.toString(), productData)}
+                isLiked={isProductLiked(productData)}
                 showLikeButton={true}
                 showDiscountBadge={true}
                 showRating={true}
@@ -1036,7 +1327,7 @@ const HomeScreen: React.FC = () => {
               try {
                 await toggleWishlist(product);
               } catch (error) {
-                console.error('Error toggling wishlist:', error);
+                // Error toggling wishlist
               }
             };
             
@@ -1047,41 +1338,49 @@ const HomeScreen: React.FC = () => {
                 variant="moreToLove"
                 onPress={() => handleProductPress(product)}
                 onLikePress={handleLike}
-                isLiked={isInWishlist(product.id?.toString() || '', product)}
+                isLiked={isProductLiked(product)}
                 showLikeButton={true}
                 showDiscountBadge={true}
                 showRating={true}
               />
             );
-  }, [user, isGuest, toggleWishlist, handleProductPress, likedProductIds]);
-
-  // Memoize products list to prevent unnecessary re-renders
-  const memoizedRecommendations = useMemo(() => {
-    return recommendationsData || [];
-  }, [recommendationsData]);
+  }, [user, isGuest, toggleWishlist, handleProductPress, isProductLiked]);
 
   const renderMoreToLove = () => {
     // Use recommendations API data for "More to Love"
-    const productsToDisplay = memoizedRecommendations;
+    const productsToDisplay = recommendationsProducts;
+    
+    // Show loading state if fetching
+    if (recommendationsLoading && productsToDisplay.length === 0) {
+      return (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{t('home.moreToLove')}</Text>
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>Loading...</Text>
+          </View>
+        </View>
+      );
+    }
+    
+    // Show error state if there's an error
+    if (recommendationsError && productsToDisplay.length === 0) {
+      return (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{t('home.moreToLove')}</Text>
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>Failed to load recommendations</Text>
+          </View>
+        </View>
+      );
+    }
     
     if (!Array.isArray(productsToDisplay) || productsToDisplay.length === 0) {
-      // Show loading state if fetching
-      if (recommendationsLoading) {
-        return (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{t('home.moreToLove')}</Text>
-            <View style={styles.loadingContainer}>
-              <Text style={styles.loadingText}>{t('home.loadingRecommendations')}</Text>
-            </View>
-          </View>
-        );
-      }
       return null;
     }
     
     return (
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>More to Love</Text>
+        <Text style={styles.sectionTitle}>{t('home.moreToLove')}</Text>
         <FlatList
           data={productsToDisplay}
           renderItem={renderMoreToLoveItem}
@@ -1098,15 +1397,15 @@ const HomeScreen: React.FC = () => {
           ListFooterComponent={() => (
             <>
           {/* Loading indicator for pagination */}
-          {recommendationsLoading && recommendationsPage > 1 && (
+          {isLoadingMoreRecommendations && (
             <View style={styles.loadingMoreContainer}>
-              <Text style={styles.loadingMoreText}>{t('home.loadingMoreRecommendations')}</Text>
+              <Text style={styles.loadingMoreText}>Loading more...</Text>
             </View>
           )}
           {/* End of list indicator */}
-          {!recommendationsHasMore && productsToDisplay.length > 0 && (
+          {!hasMoreRecommendations && productsToDisplay.length > 0 && (
             <View style={styles.endOfListContainer}>
-              <Text style={styles.endOfListText}>{t('home.reachedEnd')}</Text>
+              <Text style={styles.endOfListText}>No more products</Text>
             </View>
           )}
             </>
@@ -1140,6 +1439,17 @@ const HomeScreen: React.FC = () => {
           setIsScrolled(false);
         }
         
+        // Detect when user scrolls to the end for infinite scroll
+        // Only trigger when actually at or very close to the bottom (within 100px)
+        const paddingToBottom = 100;
+        const scrollBottomPosition = layoutMeasurement.height + contentOffset.y;
+        const isAtBottom = scrollBottomPosition >= contentSize.height - paddingToBottom;
+        
+        // Only load more if we're at the bottom, have more to load, and not already loading
+        if (isAtBottom && hasMoreRecommendations && !isLoadingMoreRecommendations && !isLoadingMoreRef.current) {
+          loadMoreRecommendations();
+        }
+        
         if (scrollPosition > 300 && !showScrollToTop) {
           setShowScrollToTop(true);
           Animated.timing(scrollToTopOpacity, {
@@ -1159,39 +1469,6 @@ const HomeScreen: React.FC = () => {
         const paddingToEnd = 20;
         const isCloseToBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - paddingToEnd;
         
-        // If user is close to bottom and there are more recommendations to fetch
-        if (isCloseToBottom && recommendationsHasMore && !recommendationsLoading && !isFetchingRecommendations.current) {
-          const country = locale === 'zh' ? 'zh' : locale === 'ko' ? 'ko' : 'en';
-          const outMemberId = user?.id?.toString() || 'dferg0001';
-          const nextPage = recommendationsPage + 1;
-          console.log('Fetching more recommendations, page:', nextPage, 'hasMore:', recommendationsHasMore, 'currentPage:', recommendationsPage);
-          isFetchingRecommendations.current = true;
-          fetchRecommendations(country, outMemberId, locale, nextPage, true);
-        }
-        
-        // If user is close to bottom and there are more products to fetch
-        if (isCloseToBottom && forYouHasMore && !forYouLoading) {
-          // Get category IDs
-          const categoryIds = categoriesData ? categoriesData.map((cat: any) => cat.id) : [];
-          if (Array.isArray(categoryIds) && categoryIds.length > 0) {
-            console.log('Fetching more For You products, offset:', forYouOffset + 1); // Debug log
-            setForYouLoading(true);
-            // Update offset and fetch in the same tick to ensure consistency
-            const newOffset = forYouOffset + 1;
-            setOffset(newOffset);
-            fetchForYouProducts(
-              categoryIds, 
-              newOffset, 
-              10,
-              'all',        // type
-              '[]',         // filter
-              '',           // rating_count
-              0.0,          // min_price
-              9999999999.0, // max_price
-              ''            // search
-            );
-          }
-        }
       }
     }
   );
@@ -1208,18 +1485,9 @@ const HomeScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.gradientBackgroundFixed}>
-        <LinearGradient
-          colors={['#FFF5F5', '#FFE8E8', '#FFF0F0', '#FFFFFF']}
-          locations={[0, 0.3, 0.6, 1]}
-          style={styles.gradientFill}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-        />
-      </View>
-      
       <View style={styles.fixedTopBars}>
         {renderHeader()}
+        {renderCategories()}
         {/* {renderCategoryTabs()} */}
       </View>
       
@@ -1238,6 +1506,9 @@ const HomeScreen: React.FC = () => {
           {/* {renderQuickCategories()} */}
           {renderBrandCarousel()}
           {renderTrendingProducts()}
+          {renderPopularCategories()}
+          {renderPromoCards()}
+          {renderTodaysItems()}
           {/* {renderNewInCards()} */}
           {renderMoreToLove()}
         </View>
@@ -1274,7 +1545,7 @@ const HomeScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.background,
   },
   gradientBackgroundFixed: {
     position: 'absolute',
@@ -1323,7 +1594,7 @@ const styles = StyleSheet.create({
   },
   header: {
     zIndex: 10,
-    paddingHorizontal: SPACING.lg,
+    paddingHorizontal: SPACING.md,
     paddingTop: Platform.OS === 'ios' ? 30 : 20,
     paddingBottom: SPACING.sm,
   },
@@ -1333,10 +1604,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    // marginBottom: SPACING.lg,
+    marginBottom: SPACING.sm,
+  },
+  menuButtonContainer: {
+    width: 80, // Fixed width to balance with right side
+    alignItems: 'flex-start',
   },
   logoContainer: {
-    // No background needed
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   appName: {
     fontSize: FONTS.sizes['2xl'],
@@ -1357,7 +1634,26 @@ const styles = StyleSheet.create({
   headerIcons: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.md,
+    gap: SPACING.sm,
+  },
+  headerIcon: {
+    padding: SPACING.xs,
+    borderRadius: 20,
+    backgroundColor: COLORS.gray[100],
+    justifyContent: 'center',
+    alignItems: 'center',
+    minWidth: 36,
+    height: 36,
+  },
+  flagText: {
+    fontSize: 24,
+  },
+  searchButtonContainer: {
+    width: '100%',
+    flexDirection: 'row',
+  },
+  searchButtonStyle: {
+    flex: 1,
   },
   iconButton: {
     padding: SPACING.xs,
@@ -1450,7 +1746,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   section: {
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.background,
     paddingVertical: 8,
   },
   sectionTitle: {
@@ -1459,22 +1755,91 @@ const styles = StyleSheet.create({
     color: COLORS.text.primary,
     paddingHorizontal: SPACING.md,
     marginBottom: SPACING.smmd,
+    textAlign: 'center',
   },
   newInContainer: {
-    paddingHorizontal: SPACING.md,
-    gap: SPACING.sm,
+    // No padding here, handled by page container
+  },
+  newInPage: {
+    width: width,
+    flexDirection: 'row',
+    paddingHorizontal: SPACING.sm,
+    gap: SPACING.xs,
+  },
+  newInCardWrapper: {
+    width: NEW_IN_CARD_WIDTH,
+    flexShrink: 0,
   },
   newInCard: {
-    width: NEW_IN_CARD_WIDTH,
-    marginRight: SPACING.sm,
+    width: '100%',
     borderRadius: 8,
     overflow: 'hidden',
+    backgroundColor: COLORS.white,
+    position: 'relative',
   },
   newInImage: {
     width: '100%',
     height: NEW_IN_CARD_HEIGHT,
     borderRadius: 8,
-    marginBottom: SPACING.sm,
+  },
+  newInDiscountBadge: {
+    position: 'absolute',
+    top: SPACING.xs,
+    left: SPACING.xs,
+    backgroundColor: COLORS.red,
+    paddingHorizontal: SPACING.xs,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  newInDiscountText: {
+    color: COLORS.white,
+    fontSize: FONTS.sizes.xs,
+    fontWeight: '700',
+  },
+  newInLikeButton: {
+    position: 'absolute',
+    top: SPACING.xs,
+    right: SPACING.xs,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  newInInfo: {
+    padding: SPACING.xs,
+  },
+  newInName: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.text.primary,
+    marginBottom: SPACING.xs,
+    minHeight: 36,
+  },
+  newInPriceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+    marginBottom: SPACING.xs,
+  },
+  newInPrice: {
+    fontSize: FONTS.sizes.md,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+  },
+  newInOriginalPrice: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.gray[400],
+    textDecorationLine: 'line-through',
+  },
+  newInRating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  newInRatingText: {
+    fontSize: FONTS.sizes.xs,
+    color: COLORS.gray[500],
   },
   newInOverlay: {
     position: 'absolute',
@@ -1507,7 +1872,7 @@ const styles = StyleSheet.create({
     height: (width - SPACING.md * 2 - SPACING.sm * 2) / 4,
     borderRadius: 45,
     borderWidth: 3,
-    borderColor: COLORS.accentPink,
+    borderColor: COLORS.red,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: COLORS.white,
@@ -1548,18 +1913,18 @@ const styles = StyleSheet.create({
   },
   brandCarouselContainer: {
     backgroundColor: 'transparent',
-    paddingBottom: SPACING.md,
+    paddingBottom: SPACING.sm,
     position: 'relative',
   },
   brandSlide: {
     width: width,
-    paddingHorizontal: SPACING.md,
+    // paddingHorizontal: SPACING.md,
     position: 'relative',
   },
   brandImage: {
-    width: width - SPACING.md * 2,
-    height: 220,
-    borderRadius: BORDER_RADIUS.lg,
+    width: width,
+    height: 170,
+    // borderRadius: BORDER_RADIUS.lg,
   },
   brandPagination: {
     position: 'absolute',
@@ -1580,6 +1945,16 @@ const styles = StyleSheet.create({
   brandDotActive: {
     backgroundColor: COLORS.primary,
     width: 24,
+  },
+  eventIcons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    gap: SPACING.sm,
+  },
+  eventIcon: {
   },
   trendingProductsContainer: {
     paddingHorizontal: SPACING.md,
@@ -1631,7 +2006,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    // backgroundColor: COLORS.accentPink,
+    // backgroundColor: COLORS.red,
     backgroundColor: 'rgba(0,0,0,0.45)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1690,18 +2065,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginLeft: 8,
   },
-  wishlistButton: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: COLORS.white,
-    borderRadius: 15,
-    width: 30,
-    height: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...SHADOWS.small,
-  },
   playIconContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -1746,6 +2109,269 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     ...SHADOWS.lg,
     elevation: 8,
+  },
+  categoriesContainer: {
+    paddingVertical: SPACING.xs,
+    // paddingHorizontal: SPACING.md,
+    backgroundColor: 'transparent',
+  },
+  categoriesScrollContent: {
+    paddingLeft: SPACING.md,
+    paddingRight: SPACING.sm,
+    gap: SPACING.sm,
+  },
+  categoryItem: {
+    backgroundColor: COLORS.white,
+    marginRight: SPACING.sm,
+  },
+  categoryText: {
+    fontSize: FONTS.sizes.smmd,
+    color: COLORS.text.primary,
+    fontWeight: '500',
+  },
+  categoriesLoadingText: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.text.secondary,
+    textAlign: 'center',
+    paddingVertical: SPACING.sm,
+  },
+  popularCategoriesTitle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: SPACING.md,
+    marginBottom: SPACING.md,
+    gap: SPACING.xs,
+  },
+  popularText: {
+    fontSize: FONTS.sizes.xl,
+    fontWeight: '700',
+    color: COLORS.red,
+  },
+  categoriesText: {
+    fontSize: FONTS.sizes.xl,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+  },
+  fireIcon: {
+    fontSize: FONTS.sizes.xl,
+  },
+  popularCategoriesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: SPACING.md,
+    gap: SPACING.sm,
+  },
+  popularCategoryImageContainer: {
+    width: (width - SPACING.md * 4)/3,
+    height: (width - SPACING.md * 4)/4,
+    borderRadius: BORDER_RADIUS.lg,
+    backgroundColor: COLORS.gray[100],
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  popularCategoryItem: {
+    alignItems: 'center',
+    marginBottom: SPACING.md,
+  },
+  popularCategoryImage: {
+    width: (width - SPACING.md * 4)/6,
+    height: (width - SPACING.md * 4)/6,
+    resizeMode: 'contain',
+    borderRadius: BORDER_RADIUS.md,
+    marginBottom: SPACING.xs,
+  },
+  popularCategoryPlatform: {
+    fontSize: FONTS.sizes.sm,
+    fontWeight: '600',
+    color: COLORS.text.red,
+    marginBottom: SPACING.xs / 2,
+    textAlign: 'center',
+  },
+  popularCategoryName: {
+    fontSize: FONTS.sizes.sm,
+    fontWeight: '500',
+    color: COLORS.text.primary,
+    textAlign: 'center',
+  },
+  promoCardsContainer: {
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.md,
+    gap: SPACING.md,
+  },
+  promoCard: {
+    height: 280,
+    borderRadius: BORDER_RADIUS.lg,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  promoCardBackground: {
+    width: '100%',
+    height: '100%',
+    position: 'absolute',
+  },
+  promoCardGradientContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: BORDER_RADIUS.lg,
+    overflow: 'hidden',
+  },
+  promoCardInner: {
+    position: 'absolute',
+    top: 60,
+    left: '50%',
+    marginLeft: -(width - SPACING.md * 4) / 2, // Half of width (240/2)
+    width: width - SPACING.md * 4,
+    height: 160,
+    backgroundColor: 'transparent',
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.white,
+  },
+  promoCardContent: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    padding: SPACING.md,
+    justifyContent: 'space-between',
+  },
+  promoCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  promoCardTitle: {
+    fontSize: FONTS.sizes.lg,
+    fontWeight: '700',
+    color: COLORS.white,
+  },
+  promoCardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderTopWidth: 0.5,
+    borderTopColor: '#FFFFFF33',
+  },
+  promoCardText: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.white,
+    flex: 1,
+  },
+  promoCardButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    // backgroundColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: SPACING.sm,
+  },
+  todaysItemsContainer: {
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.md,
+  },
+  todaysItemsTitle: {
+    fontSize: FONTS.sizes['2xl'],
+    fontWeight: '800',
+    color: COLORS.text.primary,
+    marginBottom: SPACING.md,
+    textAlign: 'center',
+  },
+  todaysItemsCards: {
+    gap: SPACING.md,
+  },
+  todaysItemCard: {
+    height: 240,
+    borderRadius: BORDER_RADIUS.lg,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  todaysItemCardBackground: {
+    width: '100%',
+    height: '100%',
+    position: 'absolute',
+  },
+  todaysItemGradientContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: BORDER_RADIUS.lg,
+    overflow: 'hidden',
+  },
+  todaysItemImagesContainer: {
+    position: 'absolute',
+    top: 65,
+    left: SPACING.md,
+    right: SPACING.md,
+    height: width - SPACING.md * 2,
+    borderRadius: BORDER_RADIUS.md,
+    overflow: 'hidden',
+  },
+  todaysItemImagesGrid2x2: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING.smmd,
+  },
+  todaysItemImagesRow: {
+    flexDirection: 'row',
+    gap: SPACING.smmd,
+  },
+  todaysItemImage: {
+    borderRadius: BORDER_RADIUS.lg,
+  },
+  todaysItemImage2x2: {
+    width: (width - SPACING.md * 4 - SPACING.smmd) / 2,
+    height: (width - SPACING.md * 4) / 2,
+  },
+  todaysItemImageRow: {
+    flex: 1,
+    height: (width - SPACING.md * 4) / 2,
+  },
+  todaysItemContent: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    padding: SPACING.md,
+    justifyContent: 'space-between',
+  },
+  todaysItemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  todaysItemTitle: {
+    fontSize: FONTS.sizes['2xl'],
+    fontWeight: '700',
+    color: COLORS.white,
+  },
+  todaysItemFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: '#FFFFFF33',
+  },
+  todaysItemText: {
+    fontSize: FONTS.sizes.md,
+    color: COLORS.white,
+    flex: 1,
+  },
+  todaysItemButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    // backgroundColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: SPACING.sm,
   },
 });
 

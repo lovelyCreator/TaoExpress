@@ -2,7 +2,7 @@ import React, { lazy, Suspense } from 'react';
 import LoadingSpinner from '../../components/LoadingSpinner';
 
 // Lazy load the EditAddressScreen component
-const LazyEditAddressScreen = lazy(() => import('../EditAddressScreen'));
+const LazyEditAddressScreen = lazy(() => import('../main/profileScreen/settingScreen/addressScreen/EditAddressScreen'));
 
 // Export a component that wraps the lazy-loaded component with Suspense
 const EditAddressScreenWithSuspense = (props: any) => (

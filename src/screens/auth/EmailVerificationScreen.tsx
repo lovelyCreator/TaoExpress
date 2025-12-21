@@ -15,7 +15,6 @@ import { useAppSelector } from '../../store/hooks';
 import { translations } from '../../i18n/translations';
 import { AuthStackParamList } from '../../types';
 import { useVerifyEmailMutation, useResendVerificationMutation } from '../../hooks/useAuthMutations';
-import { useToast } from '../../hooks/useToast';
 import { useAuth } from '../../context/AuthContext';
 import {
   CodeField,
@@ -54,7 +53,6 @@ const EmailVerificationScreen = () => {
     setValue,
   });
   
-  const { showToast, ToastComponent } = useToast();
 
   const { mutate: verifyEmail, isLoading } = useVerifyEmailMutation({
     onSuccess: async (data) => {
@@ -97,7 +95,7 @@ const EmailVerificationScreen = () => {
         setNavigateToProfile();
         
         // Show success message
-        showToast({ message: t('auth.emailVerified'), type: 'success' });
+        // showToast({ message: t('auth.emailVerified'), type: 'success' });
         
         // Wait for state to update, then navigate
         // Use Promise.resolve to ensure state updates are processed
@@ -113,7 +111,7 @@ const EmailVerificationScreen = () => {
         }, 1500);
       } else {
         // If no user data, just show success and navigate
-        showToast({ message: 'Email verified successfully!', type: 'success' });
+        // showToast({ message: 'Email verified successfully!', type: 'success' });
         setTimeout(() => {
           navigation.reset({
             index: 0,
@@ -151,10 +149,10 @@ const EmailVerificationScreen = () => {
     onSuccess: (data) => {
       // Clear error message on successful resend
       setErrorMessage('');
-      showToast({ message: data.message || t('auth.codeResent'), type: 'success' });
+      // showToast({ message: data.message || t('auth.codeResent'), type: 'success' });
     },
     onError: (error) => {
-      showToast({ message: error, type: 'error' });
+      // showToast({ message: error, type: 'error' });
     },
   });
 
@@ -176,7 +174,6 @@ const EmailVerificationScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {ToastComponent}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}

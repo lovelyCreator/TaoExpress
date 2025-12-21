@@ -15,7 +15,6 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { AuthStackParamList } from '../../types';
 import { useForgotPasswordMutation } from '../../hooks/useAuthMutations';
-import { useToast } from '../../hooks/useToast';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, VALIDATION_RULES, ERROR_MESSAGES } from '../../constants';
 import { useAppSelector } from '../../store/hooks';
 import { translations } from '../../i18n/translations';
@@ -24,7 +23,6 @@ type ForgotPasswordScreenNavigationProp = StackNavigationProp<AuthStackParamList
 
 const ForgotPasswordScreen: React.FC = () => {
   const navigation = useNavigation<ForgotPasswordScreenNavigationProp>();
-  const { showToast, ToastComponent } = useToast();
   const locale = useAppSelector((state) => state.i18n.locale) as 'en' | 'ko' | 'zh';
   
   // Translation function
@@ -39,15 +37,13 @@ const ForgotPasswordScreen: React.FC = () => {
   
   const { mutate: forgotPassword, isLoading } = useForgotPasswordMutation({
     onSuccess: (data) => {
-      console.log('ForgotPassword: Success callback called');
-      showToast({ message: data?.message || t('auth.resetCodeSent'), type: 'success' });
+      // showToast({ message: data?.message || t('auth.resetCodeSent'), type: 'success' });
       setTimeout(() => {
         navigation.navigate('OtpVerification', { email });
       }, 1000);
     },
     onError: (error) => {
-      console.log('ForgotPassword: Error callback called with:', error);
-      showToast({ message: error || t('auth.failedToSendResetLink'), type: 'error' });
+      // showToast({ message: error || t('auth.failedToSendResetLink'), type: 'error' });
     },
   });
   
@@ -92,7 +88,6 @@ const ForgotPasswordScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {ToastComponent}
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -215,7 +210,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.lg,
   },
   resetButtonDisabled: {
-    backgroundColor: COLORS.accentPinkLight,
+    backgroundColor: COLORS.red,
     opacity: 0.6,
   },
   resetButtonText: {

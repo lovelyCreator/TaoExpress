@@ -1,490 +1,339 @@
-import { ApiResponse } from '../types';
-import { getStoredToken } from './authApi';
 import axios from 'axios';
+import { getStoredToken } from './authApi';
 
-// API base URL - using environment variable with fallback to local endpoint
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://todaymall.co.kr/api/v1';
+const API_BASE_URL = 'https://todaymall.co.kr/api/v1';
 
-// Cart API
+export interface ApiResponse<T> {
+  success: boolean;
+  message?: string;
+  data?: T;
+}
+
+export interface AddToCartRequest {
+  offerId: number;
+  categoryId: number;
+  subject: string;
+  subjectTrans: string;
+  imageUrl: string;
+  promotionUrl?: string;
+  skuInfo: {
+    skuId: number;
+    specId: string;
+    price: string;
+    amountOnSale: number;
+    consignPrice: string;
+    cargoNumber?: string;
+    skuAttributes: Array<{
+      attributeId: number;
+      attributeName: string;
+      attributeNameTrans: string;
+      value: string;
+      valueTrans: string;
+      skuImageUrl?: string;
+    }>;
+    fenxiaoPriceInfo?: {
+      offerPrice: string;
+    };
+  };
+  companyName: string;
+  sellerOpenId: string;
+  quantity: number;
+}
+
+export interface CartItem {
+  offerId: number;
+  categoryId: number;
+  subject: string;
+  subjectTrans: string;
+  imageUrl: string;
+  promotionUrl?: string;
+  skuInfo: {
+    skuId: number;
+    specId: string;
+    price: string;
+    amountOnSale: number;
+    consignPrice: string;
+    cargoNumber?: string;
+    skuAttributes: Array<{
+      attributeId: number;
+      attributeName: string;
+      attributeNameTrans: string;
+      value: string;
+      valueTrans: string;
+      skuImageUrl?: string;
+    }>;
+    fenxiaoPriceInfo?: {
+      offerPrice: string;
+    };
+  };
+  companyName: string;
+  sellerOpenId: string;
+  quantity: number;
+  addedAt?: string;
+  _id?: string;
+}
+
+export interface Cart {
+  _id: string;
+  user: string;
+  items: CartItem[];
+  totalAmount: number;
+  totalItems: number;
+  currency: string;
+  createdAt: string;
+  updatedAt: string;
+  __v?: number;
+}
+
 export const cartApi = {
-  // Add item to cart
-  addToCart: async (itemId: number, quantity: number, variation: number, option: number): Promise<ApiResponse<any>> => {
+  // Get cart
+  getCart: async (): Promise<ApiResponse<{ cart: Cart }>> => {
     try {
-      console.log('cartApi.addToCart: Adding item to cart', { itemId, quantity, variation, option });
       const token = await getStoredToken();
-      
-      if (!token) {
-        console.log('cartApi.addToCart: No token, returning auth error');
-        return {
-          success: false,
-          message: 'Authentication required. Please log in first.',
-          data: null,
-        };
-      }
-      console.log("cartApi.addToCart: Token retrieved", token);
-      
-      // MOCK DATA: Commented out API call
-      // const response = await axios.post(
-      //   `${API_BASE_URL}/customer/cart/add`,
-      //   { item_id: itemId, quantity: quantity, variation: variation, option: option },
-      //   {
-      //     headers: {
-      //       'Authorization': `Bearer ${token}`,
-      //       'Content-Type': 'application/json',
-      //     },
-      //   }
-      // );
-      
-      // MOCK DATA: Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // MOCK DATA: Return mock response
-      const mockResponse = {
-        data: {
-          id: Date.now(),
-          item_id: itemId,
-          quantity: quantity,
-          message: 'Item added to cart successfully',
-        }
-      };
-      const response = { data: mockResponse.data };
-      
-      console.log('cartApi.addToCart: API response (MOCK)', response.data);
-      
-      return {
-        success: true,
-        data: response.data,
-        message: 'Item added to cart successfully',
-      };
-    } catch (error: any) {
-      // console.error('Add to cart error:', error.response.data.errors);
-      
-      if (error.response) {
-        // Handle incomplete response data
-        let errorMessage = error.response.data.errors[0].message || `Failed to add item to cart. Status: ${error.response.status}`;
-        let errorData = error.response.data;
-        console.log("Error Response:", errorMessage)
-        // Check for specific 403 error when item already exists
-        if (error.response.status === 403) {
-          let itemExistsError = errorMessage === 'Item already exists';
-          
-          if (itemExistsError) {
-            return {
-              success: false,
-              message: 'Item already exists in cart', // Specific message for toast display
-              data: errorData,
-            };
-          }
-        }
-        
-        // Try to fix incomplete JSON in error response as well
-        if (typeof errorData === 'string') {
-          if (!errorData.trim().endsWith(']') && !errorData.trim().endsWith('}')) {
-            if (errorData.includes('[') && !errorData.includes(']')) {
-              errorData += ']';
-            } else if (errorData.includes('{') && !errorData.includes('}')) {
-              errorData += '}';
-            }
-          }
-          
-          try {
-            errorData = JSON.parse(errorData);
-          } catch (parseError) {
-            console.error('Failed to parse error response JSON', parseError);
-          }
-        }
-        
-        return {
-          success: false,
-          message: errorMessage,
-          data: errorData,
-        };
-      } else if (error.request) {
-        return {
-          success: false,
-          message: 'Network error. Please check your connection and try again.',
-          data: null,
-        };
-      } else {
-        return {
-          success: false,
-          message: `Unexpected error: ${error.message || 'Unknown error occurred'}`,
-          data: null,
-        };
-      }
-    }
-  },
 
-  // Get cart items
-  getCart: async (): Promise<ApiResponse<any[]>> => {
-    try {
-      console.log('cartApi.getCart: Starting request');
-      const token = await getStoredToken();
-      console.log('cartApi.getCart: Token retrieved', token);
-      
-      if (!token) {
-        console.log('cartApi.getCart: No token, returning auth error');
+      const url = `${API_BASE_URL}/cart`;
+      console.log('Sending get cart request to:', url);
+
+      const response = await axios.get(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log('Get cart response:', response.data);
+
+      if (!response.data || !response.data.data) {
         return {
           success: false,
-          message: 'Authentication required. Please log in first.',
-          data: [],
+          message: 'No cart data received',
+          data: undefined,
         };
       }
-      
-      console.log('cartApi.getCart: Making API request to', `${API_BASE_URL}/customer/cart/list`);
-      
-      // MOCK DATA: Commented out API call
-      // const response = await axios.get(
-      //   `${API_BASE_URL}/customer/cart/list`,
-      //   {
-      //     headers: {
-      //       'Authorization': `Bearer ${token}`,
-      //       'Content-Type': 'application/json',
-      //     },
-      //   }
-      // );
-      
-      // MOCK DATA: Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // MOCK DATA: Return mock response
-      const mockResponse = {
-        data: []
-      };
-      const response = { data: mockResponse.data };
-      
-      console.log('cartApi.getCart: API response received (MOCK)', response.data);
-      
-      // Ensure responseData is an array
-      const validData = Array.isArray(response.data) ? response.data : [];
-      
-      console.log('cartApi.getCart: Returning success response with', validData.length, 'items');
+
       return {
         success: true,
-        data: validData,
-        message: 'Cart items retrieved successfully',
+        data: response.data.data,
+        message: 'Cart retrieved successfully',
       };
     } catch (error: any) {
       console.error('Get cart error:', error);
-      
-      if (error.response) {
-        console.log('cartApi.getCart: Error response received', error.response);
-        // Handle incomplete response data
-        let errorMessage = error.response.data.message || `Failed to get cart items. Status: ${error.response.status}`;
-        let errorData = error.response.data;
-        
-        // Try to fix incomplete JSON in error response as well
-        if (typeof errorData === 'string') {
-          if (!errorData.trim().endsWith(']') && !errorData.trim().endsWith('}')) {
-            if (errorData.includes('[') && !errorData.includes(']')) {
-              errorData += ']';
-            } else if (errorData.includes('{') && !errorData.includes('}')) {
-              errorData += '}';
-            }
-          }
-          
-          try {
-            errorData = JSON.parse(errorData);
-          } catch (parseError) {
-            console.error('Failed to parse error response JSON', parseError);
-          }
-        }
-        
-        return {
-          success: false,
-          message: errorMessage,
-          data: Array.isArray(errorData) ? errorData : [],
-        };
-      } else if (error.request) {
-        console.log('cartApi.getCart: No response received (network error)');
-        return {
-          success: false,
-          message: 'Network error. Please check your connection and try again.',
-          data: [],
-        };
-      } else {
-        console.log('cartApi.getCart: Unexpected error', error.message);
-        return {
-          success: false,
-          message: `Unexpected error: ${error.message || 'Unknown error occurred'}`,
-          data: [],
-        };
-      }
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to get cart';
+      return {
+        success: false,
+        message: errorMessage,
+        data: undefined,
+      };
     }
   },
 
-  // Update cart item
-  updateCartItem: async (cartId: number, quantity: number, variation: number, option: number): Promise<ApiResponse<any>> => {
+  // Add product to cart
+  addToCart: async (request: AddToCartRequest): Promise<ApiResponse<{ cart: Cart }>> => {
     try {
-      console.log('cartApi.updateCartItem: Updating cart item', { cartId, quantity, variation, option });
       const token = await getStoredToken();
-      
-      if (!token) {
+
+      const url = `${API_BASE_URL}/cart`;
+      console.log('Sending add to cart request to:', url);
+      console.log('Add to cart request body:', JSON.stringify(request, null, 2));
+
+      const response = await axios.post(url, request, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log('Add to cart response:', response.data);
+
+      if (!response.data || !response.data.data) {
         return {
           success: false,
-          message: 'Authentication required. Please log in first.',
-          data: null,
+          message: 'No cart data received',
+          data: undefined,
         };
       }
-      
-      // MOCK DATA: Commented out API call
-      // const response = await axios.put(
-      //   `${API_BASE_URL}/customer/cart/update`,
-      //   { cart_id: cartId, quantity, variation, option },
-      //   {
-      //     headers: {
-      //       'Authorization': `Bearer ${token}`,
-      //       'Content-Type': 'application/json',
-      //     },
-      //   }
-      // );
-      
-      // MOCK DATA: Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // MOCK DATA: Return mock response
-      const mockResponse = {
-        data: {
-          id: cartId,
-          quantity: quantity,
-          message: 'Cart item updated successfully',
-        }
-      };
-      const response = { data: mockResponse.data };
-      
-      console.log('cartApi.updateCartItem: API response (MOCK)', response.data);
-      
+
       return {
         success: true,
-        data: response.data,
-        message: 'Cart item updated successfully',
+        data: response.data.data,
+        message: response.data.message || 'Product added to cart successfully',
+      };
+    } catch (error: any) {
+      console.error('Add to cart error:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to add product to cart';
+      return {
+        success: false,
+        message: errorMessage,
+        data: undefined,
+      };
+    }
+  },
+
+  // Update cart item quantity
+  updateCartItem: async (cartItemId: string, quantity: number): Promise<ApiResponse<{ cart: Cart }>> => {
+    try {
+      const token = await getStoredToken();
+
+      const url = `${API_BASE_URL}/cart/${cartItemId}`;
+      console.log('Sending update cart item request to:', url);
+      console.log('Update cart item body:', JSON.stringify({ quantity }, null, 2));
+
+      const response = await axios.put(url, { quantity }, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log('Update cart item response:', response.data);
+
+      if (!response.data || !response.data.data) {
+        return {
+          success: false,
+          message: 'No cart data received',
+          data: undefined,
+        };
+      }
+
+      return {
+        success: true,
+        data: response.data.data,
+        message: response.data.message || 'Cart item updated successfully',
       };
     } catch (error: any) {
       console.error('Update cart item error:', error);
-      
-      if (error.response) {
-        // Handle incomplete response data
-        let errorMessage = error.response.data.message || `Failed to update cart item. Status: ${error.response.status}`;
-        let errorData = error.response.data;
-        
-        // Try to fix incomplete JSON in error response as well
-        if (typeof errorData === 'string') {
-          if (!errorData.trim().endsWith(']') && !errorData.trim().endsWith('}')) {
-            if (errorData.includes('[') && !errorData.includes(']')) {
-              errorData += ']';
-            } else if (errorData.includes('{') && !errorData.includes('}')) {
-              errorData += '}';
-            }
-          }
-          
-          try {
-            errorData = JSON.parse(errorData);
-          } catch (parseError) {
-            console.error('Failed to parse error response JSON', parseError);
-          }
-        }
-        
-        return {
-          success: false,
-          message: errorMessage,
-          data: errorData,
-        };
-      } else if (error.request) {
-        return {
-          success: false,
-          message: 'Network error. Please check your connection and try again.',
-          data: null,
-        };
-      } else {
-        return {
-          success: false,
-          message: `Unexpected error: ${error.message || 'Unknown error occurred'}`,
-          data: null,
-        };
-      }
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to update cart item';
+      return {
+        success: false,
+        message: errorMessage,
+        data: undefined,
+      };
     }
   },
 
-  // Remove item from cart
-  removeFromCart: async (cartId: number): Promise<ApiResponse<any>> => {
+  // Delete cart item
+  deleteCartItem: async (cartItemId: string): Promise<ApiResponse<{ cart: Cart }>> => {
     try {
-      console.log('cartApi.removeFromCart: Removing item from cart', { cartId });
       const token = await getStoredToken();
-      
-      if (!token) {
+
+      const url = `${API_BASE_URL}/cart/${cartItemId}`;
+      console.log('Sending delete cart item request to:', url);
+
+      const response = await axios.delete(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log('Delete cart item response:', response.data);
+
+      if (!response.data || !response.data.data) {
         return {
           success: false,
-          message: 'Authentication required. Please log in first.',
-          data: null,
+          message: 'No cart data received',
+          data: undefined,
         };
       }
-      
-      // MOCK DATA: Commented out API call
-      // const response = await axios.delete(
-      //   `${API_BASE_URL}/customer/cart/remove-item/${cartId}`,
-      //   {
-      //     headers: {
-      //       'Authorization': `Bearer ${token}`,
-      //       'Content-Type': 'application/json',
-      //     },
-      //   }
-      // );
-      
-      // MOCK DATA: Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // MOCK DATA: Return mock response
-      const mockResponse = {
-        data: {
-          message: 'Item removed from cart successfully',
-        }
-      };
-      const response = { data: mockResponse.data };
-      
-      console.log('cartApi.removeFromCart: API response (MOCK)', response.data);
-      
+
       return {
         success: true,
-        data: response.data,
-        message: 'Item removed from cart successfully',
+        data: response.data.data,
+        message: response.data.message || 'Cart item deleted successfully',
       };
     } catch (error: any) {
-      console.error('Remove from cart error:', error);
-      
-      if (error.response) {
-        // Handle incomplete response data
-        let errorMessage = error.response.data.message || `Failed to remove item from cart. Status: ${error.response.status}`;
-        let errorData = error.response.data;
-        
-        // Try to fix incomplete JSON in error response as well
-        if (typeof errorData === 'string') {
-          if (!errorData.trim().endsWith(']') && !errorData.trim().endsWith('}')) {
-            if (errorData.includes('[') && !errorData.includes(']')) {
-              errorData += ']';
-            } else if (errorData.includes('{') && !errorData.includes('}')) {
-              errorData += '}';
-            }
-          }
-          
-          try {
-            errorData = JSON.parse(errorData);
-          } catch (parseError) {
-            console.error('Failed to parse error response JSON', parseError);
-          }
-        }
-        
-        return {
-          success: false,
-          message: errorMessage,
-          data: errorData,
-        };
-      } else if (error.request) {
-        return {
-          success: false,
-          message: 'Network error. Please check your connection and try again.',
-          data: null,
-        };
-      } else {
-        return {
-          success: false,
-          message: `Unexpected error: ${error.message || 'Unknown error occurred'}`,
-          data: null,
-        };
-      }
+      console.error('Delete cart item error:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to delete cart item';
+      return {
+        success: false,
+        message: errorMessage,
+        data: undefined,
+      };
     }
   },
 
-  // Checkout order
-  checkoutOrder: async (orderAmount: number, cartIds: number[], addressId: number): Promise<ApiResponse<any>> => {
+  // Clear cart (delete all items)
+  clearCart: async (): Promise<ApiResponse<{ cart: Cart }>> => {
     try {
-      console.log('cartApi.checkoutOrder: Placing order', { orderAmount, cartIds, addressId });
       const token = await getStoredToken();
-      
-      if (!token) {
+
+      const url = `${API_BASE_URL}/cart`;
+      console.log('Sending clear cart request to:', url);
+
+      const response = await axios.delete(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log('Clear cart response:', response.data);
+
+      if (!response.data || !response.data.data) {
         return {
           success: false,
-          message: 'Authentication required. Please log in first.',
-          data: null,
+          message: 'No cart data received',
+          data: undefined,
         };
       }
-      
-      // MOCK DATA: Commented out API call
-      // const response = await axios.post(
-      //   `${API_BASE_URL}/customer/order/place`,
-      //   { order_amount: orderAmount, cart_ids: cartIds, address_id: addressId },
-      //   {
-      //     headers: {
-      //       'Authorization': `Bearer ${token}`,
-      //       'Content-Type': 'application/json',
-      //     },
-      //   }
-      // );
-      
-      // MOCK DATA: Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // MOCK DATA: Return mock response
-      const mockResponse = {
-        data: {
-          order_id: Date.now(),
-          order_amount: orderAmount,
-          message: 'Order placed successfully',
-        }
-      };
-      const response = { data: mockResponse.data };
-      
-      console.log('cartApi.checkoutOrder: API response (MOCK)', response.data);
-      
+
       return {
         success: true,
-        data: response.data,
-        message: 'Order placed successfully',
+        data: response.data.data,
+        message: response.data.message || 'Cart cleared successfully',
       };
     } catch (error: any) {
-      console.error('Checkout order error:', error, error.response.data);
-      
-      if (error.response) {
-        // Handle incomplete response data
-        let errorMessage = error.response.data.message || error.response.data.errors || `Failed to place order. Status: ${error.response.status}`;
-        let errorData = error.response.data;
-        
-        // Try to fix incomplete JSON in error response as well
-        if (typeof errorData === 'string') {
-          if (!errorData.trim().endsWith(']') && !errorData.trim().endsWith('}')) {
-            if (errorData.includes('[') && !errorData.includes(']')) {
-              errorData += ']';
-            } else if (errorData.includes('{') && !errorData.includes('}')) {
-              errorData += '}';
-            }
-          }
-          
-          try {
-            errorData = JSON.parse(errorData);
-          } catch (parseError) {
-            console.error('Failed to parse error response JSON', parseError);
-          }
-        }
-        
+      console.error('Clear cart error:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to clear cart';
+      return {
+        success: false,
+        message: errorMessage,
+        data: undefined,
+      };
+    }
+  },
+
+  // Delete batch cart items
+  deleteCartBatch: async (cartItemIds: string[]): Promise<ApiResponse<{ cart: Cart }>> => {
+    try {
+      const token = await getStoredToken();
+
+      const url = `${API_BASE_URL}/cart`;
+      console.log('Sending delete batch cart items request to:', url);
+      console.log('Delete batch body:', JSON.stringify({ itemIds: cartItemIds }, null, 2));
+
+      const response = await axios.delete(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        data: { itemIds: cartItemIds },
+      });
+
+      console.log('Delete batch cart items response:', response.data);
+
+      if (!response.data || !response.data.data) {
         return {
           success: false,
-          message: errorMessage,
-          data: errorData,
-        };
-      } else if (error.request) {
-        return {
-          success: false,
-          message: 'Network error. Please check your connection and try again.',
-          data: null,
-        };
-      } else {
-        return {
-          success: false,
-          message: `Unexpected error: ${error.message || 'Unknown error occurred'}`,
-          data: null,
+          message: 'No cart data received',
+          data: undefined,
         };
       }
+
+      return {
+        success: true,
+        data: response.data.data,
+        message: response.data.message || 'Cart items deleted successfully',
+      };
+    } catch (error: any) {
+      console.error('Delete batch cart items error:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to delete cart items';
+      return {
+        success: false,
+        message: errorMessage,
+        data: undefined,
+      };
     }
   },
 };
 
-export default cartApi;

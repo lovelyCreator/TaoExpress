@@ -4,7 +4,7 @@ import { useAppSelector } from '../../store/hooks';
 import { translations } from '../../i18n/translations';
 
 // Lazy load the OnboardingScreen component
-const LazyOnboardingScreen = lazy(() => import('../OnboardingScreen'));
+const LazyOnboardingScreen = lazy(() => import('../main/OnboardingScreen'));
 
 // Export a component that wraps the lazy-loaded component with Suspense
 const OnboardingScreenWithSuspense = (props: any) => {

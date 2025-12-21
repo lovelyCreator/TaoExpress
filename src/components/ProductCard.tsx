@@ -14,27 +14,23 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '../constants';
 import { Product } from '../types';
-import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
+import HeartPlusIcon from '../assets/icons/HeartPlusIcon';
+import FamilyStarIcon from '../assets/icons/FamilyStarIcon';
+import { useTranslation } from '../hooks/useTranslation';
 
 const { width } = Dimensions.get('window');
 const GRID_CARD_WIDTH = (width - SPACING.md * 2 - SPACING.md) / 2;
 
 // Generate dynamic live messages based on product data from API
-const generateLiveMessages = (product?: Product): string[] => {
+// Returns exactly 3 messages: monthSold, repurchaseRate, and Fast delivery
+const generateLiveMessages = (product?: Product, t?: (key: string) => string): string[] => {
   const allMessages: string[] = [];
+  const translate = t || ((key: string) => key);
   
-  // Savings message (if discount available) - from real product data
-  if (product?.originalPrice && product?.price) {
-    const savings = product.originalPrice - product.price;
-    if (savings > 0) {
-      allMessages.push(`Save ${savings.toFixed(2)} on ${product.originalPrice.toFixed(2)}`);
-    }
-  }
-  
-  // Month sold count - from real API data (monthSold)
+  // Month sold count - from real API data (monthSold mapped to orderCount)
   if (product?.orderCount && product.orderCount > 0) {
-    allMessages.push(`${product.orderCount}+ sold this month`);
+    allMessages.push(`${product.orderCount}+ ${translate('home.soldThisMonth')}`);
   }
   
   // Repurchase rate - from real API data (repurchaseRate)
@@ -42,90 +38,93 @@ const generateLiveMessages = (product?: Product): string[] => {
     const repurchaseRate = typeof product.repurchaseRate === 'string' 
       ? product.repurchaseRate 
       : `${product.repurchaseRate}%`;
-    allMessages.push(`${repurchaseRate} repurchase rate`);
+    allMessages.push(`${repurchaseRate} ${translate('home.repurchaseRate')}`);
   }
   
-  // Rating and reviews - from real product data
-  if (product?.rating && product.rating > 0) {
-    allMessages.push(`${product.rating.toFixed(1)}★ rating`);
+  // Fast delivery - with i18n
+  allMessages.push(translate('home.fastDelivery'));
+  
+  // Ensure we have exactly 3 messages
+  // If we have less than 3, add generic messages to fill
+  while (allMessages.length < 3) {
+    if (allMessages.length === 0) {
+      allMessages.push(translate('home.trustedByThousands'));
+    } else if (allMessages.length === 1) {
+      allMessages.push(translate('home.securePaymentGuaranteed'));
+    } else {
+      allMessages.push(translate('home.qualityGuaranteed'));
+    }
   }
   
-  if (product?.reviewCount && product.reviewCount > 0) {
-    allMessages.push(`${product.reviewCount}+ reviews`);
-  }
-  
-  // Fast delivery
-  allMessages.push('Fast delivery available');
-  
-  // Free shipping
-  allMessages.push('Free shipping available');
-  
-  // Quality guarantee
-  allMessages.push('Quality guaranteed');
-  
-  // Return policy
-  allMessages.push('Easy returns within 30 days');
-  
-  // If no real data, add some generic messages
-  if (allMessages.length < 3) {
-    allMessages.push('Trusted by thousands');
-    allMessages.push('Secure payment guaranteed');
-    allMessages.push('24/7 customer support');
-  }
-  
-  // Shuffle messages to make each product show different order
-  return allMessages.sort(() => Math.random() - 0.5);
+  // Return only the first 3 messages (shuffled)
+  return allMessages.slice(0, 3).sort(() => Math.random() - 0.5);
 };
 
-// Component for scrolling live text with upward animation
+// Component for displaying live text with sliding animation
 const LiveText: React.FC<{ product?: Product }> = ({ product }) => {
-  const [messages] = useState(() => generateLiveMessages(product));
-  // Random starting index for each product
+  const { t } = useTranslation();
+  const [messages] = useState(() => generateLiveMessages(product, t));
+  // Random starting index for each product to create different timing
   const [currentIndex, setCurrentIndex] = useState(() => Math.floor(Math.random() * messages.length));
-  const translateY = useState(new Animated.Value(0))[0];
-  // Random interval between 2.5 to 4 seconds for each product
-  const [intervalTime] = useState(() => Math.floor(Math.random() * 1500) + 2500);
+  const translateY = useRef(new Animated.Value(0)).current;
+  const currentIndexRef = useRef(0);
+  // Random initial delay (0-2000ms) so each product starts at different time
+  const [initialDelay] = useState(() => Math.floor(Math.random() * 2000));
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      // Slide up animation
-      Animated.sequence([
-        Animated.timing(translateY, {
-          toValue: -20,
-          duration: 400,
-          useNativeDriver: true,
-        }),
-        Animated.timing(translateY, {
-          toValue: 20,
-          duration: 0,
-          useNativeDriver: true,
-        }),
-        Animated.timing(translateY, {
-          toValue: 0,
-          duration: 400,
-          useNativeDriver: true,
-        }),
-      ]).start();
+    if (messages.length <= 1) return;
+    
+    // Initialize ref with current index
+    currentIndexRef.current = currentIndex;
+    let intervalId: NodeJS.Timeout | null = null;
 
-      // Change text after animation starts
-      setTimeout(() => {
-        setCurrentIndex((prev) => (prev + 1) % messages.length);
-      }, 200);
-    }, intervalTime);
+    // Initial delay to stagger different products
+    const initialTimer = setTimeout(() => {
+      intervalId = setInterval(() => {
+        // Animate current message sliding down (disappear)
+        Animated.timing(translateY, {
+          toValue: 20, // Move down and out of view
+          duration: 300,
+          useNativeDriver: true,
+        }).start(() => {
+          // After animation completes, move to next message
+          currentIndexRef.current = (currentIndexRef.current + 1) % messages.length;
+          setCurrentIndex(currentIndexRef.current);
+          
+          // Reset position to top (above view) for new message
+          translateY.setValue(-20);
+          
+          // Animate new message sliding down from top to center
+          Animated.timing(translateY, {
+            toValue: 0, // Move to center
+            duration: 300,
+            useNativeDriver: true,
+          }).start();
+        });
+      }, 5000); // Change message every 5 seconds
+    }, initialDelay);
 
-    return () => clearInterval(interval);
-  }, [translateY, messages.length, intervalTime]);
+    return () => {
+      clearTimeout(initialTimer);
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [messages.length, translateY, currentIndex, initialDelay]);
+
+  // Show current message
+  const currentMessage = messages.length > currentIndex ? messages[currentIndex] : (messages.length > 0 ? messages[0] : '');
 
   return (
     <View style={styles.liveTextContainer}>
       <Animated.Text 
         style={[
-          styles.liveText, 
+          styles.liveText,
           { transform: [{ translateY }] }
         ]} 
         numberOfLines={1}
       >
-        {messages[currentIndex]}
+        {currentMessage}
       </Animated.Text>
     </View>
   );
@@ -160,18 +159,12 @@ const ProductCard: React.FC<ProductCardProps> = ({
   cardWidth,
   onAddToCart,
 }) => {
-  const { showToast } = useToast();
   const { user, isGuest } = useAuth();
 
   const handleLikePress = (e: any) => {
     e.stopPropagation();
     
-    // Check if user is logged in
-    if (!user || isGuest) {
-      showToast('Please login first', 'warning');
-      return;
-    }
-    
+    // Always call onLikePress - let parent handle login check
     if (onLikePress) {
       onLikePress();
     }
@@ -183,29 +176,13 @@ const ProductCard: React.FC<ProductCardProps> = ({
       ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
       : 0);
 
-  // New In variant - vertical card with overlay text
+  // New In variant - vertical card with image, discount, like button, and product info
   if (variant === 'newIn') {
-    const cardW = cardWidth || Math.floor(width * 0.28);
+    // Calculate width for 3 items per line: (width - padding - gaps) / 3
+    // Default calculation if cardWidth not provided
+    const defaultCardW = cardWidth || Math.floor((width - SPACING.md * 2 - SPACING.xs * 2) / 3);
+    const cardW = cardWidth || defaultCardW;
     const cardH = Math.floor(cardW * 1.55);
-    
-    // Component for image
-    const NewInImageWithPlaceholder = React.memo(() => {
-      const imageUri = product.image || '';
-      
-      return (
-        <View style={{ position: 'relative', width: cardW, height: cardH }}>
-          {/* Real product image only */}
-          {imageUri && (
-            <Image
-              source={{ uri: imageUri }}
-              style={[styles.newInImage, { width: cardW, height: cardH }, imageStyle]}
-              resizeMode="cover"
-              fadeDuration={0}
-            />
-          )}
-        </View>
-      );
-    });
     
     return (
       <TouchableOpacity
@@ -213,15 +190,57 @@ const ProductCard: React.FC<ProductCardProps> = ({
         onPress={onPress}
         activeOpacity={0.9}
       >
-        <NewInImageWithPlaceholder />
-        <LinearGradient
-          colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.55)']}
-          style={styles.newInOverlay}
-        >
-          <Text style={styles.newInTitle} numberOfLines={2}>
+        <View style={{ position: 'relative', width: cardW, height: cardW }}>
+          {/* Product image */}
+          {product.image && (
+            <Image
+              source={{ uri: product.image }}
+              style={[styles.newInImage, { width: cardW, height: cardW }, imageStyle]}
+              resizeMode="cover"
+              fadeDuration={0}
+            />
+          )}
+          
+          {/* Like button */}
+          {showLikeButton && (
+            <TouchableOpacity
+              style={styles.newInLikeButton}
+              onPress={handleLikePress}
+            >
+              <HeartPlusIcon
+                width={20}
+                height={20}
+                color={isLiked ? COLORS.red : COLORS.black}
+              />
+            </TouchableOpacity>
+          )}
+        </View>
+        
+        {/* Product info below image */}
+        <View style={styles.newInInfo}>
+          <Text style={styles.newInName} numberOfLines={1}>
             {product.name}
           </Text>
-        </LinearGradient>
+          <View style={styles.newInPriceContainer}>
+            <Text style={styles.newInPrice}>
+              <Text style={styles.newInCurrency}>¥</Text>
+              {product.price.toFixed(2)}
+            </Text>
+            {product.originalPrice && product.originalPrice > product.price && (
+              <Text style={styles.newInOriginalPrice}>
+                <Text style={styles.newInCurrency}>¥</Text>
+                {product.originalPrice.toFixed(2)}
+              </Text>
+            )}
+          </View>
+          {discountPercentage > 0 && (
+            <View style={styles.newInDiscountBadge}>
+              <Text style={styles.newInDiscountText}>
+                -{discountPercentage}%
+              </Text>
+            </View>
+          )}
+        </View>
       </TouchableOpacity>
     );
   }
@@ -258,10 +277,10 @@ const ProductCard: React.FC<ProductCardProps> = ({
               style={styles.likeButtonRight}
               onPress={handleLikePress}
             >
-              <Ionicons
-                name={isLiked ? 'heart' : 'heart-outline'}
-                size={22}
-                color={isLiked ? COLORS.accentPink : COLORS.white}
+              <HeartPlusIcon
+                width={22}
+                height={22}
+                color={isLiked ? COLORS.red : COLORS.black}
               />
             </TouchableOpacity>
           )}
@@ -313,10 +332,10 @@ const ProductCard: React.FC<ProductCardProps> = ({
               style={styles.likeButtonRight}
               onPress={handleLikePress}
             >
-              <Ionicons
-                name={isLiked ? 'heart' : 'heart-outline'}
-                size={22}
-                color={isLiked ? COLORS.accentPink : COLORS.white}
+              <HeartPlusIcon
+                width={22}
+                height={22}
+                color={isLiked ? COLORS.red : COLORS.black}
               />
             </TouchableOpacity>
           )}
@@ -370,41 +389,54 @@ const ProductCard: React.FC<ProductCardProps> = ({
               style={styles.likeButtonRight}
               onPress={handleLikePress}
             >
-              <Ionicons
-                name={isLiked ? 'heart' : 'heart-outline'}
-                size={22}
-                color={isLiked ? COLORS.accentPink : COLORS.white}
+              <HeartPlusIcon
+                width={22}
+                height={22}
+                color={isLiked ? COLORS.red : COLORS.black}
               />
             </TouchableOpacity>
           )}
         </View>
         
         <View style={styles.moreToLoveInfo}>
-          {/* Line 1: Product Name */}
-          <Text style={styles.moreToLoveName} numberOfLines={2}>
-            {product.name}
-          </Text>
-          
-          {/* Line 2: Live Text with scrolling animation */}
-          <LiveText product={product} />
-          
-          {/* Line 3: Price, Sold, and Reviews */}
-          <View style={styles.bottomRow}>
-            <Text style={styles.moreToLovePrice}>¥{product.price?.toFixed(2) || '0.00'}</Text>
-            {showRating && (
-              <>
-                <Text style={styles.soldText}>
-                  {product.orderCount || 0} sold
+          {/* Line 1: Product Name and Review in one line */}
+          <View style={styles.moreToLoveNameRow}>
+            <Text style={styles.moreToLoveName} numberOfLines={1}>
+              {product.name}
+            </Text>
+            {showRating && product.rating > 0 && (
+              <View style={styles.moreToLoveReview}>
+                <FamilyStarIcon width={12} height={12} color="#E5B546" />
+                <Text style={styles.moreToLoveReviewText}>
+                  {product.rating.toFixed(1)}
                 </Text>
-                <View style={styles.reviewBadge}>
-                  <Ionicons name="star" size={11} color="#FFD700" />
-                  <Text style={styles.reviewNumber}>
-                    {product.rating || 0}
-                  </Text>
-                </View>
-              </>
+              </View>
             )}
           </View>
+          
+          {/* Line 2: Price with discount in same line */}
+          <View style={styles.moreToLovePriceRow}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING.xs }}>
+              <Text style={styles.moreToLovePrice}>
+                <Text style={styles.moreToLoveCurrency}>¥</Text>
+                {product.price?.toFixed(2) || '0.00'}
+              </Text>
+              {product.originalPrice && product.originalPrice > product.price && (
+                <Text style={styles.moreToLoveOriginalPrice}>
+                  <Text style={styles.moreToLoveCurrency}>¥</Text>
+                  {product.originalPrice.toFixed(2)}
+                </Text>
+              )}
+            </View>
+            {discountPercentage > 0 && (
+              <Text style={styles.moreToLoveDiscount}>
+                -{discountPercentage}%
+              </Text>
+            )}
+          </View>
+          
+          {/* Line 3: Live Text with scrolling animation */}
+          <LiveText product={product} />
         </View>
       </TouchableOpacity>
     );
@@ -413,7 +445,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
   // Simple variant - for category page (image, name, price only)
   if (variant === 'simple') {
     const cardW = cardWidth || GRID_CARD_WIDTH;
-    const imageH = cardW * 1.2;
+    const imageH = cardW; // Square image (height = width)
     
     return (
       <TouchableOpacity
@@ -468,10 +500,10 @@ const ProductCard: React.FC<ProductCardProps> = ({
             style={styles.likeButtonRight}
             onPress={handleLikePress}
           >
-            <Ionicons
-              name={isLiked ? 'heart' : 'heart-outline'}
-              size={22}
-              color={isLiked ? COLORS.accentPink : COLORS.white}
+            <HeartPlusIcon
+              width={22}
+              height={22}
+              color={isLiked ? COLORS.red : COLORS.black}
             />
           </TouchableOpacity>
         )}
@@ -542,7 +574,7 @@ const styles = StyleSheet.create({
   productPrice: {
     fontSize: FONTS.sizes.sm,
     fontWeight: '600',
-    color: COLORS.accentPink,
+    color: COLORS.red,
   },
   ratingContainer: {
     flexDirection: 'row',
@@ -553,24 +585,63 @@ const styles = StyleSheet.create({
   newInCard: {
     borderRadius: 8,
     overflow: 'hidden',
+    backgroundColor: COLORS.white,
   },
   newInImage: {
-    borderRadius: 12,
+    borderRadius: 8,
+    borderBottomRightRadius: 16,
   },
-  newInOverlay: {
+  newInLikeButton: {
     position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    paddingHorizontal: SPACING.md,
-    justifyContent: 'flex-end',
-    paddingBottom: 16,
+    bottom: SPACING.xs,
+    right: SPACING.xs,
+    width: 28,
+    height: 28,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF33',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  newInTitle: {
-    fontSize: 13,
-    fontWeight: '500',
-    textAlign: 'center',
+  newInInfo: {
+    padding: SPACING.xs,
+  },
+  newInName: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.text.primary,
+    marginBottom: SPACING.xs,
+  },
+  newInPriceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+    marginBottom: SPACING.xs,
+  },
+  newInPrice: {
+    fontSize: FONTS.sizes.md,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+  },
+  newInOriginalPrice: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.gray[400],
+    textDecorationLine: 'line-through',
+  },
+  newInCurrency: {
+    fontSize: FONTS.sizes.xs,
+  },
+  newInDiscountBadge: {
+    marginTop: SPACING.xs / 2,
+    backgroundColor: COLORS.red,
+    paddingHorizontal: SPACING.xs,
+    borderRadius: 4,
+    borderBottomRightRadius: 8,
+    borderTopRightRadius: 0,
+    alignSelf: 'flex-start',
+  },
+  newInDiscountText: {
+    fontSize: FONTS.sizes.xs,
     color: COLORS.white,
+    fontWeight: '700',
   },
   
   // Grid variant
@@ -617,7 +688,7 @@ const styles = StyleSheet.create({
   gridPrice: {
     fontSize: FONTS.sizes.md,
     fontWeight: '700',
-    color: COLORS.accentPink,
+    color: COLORS.red,
   },
   gridOriginalPrice: {
     fontSize: FONTS.sizes.smmd,
@@ -653,7 +724,7 @@ const styles = StyleSheet.create({
   horizontalPrice: {
     fontSize: FONTS.sizes.md,
     fontWeight: '700',
-    color: COLORS.accentPink,
+    color: COLORS.red,
   },
   horizontalOriginalPrice: {
     fontSize: FONTS.sizes.smmd,
@@ -663,46 +734,67 @@ const styles = StyleSheet.create({
   
   // More to Love variant
   moreToLoveCard: {
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.background,
     borderRadius: 12,
     overflow: 'hidden',
+    paddingBottom: SPACING.sm,
   },
   moreToLoveImage: {
     marginBottom: SPACING.sm,
     borderRadius: 12,
+    borderBottomRightRadius: 24,
   },
   moreToLoveInfo: {
     flex: 1,
     paddingHorizontal: 4,
   },
+  moreToLoveNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 2,
+  },
   moreToLoveName: {
     fontSize: FONTS.sizes.smmd,
     fontWeight: '500',
     color: COLORS.text.primary,
-    marginBottom: 2,
-    lineHeight: 18,
+    flex: 1,
+    marginRight: SPACING.xs,
+    maxWidth: '75%', // Reduce width to make room for review
+  },
+  moreToLoveReview: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  moreToLoveReviewText: {
+    fontSize: FONTS.sizes.xs,
+    color: COLORS.text.primary,
+    fontWeight: '600',
+  },
+  moreToLovePriceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: SPACING.xs,
+    marginTop: 2,
   },
   moreToLovePrice: {
     fontSize: FONTS.sizes.md,
     fontWeight: '700',
-    color: COLORS.error,
-    marginRight: 8,
-  },
-  bottomRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 2,
-  },
-  reviewBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginLeft: 6,
-  },
-  reviewNumber: {
-    fontSize: FONTS.sizes.xs,
     color: COLORS.text.primary,
+  },
+  moreToLoveCurrency: {
+    fontSize: FONTS.sizes.xs,
+  },
+  moreToLoveOriginalPrice: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.gray[400],
+    textDecorationLine: 'line-through',
+  },
+  moreToLoveDiscount: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.red,
     fontWeight: '600',
-    marginLeft: 2,
   },
   
   // Simple variant (category page)
@@ -728,7 +820,7 @@ const styles = StyleSheet.create({
   simplePrice: {
     fontSize: FONTS.sizes.lg,
     fontWeight: '700',
-    color: COLORS.accentPink,
+    color: COLORS.red,
   },
   
   // Shared styles
@@ -738,11 +830,11 @@ const styles = StyleSheet.create({
   likeButtonRight: {
     position: 'absolute',
     right: 8,
-    bottom: 16,
-    width: 36,
-    height: 36,
+    bottom: 8,
+    width: 28,
+    height: 28,
     borderRadius: 18,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    backgroundColor: '#FFFFFF33',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -756,7 +848,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   discountBadgeInline: {
-    backgroundColor: COLORS.accentPink,
+    backgroundColor: COLORS.red,
     borderRadius: 8,
     paddingHorizontal: 6,
     paddingVertical: 3,

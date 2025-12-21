@@ -2,7 +2,7 @@ import React, { lazy, Suspense } from 'react';
 import LoadingSpinner from '../../components/LoadingSpinner';
 
 // Lazy load the FinanceScreen component
-const LazyFinanceScreen = lazy(() => import('../main/FinanceScreen'));
+const LazyFinanceScreen = lazy(() => import('../main/profileScreen/settingScreen/FinanceScreen'));
 
 // Export a component that wraps the lazy-loaded component with Suspense
 const FinanceScreenWithSuspense = (props: any) => (

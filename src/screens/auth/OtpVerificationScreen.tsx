@@ -11,7 +11,6 @@ import { AuthStackParamList } from '../../types';
 import { BORDER_RADIUS, COLORS, FONTS, SPACING } from '../../constants';
 import { Ionicons } from '@expo/vector-icons';
 import { useResendVerificationMutation } from '../../hooks/useAuthMutations';
-import { useToast } from '../../hooks/useToast';
 import {
   CodeField,
   Cursor,
@@ -46,7 +45,6 @@ const OtpVerificationScreen: React.FC<{
     setValue,
   });
   const errorTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const { showToast, ToastComponent } = useToast();
 
   // Function to mask email (show only first letter before @)
   const maskEmail = (email: string) => {
@@ -75,7 +73,7 @@ const OtpVerificationScreen: React.FC<{
   // Set error with Toast notification
   const setErrorWithTimeout = (errorMessage: string) => {
     setError(errorMessage);
-    showToast({ message: errorMessage, type: 'error' });
+    // showToast({ message: errorMessage, type: 'error' });
     
     // Clear any existing timeout
     if (errorTimeoutRef.current) {
@@ -104,7 +102,7 @@ const OtpVerificationScreen: React.FC<{
   // Resend OTP
   const { mutate: resendOtp } = useResendVerificationMutation({
     onSuccess: (data) => {
-      showToast({ message: data.message || 'A new OTP has been sent to your email.', type: 'success' });
+      // showToast({ message: data.message || 'A new OTP has been sent to your email.', type: 'success' });
       
       // Reset timer
       setTimeLeft(30);
@@ -123,7 +121,7 @@ const OtpVerificationScreen: React.FC<{
       }
     },
     onError: (error) => {
-      showToast({ message: error, type: 'error' });
+      // showToast({ message: error, type: 'error' });
     },
   });
 
@@ -156,7 +154,6 @@ const OtpVerificationScreen: React.FC<{
 
   return (
     <View style={styles.container}>
-      {ToastComponent}
       
       <View style={styles.header}>
         <TouchableOpacity 
@@ -317,7 +314,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.accentPink,
+    color: COLORS.red,
     marginLeft: 8,
   },
   resendButton: {
@@ -326,7 +323,7 @@ const styles = StyleSheet.create({
   },
   resendButtonText: {
     fontSize: FONTS.sizes.md,
-    color: COLORS.accentPink,
+    color: COLORS.red,
     textDecorationLine: 'underline',
   },
   resendButtonTextDisabled: {
@@ -341,7 +338,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   verifyButtonDisabled: {
-    backgroundColor: COLORS.accentPinkLight,
+    backgroundColor: COLORS.redLight,
     opacity: 0.6,
   },
   verifyButtonText: {

@@ -166,7 +166,7 @@ const SortModal: React.FC<SortModalProps> = ({
                       <Text style={styles.optionTitle}>{option.label}</Text>
                       {isSelected && (
                         <View style={styles.checkmark}>
-                          <Ionicons name="checkmark-circle" size={24} color={COLORS.accentPink} />
+                          <Ionicons name="checkmark-circle" size={24} color={COLORS.red} />
                         </View>
                       )}
                     </TouchableOpacity>
@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   optionSelected: {
-    borderColor: COLORS.accentPink,
+    borderColor: COLORS.red,
     backgroundColor: COLORS.white,
   },
   iconContainer: {

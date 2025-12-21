@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '../constants';
+import ArrowDropDownIcon from '../assets/icons/ArrowDropDownIcon';
 
 interface PlatformMenuProps {
   platforms: string[];
@@ -40,7 +41,7 @@ const PlatformMenu: React.FC<PlatformMenuProps> = ({
         <Text style={[styles.buttonText, { color: textColor }]}>
           {getLabel(selectedPlatform)}
         </Text>
-        <Ionicons name="chevron-down" size={18} color={iconColor} />
+        <ArrowDropDownIcon width={12} height={12} color={iconColor} />
       </TouchableOpacity>
 
       <Modal
@@ -88,7 +89,7 @@ const PlatformMenu: React.FC<PlatformMenuProps> = ({
                     {getLabel(platform)}
                   </Text>
                   {selectedPlatform === platform && (
-                    <Ionicons name="checkmark" size={20} color={COLORS.accentPink} />
+                    <Ionicons name="checkmark" size={20} color={COLORS.red} />
                   )}
                 </TouchableOpacity>
               ))}
@@ -155,7 +156,7 @@ const styles = StyleSheet.create({
   },
   menuItemTextActive: {
     fontWeight: '600',
-    color: COLORS.accentPink,
+    color: COLORS.red,
   },
 });
 

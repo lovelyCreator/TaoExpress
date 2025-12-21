@@ -2,7 +2,7 @@ import React, { lazy, Suspense } from 'react';
 import LoadingSpinner from '../../components/LoadingSpinner';
 
 // Lazy load the AddShippingServiceScreen component
-const LazyAddShippingServiceScreen = lazy(() => import('../AddShippingServiceScreen'));
+const LazyAddShippingServiceScreen = lazy(() => import('../main/profileScreen/AddShippingServiceScreen'));
 
 // Export a component that wraps the lazy-loaded component with Suspense
 const AddShippingServiceScreenWithSuspense = (props: any) => (

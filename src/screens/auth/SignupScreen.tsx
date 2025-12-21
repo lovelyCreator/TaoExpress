@@ -14,9 +14,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { Button, TextInput } from '../../components';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import { useRegisterMutation } from '../../hooks/useAuthMutations';
 import { useSocialLogin } from '../../services/socialAuth';
-import { useToast } from '../../hooks/useToast';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS, VALIDATION_RULES, ERROR_MESSAGES } from '../../constants';
 import { useAppSelector } from '../../store/hooks';
 import { translations } from '../../i18n/translations';
@@ -24,8 +24,8 @@ import { translations } from '../../i18n/translations';
 const SignupScreen: React.FC = () => {
   const navigation = useNavigation();
   const { socialLogin, signupError, clearSignupError } = useAuth();
-  const { showToast, ToastComponent } = useToast();
   const locale = useAppSelector((state) => state.i18n.locale) as 'en' | 'ko' | 'zh';
+  const { showToast } = useToast();
   
   // Translation function
   const t = (key: string) => {
@@ -42,6 +42,7 @@ const SignupScreen: React.FC = () => {
       // The AuthContext will handle updating the global state
       // This is just for side effects if needed
       console.log('User Registeration successful:', data);
+      showToast(t('auth.signupSuccess') || 'Signup successful', 'success');
       handleLogin();
     },
     onError: (errorMessage, errorCode) => {
@@ -53,19 +54,22 @@ const SignupScreen: React.FC = () => {
         setErrors({ 
           email: t('auth.emailAlreadyRegistered')
         });
+        showToast(t('auth.emailAlreadyRegistered') || 'Email already registered', 'error');
       } else if (errorCode === 'INVALID_REFERRAL_CODE') {
         // Show error only on referral code field
         setErrors({ 
           referralCode: t('auth.invalidReferralCode')
         });
+        showToast(t('auth.invalidReferralCode') || 'Invalid referral code', 'error');
       } else if (errorCode === 'VALIDATION_ERROR') {
         // Show validation error
         setErrors({ 
           email: errorMessage
         });
+        showToast(errorMessage || 'Validation error', 'error');
       } else {
         // Show generic error
-        showToast({ message: errorMessage, type: 'error' });
+        showToast(errorMessage || t('auth.signupFailed') || 'Signup failed', 'error');
       }
     }
   });
@@ -74,12 +78,12 @@ const SignupScreen: React.FC = () => {
     onSuccess: (data) => {
       // Handle successful social login
       console.log('Social login successful:', data);
-      showToast({ message: `Welcome ${data.userInfo.name || 'User'}!`, type: 'success' });
+      // showToast({ message: `Welcome ${data.userInfo.name || 'User'}!`, type: 'success' });
     },
     onError: (error) => {
       // Handle social login error
       console.log('Social signup error:', error);
-      showToast({ message: error, type: 'error' });
+      // showToast({ message: error, type: 'error' });
     }
   });
   
@@ -227,7 +231,7 @@ const SignupScreen: React.FC = () => {
       await socialLoginMutation(provider);
     } catch (error) {
       console.log('Social signup error:', error);
-      showToast({ message: error as string, type: 'error' });
+      // showToast({ message: error as string, type: 'error' });
     }
   };
 
@@ -265,7 +269,6 @@ const SignupScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {ToastComponent}
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -574,7 +577,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: FONTS.sizes.md,
     fontWeight: '600',
-    color: COLORS.accentPink,
+    color: COLORS.red,
     marginBottom: SPACING.sm,
   },
   signupLabel: {
@@ -694,7 +697,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   linkText: {
-    color: COLORS.accentPink,
+    color: COLORS.red,
     fontWeight: '500',
   },
   registerButton: {
@@ -706,7 +709,7 @@ const styles = StyleSheet.create({
     ...SHADOWS.sm,
   },
   registerButtonDisabled: {
-    backgroundColor: COLORS.accentPinkLight,
+    backgroundColor: COLORS.redLight,
     opacity: 0.6,
   },
   registerButtonText: {

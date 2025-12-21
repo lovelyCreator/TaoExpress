@@ -2,7 +2,7 @@ import React, { lazy, Suspense } from 'react';
 import LoadingSpinner from '../../components/LoadingSpinner';
 
 // Lazy load the DetailOrderScreen component
-const LazyDetailOrderScreen = lazy(() => import('../main/DetailOrderScreen'));
+const LazyDetailOrderScreen = lazy(() => import('../main/profileScreen/DetailOrderScreen'));
 
 // Export a component that wraps the lazy-loaded component with Suspense
 const DetailOrderScreenWithSuspense = (props: any) => (
