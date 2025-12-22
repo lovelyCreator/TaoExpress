@@ -32,15 +32,15 @@ const ChargeScreen = () => {
   const handleCopy = (text: string) => {
     Clipboard.setString(text);
     // You can add a toast notification here
-    console.log('Copied:', text);
+    // console.log('Copied:', text);
   };
 
   const handleSubmit = () => {
     if (!userName.trim() || !amount.trim()) {
-      console.log('Please fill all fields');
+      // console.log('Please fill all fields');
       return;
     }
-    console.log('Submit charge request:', { userName, amount, method: selectedMethod });
+    // console.log('Submit charge request:', { userName, amount, method: selectedMethod });
     // Handle submission logic here
   };
 

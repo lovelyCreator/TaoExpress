@@ -31,6 +31,8 @@ import { useAuth } from '../../../context/AuthContext';
 import { useWishlistStatus } from '../../../hooks/useWishlistStatus';
 import { useAddToWishlistMutation } from '../../../hooks/useAddToWishlistMutation';
 import { useDeleteFromWishlistMutation } from '../../../hooks/useDeleteFromWishlistMutation';
+import { useGetSearchHistory, useDeleteSearchKeyword, useClearSearchHistory } from '../../../hooks/useSearchHistoryMutation';
+import { useFocusEffect } from '@react-navigation/native';
 import ArrowBackIcon from '../../../assets/icons/ArrowBackIcon';
 import ViewListIcon from '../../../assets/icons/ViewListIcon';
 
@@ -79,7 +81,7 @@ const SearchScreenComponent: React.FC = () => {
   const [selectedCompany, setSelectedCompany] = useState<string>('All'); // Company filter state
   const [refreshing, setRefreshing] = useState(false); // Add refreshing state
   const [categoryLoading, setCategoryLoading] = useState(false); // Add category loading state
-  const [recentSearches, setRecentSearches] = useState<string[]>(['cloths', 'caps']); // Recent searches state
+  const [recentSearches, setRecentSearches] = useState<string[]>([]); // Recent searches state
   
   // Refs
   const isLoadingRef = useRef(false);
@@ -113,13 +115,13 @@ const SearchScreenComponent: React.FC = () => {
   // Add to wishlist mutation
   const { mutate: addToWishlist } = useAddToWishlistMutation({
     onSuccess: async (data) => {
-      console.log('Product added to wishlist successfully:', data);
+      // console.log('Product added to wishlist successfully:', data);
       showToast('Product added to wishlist', 'success');
       // Immediately refresh external IDs to update heart icon color
       await refreshExternalIds();
     },
     onError: (error) => {
-      console.error('Failed to add product to wishlist:', error);
+      // console.error('Failed to add product to wishlist:', error);
       showToast(error || 'Failed to add product to wishlist', 'error');
     },
   });
@@ -127,16 +129,58 @@ const SearchScreenComponent: React.FC = () => {
   // Delete from wishlist mutation
   const { mutate: deleteFromWishlist } = useDeleteFromWishlistMutation({
     onSuccess: async (data) => {
-      console.log('Product removed from wishlist successfully:', data);
+      // console.log('Product removed from wishlist successfully:', data);
       showToast('Product removed from wishlist', 'success');
       // Immediately refresh external IDs to update heart icon color
       await refreshExternalIds();
     },
     onError: (error) => {
-      console.error('Failed to remove product from wishlist:', error);
+      // console.error('Failed to remove product from wishlist:', error);
       showToast(error || 'Failed to remove product from wishlist', 'error');
     },
   });
+
+  // Search history hooks
+  const { mutate: fetchSearchHistory, data: searchHistoryData } = useGetSearchHistory({
+    onSuccess: (data) => {
+      setRecentSearches(data || []);
+    },
+    onError: (error) => {
+      // Silently fail - don't show error if user is not authenticated
+      if (error !== 'Not authenticated') {
+        // console.error('Failed to fetch search history:', error);
+      }
+    },
+  });
+
+  const { mutate: deleteKeyword } = useDeleteSearchKeyword({
+    onSuccess: () => {
+      // Refresh search history after deletion
+      fetchSearchHistory();
+    },
+    onError: (error) => {
+      showToast(error || 'Failed to delete search keyword', 'error');
+    },
+  });
+
+  const { mutate: clearHistory } = useClearSearchHistory({
+    onSuccess: () => {
+      setRecentSearches([]);
+      showToast('Search history cleared', 'success');
+    },
+    onError: (error) => {
+      showToast(error || 'Failed to clear search history', 'error');
+    },
+  });
+
+  // Fetch search history when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      if (!isGuest && user) {
+        fetchSearchHistory();
+      }
+    }, [fetchSearchHistory, isGuest, user])
+  );
   
   // Toggle wishlist function
   const toggleWishlist = async (product: any) => {
@@ -228,7 +272,7 @@ const SearchScreenComponent: React.FC = () => {
         setRecentSearches(JSON.parse(saved));
       }
     } catch (error) {
-      console.error('Error loading recent searches:', error);
+      // console.error('Error loading recent searches:', error);
     }
   };
 
@@ -238,7 +282,7 @@ const SearchScreenComponent: React.FC = () => {
       try {
         await AsyncStorage.setItem('recentSearches', JSON.stringify(recentSearches));
       } catch (error) {
-        console.error('Error saving recent searches:', error);
+        // console.error('Error saving recent searches:', error);
       }
     };
     saveRecentSearches();
@@ -293,7 +337,7 @@ const SearchScreenComponent: React.FC = () => {
     
     // Prevent loading when refreshing
     if (isRefreshingRef.current) {
-      console.log('Skipping search query effect during refresh');
+      // console.log('Skipping search query effect during refresh');
       return;
     }
     
@@ -332,15 +376,15 @@ const SearchScreenComponent: React.FC = () => {
 
   // Load more products when offset changes (infinite scroll)
   useEffect(() => {
-    console.log('Offset changed to:', offset);
+    // console.log('Offset changed to:', offset);
     // Prevent loading more data when refreshing
     if (isRefreshingRef.current) {
-      console.log('Skipping offset effect during refresh');
+      // console.log('Skipping offset effect during refresh');
       return;
     }
     
     if (offset > 1 && searchQuery && searchQuery.trim()) {
-      console.log('Loading more products for offset:', offset, 'with sort:', selectedSort);
+      // console.log('Loading more products for offset:', offset, 'with sort:', selectedSort);
       loadProducts(selectedSort || 'popularity', offset); // Use the selected sort option
     }
   }, [offset, selectedSort, searchQuery]);
@@ -361,7 +405,7 @@ const SearchScreenComponent: React.FC = () => {
   // Search products mutation
   const { mutate: searchProducts, isLoading: isSearching } = useSearchProductsMutation({
     onSuccess: (data) => {
-      console.log('Products fetched successfully:', data);
+      // console.log('Products fetched successfully:', data);
       isLoadingRef.current = false;
       
       const currentPage = currentPageOffsetRef.current;
@@ -465,7 +509,7 @@ const SearchScreenComponent: React.FC = () => {
       }
     },
     onError: (error) => {
-      console.error('Failed to fetch products:', error);
+      // console.error('Failed to fetch products:', error);
       isLoadingRef.current = false;
       
       const currentPage = currentPageOffsetRef.current;
@@ -485,7 +529,7 @@ const SearchScreenComponent: React.FC = () => {
   const loadProducts = async (sortType: string = selectedSort || 'popularity', pageOffset: number = offset || 1 ) => {
     // Prevent multiple simultaneous API calls
     if (isLoadingRef.current || isSearching) {
-      console.log('Skipping loadProducts call - already loading', pageOffset);
+      // console.log('Skipping loadProducts call - already loading', pageOffset);
       return;
     }
     
@@ -493,18 +537,18 @@ const SearchScreenComponent: React.FC = () => {
     const searchKeyword = searchQuery?.trim() || '';
     
     if (!searchKeyword) {
-      console.warn('No search keyword available, skipping product load');
+      // console.warn('No search keyword available, skipping product load');
       isLoadingRef.current = false;
       return;
     }
       
-    console.log('loadProducts called:', { 
-      offset: pageOffset, 
-      searchKeyword, 
-      minPrice,
-      maxPrice,
-      sortType
-    });
+    // console.log('loadProducts called:', { 
+    //   offset: pageOffset, 
+    //   searchKeyword, 
+    //   minPrice,
+    //   maxPrice,
+    //   sortType
+    // });
     isLoadingRef.current = true;
     // Loading spinner removed
     
@@ -527,7 +571,7 @@ const SearchScreenComponent: React.FC = () => {
       sortParam = 'popularity';
     }
     
-    console.log('Sort mapping:', { sortType, sortParam, pageOffset });
+    // console.log('Sort mapping:', { sortType, sortParam, pageOffset });
     
     // Convert price strings to numbers
     const priceStart = minPrice ? parseFloat(minPrice) : undefined;
@@ -555,22 +599,22 @@ const SearchScreenComponent: React.FC = () => {
 
   // Handle end reached for infinite scroll
   const handleEndReached = () => {
-    console.log('handleEndReached called:', { hasMore, searchQuery, offset });
+    // console.log('handleEndReached called:', { hasMore, searchQuery, offset });
     // Prevent loading more data when refreshing
     if (isRefreshingRef.current) {
-      console.log('Skipping handleEndReached during refresh');
+      // console.log('Skipping handleEndReached during refresh');
       return;
     }
     
     if (hasMore && searchQuery) {
-      console.log('Incrementing offset to:', offset + 1);
+      // console.log('Incrementing offset to:', offset + 1);
       setOffset(prev => prev + 1);
     } else {
-      console.log('Not loading more because:', { 
-        hasMore, 
-        searchQuery: !!searchQuery,
-        reason: !hasMore ? 'no more products' : 'no search query'
-      });
+      // console.log('Not loading more because:', { 
+      //   hasMore, 
+      //   searchQuery: !!searchQuery,
+      //   reason: !hasMore ? 'no more products' : 'no search query'
+      // });
     }
   };
 
@@ -611,7 +655,7 @@ const SearchScreenComponent: React.FC = () => {
   // Handle store press
   const handleStorePress = (storeId: number) => {
     // Navigate to store profile or detail screen
-    console.log('Store pressed:', storeId);
+    // console.log('Store pressed:', storeId);
   };
 
   // Handle image search
@@ -637,7 +681,7 @@ const SearchScreenComponent: React.FC = () => {
       });
       return base64;
     } catch (error) {
-      console.error('Error converting URI to base64:', error);
+      // console.error('Error converting URI to base64:', error);
       return null;
     }
   };
@@ -782,7 +826,7 @@ const SearchScreenComponent: React.FC = () => {
                   // Update selectedPlatform in store based on selected company
                   const platform = getPlatformFromCompany(company);
                   setSelectedPlatform(platform);
-                  console.log('[SearchScreen] Company selected:', company, 'Platform updated to:', platform);
+                  // console.log('[SearchScreen] Company selected:', company, 'Platform updated to:', platform);
                   // Reload products when company changes
                   setPage(1);
                   setOffset(1);
@@ -879,7 +923,7 @@ const SearchScreenComponent: React.FC = () => {
           productImage = variations[0].options[0].image;
         }
       } catch (e) {
-        console.error('Error parsing variations:', e);
+        // console.error('Error parsing variations:', e);
       }
     }
     
@@ -1006,30 +1050,47 @@ const SearchScreenComponent: React.FC = () => {
             <View style={styles.recentSearchesHeader}>
               <Text style={styles.recentSearchesTitle}>{t('search.recentSearches')}</Text>
               {recentSearches.length > 0 && (
-                <TouchableOpacity onPress={() => setRecentSearches([])}>
+                <TouchableOpacity onPress={() => {
+                  if (!isGuest && user) {
+                    clearHistory();
+                  } else {
+                    setRecentSearches([]);
+                  }
+                }}>
                   <Text style={styles.clearAllButton}>{t('search.clean')}</Text>
                 </TouchableOpacity>
               )}
             </View>
             <View style={styles.recentSearchesList}>
               {recentSearches.map((search, index) => (
-                <TouchableOpacity
-                  key={`recent-${index}`}
-                  style={styles.recentSearchItem}
-                  onPress={() => {
-                    // Mark that this is a recent search click to preserve selected company
-                    isRecentSearchClickRef.current = true;
-                    // Set the search query which will trigger the search
-                    setSearchQuery(search);
-                    // Reset states to ensure fresh search
-                    setOffset(1);
-                    setHasMore(true);
-                    setProducts([]);
-                    // Loading spinner removed
-                  }}
-                >
-                  <Text style={styles.recentSearchText}>{search}</Text>
-                </TouchableOpacity>
+                <View key={`recent-${index}`} style={styles.recentSearchItemContainer}>
+                  <TouchableOpacity
+                    style={styles.recentSearchItem}
+                    onPress={() => {
+                      // Mark that this is a recent search click to preserve selected company
+                      isRecentSearchClickRef.current = true;
+                      // Set the search query which will trigger the search
+                      setSearchQuery(search);
+                      // Reset states to ensure fresh search
+                      setOffset(1);
+                      setHasMore(true);
+                      setProducts([]);
+                      // Loading spinner removed
+                    }}
+                  >
+                    <Text style={styles.recentSearchText}>{search}</Text>
+                  </TouchableOpacity>
+                  {!isGuest && user && (
+                    <TouchableOpacity
+                      style={styles.deleteKeywordButton}
+                      onPress={() => {
+                        deleteKeyword(search);
+                      }}
+                    >
+                      <Ionicons name="close-circle" size={20} color={COLORS.text.secondary} />
+                    </TouchableOpacity>
+                  )}
+                </View>
               ))}
             </View>
           </View>
@@ -1454,16 +1515,25 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: SPACING.sm,
   },
-  recentSearchItem: {
+  recentSearchItemContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: COLORS.gray[200],
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
     borderRadius: BORDER_RADIUS.lg,
   },
+  recentSearchItem: {
+    flex: 1,
+  },
   recentSearchText: {
     fontSize: FONTS.sizes.sm,
     color: COLORS.text.primary,
     fontWeight: '500',
+  },
+  deleteKeywordButton: {
+    marginLeft: SPACING.xs,
+    padding: SPACING.xs,
   },
   filterSection: {
     backgroundColor: COLORS.white,

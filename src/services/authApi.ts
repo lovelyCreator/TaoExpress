@@ -7,7 +7,7 @@ import axios, { AxiosError } from 'axios';
 // const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || process.env.API_BASE_URL || 'http://10.0.2.2:5000/api/v1';
 const API_BASE_URL = 'https://todaymall.co.kr/api/v1';
 
-console.log('🌐 API Base URL:', API_BASE_URL);
+// console.log('🌐 API Base URL:', API_BASE_URL);
 
 // Create axios instance with default config
 const apiClient = axios.create({
@@ -22,11 +22,11 @@ const apiClient = axios.create({
 // Add request interceptor for debugging
 apiClient.interceptors.request.use(
   (config) => {
-    console.log('📤 API Request:', config.method?.toUpperCase(), config.url);
+    // console.log('📤 API Request:', config.method?.toUpperCase(), config.url);
     return config;
   },
   (error) => {
-    console.error('❌ Request Error:', error);
+    // console.error('❌ Request Error:', error);
     return Promise.reject(error);
   }
 );
@@ -34,17 +34,17 @@ apiClient.interceptors.request.use(
 // Add response interceptor for debugging
 apiClient.interceptors.response.use(
   (response) => {
-    console.log('✅ API Response:', response.status, response.config.url);
+    // console.log('✅ API Response:', response.status, response.config.url);
     return response;
   },
   (error) => {
     if (error.code === 'ECONNABORTED') {
-      console.error('⏱️ Request Timeout:', error.config?.url);
+      // console.error('⏱️ Request Timeout:', error.config?.url);
     } else if (error.code === 'ERR_NETWORK') {
-      console.error('🔌 Network Error - Cannot reach server:', error.config?.url);
-      console.error('   Make sure backend is running and accessible from emulator');
+      // console.error('🔌 Network Error - Cannot reach server:', error.config?.url);
+      // console.error('   Make sure backend is running and accessible from emulator');
     } else {
-      console.error('❌ API Error:', error.response?.status, error.message);
+      // console.error('❌ API Error:', error.response?.status, error.message);
     }
     return Promise.reject(error);
   }
@@ -121,7 +121,7 @@ const storeAuthData = async (token: string, userData: Partial<User>) => {
     // console.log("Store Datas Success!");
     return true;
   } catch (error) {
-    console.error('Error storing auth data:', error);
+    // console.error('Error storing auth data:', error);
     return false;
   }
 };
@@ -134,10 +134,10 @@ export const clearAuthData = async () => {
       STORAGE_KEYS.USER_DATA,
       STORAGE_KEYS.WISHLIST_EXTERNAL_IDS, // Clear wishlist external IDs on logout
     ]);
-    console.log('Cleared auth data including wishlist external IDs');
+    // console.log('Cleared auth data including wishlist external IDs');
     return true;
   } catch (error) {
-    console.error('Error clearing auth data:', error);
+    // console.error('Error clearing auth data:', error);
     return false;
   }
 };
@@ -149,7 +149,7 @@ export const login = async (email: string, password: string): Promise<{ success:
       email: email,
       password: password,
     };
-    console.log("Login Request Body", requestBody);
+    // console.log("Login Request Body", requestBody);
     
     // Use fetch instead of axios
     const response = await fetch(`${API_BASE_URL}/auth/login`, {
@@ -161,19 +161,19 @@ export const login = async (email: string, password: string): Promise<{ success:
       body: JSON.stringify(requestBody),
     });
 
-    console.log("Login Response Status:", response.status);
+    // console.log("Login Response Status:", response.status);
     
     // Get response text first to check if it's JSON
     const responseText = await response.text();
-    console.log("Login Response Text:", responseText.substring(0, 200));
+    // console.log("Login Response Text:", responseText.substring(0, 200));
     
     // Try to parse as JSON
     let responseData;
     try {
       responseData = JSON.parse(responseText);
-      console.log("Login Response", responseData);
+      // console.log("Login Response", responseData);
     } catch (parseError) {
-      console.error("Failed to parse response as JSON:", parseError);
+      // console.error("Failed to parse response as JSON:", parseError);
       return {
         success: false,
         error: 'Invalid response from server. Please check your network connection.',
@@ -221,7 +221,7 @@ export const login = async (email: string, password: string): Promise<{ success:
             }
           } catch (e) {
             // If parsing fails, try to extract a clean message
-            console.error('Failed to parse validation error:', e);
+            // console.error('Failed to parse validation error:', e);
             
             // Check if the message contains common validation patterns
             const msg = responseData.message || '';
@@ -325,10 +325,10 @@ export const login = async (email: string, password: string): Promise<{ success:
       updatedAt: user.updatedAt ? new Date(user.updatedAt) : new Date(),
     };
     
-    console.log("LOGIN USER TOKEN", token);
-    console.log("LOGIN EXTERNAL IDS", externalIds);
-    console.log("LOGIN CART COUNT", cartCount);
-    console.log("LOGIN USER DATA", userData);
+    // console.log("LOGIN USER TOKEN", token);
+    // console.log("LOGIN EXTERNAL IDS", externalIds);
+    // console.log("LOGIN CART COUNT", cartCount);
+    // console.log("LOGIN USER DATA", userData);
     
     // Store token and user data
     await storeAuthData(token, userData);
@@ -341,7 +341,7 @@ export const login = async (email: string, password: string): Promise<{ success:
     // Store externalIds (wishlist IDs) to AsyncStorage
     if (externalIds && Array.isArray(externalIds)) {
       await AsyncStorage.setItem(STORAGE_KEYS.WISHLIST_EXTERNAL_IDS, JSON.stringify(externalIds));
-      console.log("Saved externalIds to AsyncStorage:", externalIds);
+      // console.log("Saved externalIds to AsyncStorage:", externalIds);
     } else {
       // If no externalIds, store empty array
       await AsyncStorage.setItem(STORAGE_KEYS.WISHLIST_EXTERNAL_IDS, JSON.stringify([]));
@@ -350,7 +350,7 @@ export const login = async (email: string, password: string): Promise<{ success:
     // Store cartCount if provided
     if (cartCount !== undefined) {
       await AsyncStorage.setItem(STORAGE_KEYS.CART_COUNT, JSON.stringify(cartCount));
-      console.log("Saved cartCount to AsyncStorage:", cartCount);
+      // console.log("Saved cartCount to AsyncStorage:", cartCount);
     }
 
     return {
@@ -363,7 +363,7 @@ export const login = async (email: string, password: string): Promise<{ success:
       },
     };
   } catch (error) {
-    console.error('Login error:', error);
+    // console.error('Login error:', error);
     
     // Handle fetch errors
     if (error instanceof TypeError && error.message.includes('Network request failed')) {
@@ -390,7 +390,7 @@ export const register = async (
   isBusiness: boolean = false,
   referralCode?: string
 ): Promise<{ success: boolean; data?: any; error?: string; errorCode?: string }> => {
-  console.log("Registration attempt:", { email, name, phone, isBusiness, referralCode });
+  // console.log("Registration attempt:", { email, name, phone, isBusiness, referralCode });
   
   try {
     const requestBody: any = {
@@ -406,7 +406,7 @@ export const register = async (
       requestBody.referralCode = referralCode.trim();
     }
     
-    console.log("Signup Request:", requestBody);
+    // console.log("Signup Request:", requestBody);
 
     // Use fetch instead of axios
     const response = await fetch(`${API_BASE_URL}/auth/register`, {
@@ -418,20 +418,20 @@ export const register = async (
       body: JSON.stringify(requestBody),
     });
 
-    console.log("Signup Response Status:", response.status);
-    console.log("Signup Response Headers:", response.headers);
+    // console.log("Signup Response Status:", response.status);
+    // console.log("Signup Response Headers:", response.headers);
     
     // Get response text first to check if it's JSON
     const responseText = await response.text();
-    console.log("Signup Response Text:", responseText.substring(0, 200));
+    // console.log("Signup Response Text:", responseText.substring(0, 200));
     
     // Try to parse as JSON
     let responseData;
     try {
       responseData = JSON.parse(responseText);
-      console.log("Signup Response:", responseData);
+      // console.log("Signup Response:", responseData);
     } catch (parseError) {
-      console.error("Failed to parse response as JSON:", parseError);
+      // console.error("Failed to parse response as JSON:", parseError);
       return {
         success: false,
         error: 'Invalid response from server. Please check your network connection.',
@@ -480,7 +480,7 @@ export const register = async (
             }
           } catch (e) {
             // If parsing fails, try to extract a clean message
-            console.error('Failed to parse validation error:', e);
+            // console.error('Failed to parse validation error:', e);
             
             // Check if the message contains common validation patterns
             const msg = responseData.message || '';
@@ -577,7 +577,7 @@ export const register = async (
       };
     }
   } catch (error) {
-    console.error('Registration error:', error);
+    // console.error('Registration error:', error);
     
     // Handle fetch errors
     if (error instanceof TypeError && error.message.includes('Network request failed')) {
@@ -598,12 +598,12 @@ export const register = async (
 // Get stored token
 export const getStoredToken = async (): Promise<string | null> => {
   try {
-    console.log('getStoredToken: Attempting to retrieve token');
+    // console.log('getStoredToken: Attempting to retrieve token');
     const token = await AsyncStorage.getItem(STORAGE_KEYS.USER_TOKEN);
-    console.log('getStoredToken: Retrieved token from storage:', token ? 'Token exists' : 'No token found');
+    // console.log('getStoredToken: Retrieved token from storage:', token ? 'Token exists' : 'No token found');
     return token;
   } catch (error) {
-    console.error('Error getting stored token:', error);
+    // console.error('Error getting stored token:', error);
     return null;
   }
 };
@@ -617,7 +617,7 @@ export const getStoredUserData = async (): Promise<User | null> => {
     }
     return null;
   } catch (error) {
-    console.error('Error getting stored user data:', error);
+    // console.error('Error getting stored user data:', error);
     return null;
   }
 };
@@ -664,7 +664,7 @@ export const getProfile = async (): Promise<GetProfileResponse> => {
     }
     
     const url = `${API_BASE_URL}/users/profile`;
-    console.log('Sending get profile request to:', url);
+    // console.log('Sending get profile request to:', url);
     
     const response = await fetch(url, {
       method: 'GET',
@@ -675,16 +675,16 @@ export const getProfile = async (): Promise<GetProfileResponse> => {
       },
     });
     
-    console.log('Get profile response status:', response.status);
+    // console.log('Get profile response status:', response.status);
     
     const responseText = await response.text();
-    console.log('Get profile response text:', responseText.substring(0, 500));
+    // console.log('Get profile response text:', responseText.substring(0, 500));
     
     let responseData;
     try {
       responseData = JSON.parse(responseText);
     } catch (parseError) {
-      console.error('Failed to parse response as JSON:', parseError);
+      // console.error('Failed to parse response as JSON:', parseError);
       return {
         success: false,
         error: 'Invalid response from server. Please try again.',
@@ -711,7 +711,7 @@ export const getProfile = async (): Promise<GetProfileResponse> => {
       data: responseData.data,
     };
   } catch (error: any) {
-    console.error('Get profile error:', error);
+    // console.error('Get profile error:', error);
     
     // Handle network errors
     if (error instanceof TypeError && error.message.includes('Network request failed')) {
@@ -773,7 +773,7 @@ export const updateProfile = async (
     }
     
     const url = `${API_BASE_URL}/users/profile`;
-    console.log('Sending update profile request to:', url);
+    // console.log('Sending update profile request to:', url);
     
     // Create FormData
     const formData = new FormData();
@@ -812,14 +812,14 @@ export const updateProfile = async (
       } as any);
     }
     
-    console.log('Update profile request fields:', {
-      user_id: request.user_id,
-      phone: request.phone,
-      gender: request.gender,
-      birthday: request.birthday,
-      isBusiness: request.isBusiness,
-      hasPicture: !!request.picture,
-    });
+    // console.log('Update profile request fields:', {
+    //   user_id: request.user_id,
+    //   phone: request.phone,
+    //   gender: request.gender,
+    //   birthday: request.birthday,
+    //   isBusiness: request.isBusiness,
+    //   hasPicture: !!request.picture,
+    // });
     
     const response = await fetch(url, {
       method: 'PUT',
@@ -831,16 +831,16 @@ export const updateProfile = async (
       body: formData,
     });
     
-    console.log('Update profile response status:', response.status);
+    // console.log('Update profile response status:', response.status);
     
     const responseText = await response.text();
-    console.log('Update profile response text:', responseText.substring(0, 500));
+    // console.log('Update profile response text:', responseText.substring(0, 500));
     
     let responseData;
     try {
       responseData = JSON.parse(responseText);
     } catch (parseError) {
-      console.error('Failed to parse response as JSON:', parseError);
+      // console.error('Failed to parse response as JSON:', parseError);
       return {
         success: false,
         error: 'Invalid response from server. Please try again.',
@@ -867,7 +867,7 @@ export const updateProfile = async (
       data: responseData.data,
     };
   } catch (error: any) {
-    console.error('Update profile error:', error);
+    // console.error('Update profile error:', error);
     return {
       success: false,
       error: error.message || 'An unexpected error occurred. Please try again.',
@@ -907,8 +907,8 @@ export const changePassword = async (
     };
     
     const url = `${API_BASE_URL}/users/change-password`;
-    console.log('Sending change password request to:', url);
-    console.log('Change password request body:', JSON.stringify({ currentPassword: '***', newPassword: '***' }, null, 2));
+    // console.log('Sending change password request to:', url);
+    // console.log('Change password request body:', JSON.stringify({ currentPassword: '***', newPassword: '***' }, null, 2));
     
     const response = await fetch(url, {
       method: 'PUT',
@@ -920,16 +920,16 @@ export const changePassword = async (
       body: JSON.stringify(requestBody),
     });
     
-    console.log('Change password response status:', response.status);
+    // console.log('Change password response status:', response.status);
     
     const responseText = await response.text();
-    console.log('Change password response text:', responseText.substring(0, 500));
+    // console.log('Change password response text:', responseText.substring(0, 500));
     
     let responseData;
     try {
       responseData = JSON.parse(responseText);
     } catch (parseError) {
-      console.error('Failed to parse response as JSON:', parseError);
+      // console.error('Failed to parse response as JSON:', parseError);
       return {
         success: false,
         error: 'Invalid response from server. Please try again.',
@@ -955,7 +955,7 @@ export const changePassword = async (
       message: responseData.message || 'Password changed successfully',
     };
   } catch (error: any) {
-    console.error('Change password error:', error);
+    // console.error('Change password error:', error);
     
     // Handle network errors
     if (error instanceof TypeError && error.message.includes('Network request failed')) {
@@ -987,17 +987,17 @@ export const verifyEmail = async (
       body: JSON.stringify({ email, code }),
     });
 
-    console.log('Verify Email Response Status:', response.status);
+    // console.log('Verify Email Response Status:', response.status);
     
     const responseText = await response.text();
-    console.log('Verify Email Response Text:', responseText.substring(0, 200));
+    // console.log('Verify Email Response Text:', responseText.substring(0, 200));
     
     let responseData;
     try {
       responseData = JSON.parse(responseText);
-      console.log('Verify Email Response:', responseData);
+      // console.log('Verify Email Response:', responseData);
     } catch (parseError) {
-      console.error('Failed to parse response as JSON:', parseError);
+      // console.error('Failed to parse response as JSON:', parseError);
       return {
         success: false,
         error: 'Invalid response from server',
@@ -1096,7 +1096,7 @@ export const verifyEmail = async (
       data: responseData,
     };
   } catch (error) {
-    console.error('Verify Email Error:', error);
+    // console.error('Verify Email Error:', error);
     
     // Handle fetch errors
     if (error instanceof TypeError && error.message.includes('Network request failed')) {
@@ -1127,17 +1127,17 @@ export const resendVerificationCode = async (
       body: JSON.stringify({ email }),
     });
 
-    console.log('Resend Code Response Status:', response.status);
+    // console.log('Resend Code Response Status:', response.status);
     
     const responseText = await response.text();
-    console.log('Resend Code Response Text:', responseText.substring(0, 200));
+    // console.log('Resend Code Response Text:', responseText.substring(0, 200));
     
     let responseData;
     try {
       responseData = JSON.parse(responseText);
-      console.log('Resend Code Response:', responseData);
+      // console.log('Resend Code Response:', responseData);
     } catch (parseError) {
-      console.error('Failed to parse response as JSON:', parseError);
+      // console.error('Failed to parse response as JSON:', parseError);
       return {
         success: false,
         error: 'Invalid response from server',
@@ -1163,7 +1163,7 @@ export const resendVerificationCode = async (
       data: responseData,
     };
   } catch (error) {
-    console.error('Resend Code Error:', error);
+    // console.error('Resend Code Error:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Network error occurred',
@@ -1185,17 +1185,17 @@ export const forgotPassword = async (
       body: JSON.stringify({ email }),
     });
 
-    console.log('Forgot Password Response Status:', response.status);
+    // console.log('Forgot Password Response Status:', response.status);
     
     const responseText = await response.text();
-    console.log('Forgot Password Response Text:', responseText.substring(0, 200));
+    // console.log('Forgot Password Response Text:', responseText.substring(0, 200));
     
     let responseData;
     try {
       responseData = JSON.parse(responseText);
-      console.log('Forgot Password Response:', responseData);
+      // console.log('Forgot Password Response:', responseData);
     } catch (parseError) {
-      console.error('Failed to parse response as JSON:', parseError);
+      // console.error('Failed to parse response as JSON:', parseError);
       return {
         success: false,
         error: 'Invalid response from server',
@@ -1221,7 +1221,7 @@ export const forgotPassword = async (
       data: responseData,
     };
   } catch (error) {
-    console.error('Forgot Password Error:', error);
+    // console.error('Forgot Password Error:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Network error occurred',
@@ -1245,17 +1245,17 @@ export const resetPassword = async (
       body: JSON.stringify({ email, code, password }),
     });
 
-    console.log('Reset Password Response Status:', response.status);
+    // console.log('Reset Password Response Status:', response.status);
     
     const responseText = await response.text();
-    console.log('Reset Password Response Text:', responseText.substring(0, 200));
+    // console.log('Reset Password Response Text:', responseText.substring(0, 200));
     
     let responseData;
     try {
       responseData = JSON.parse(responseText);
-      console.log('Reset Password Response:', responseData);
+      // console.log('Reset Password Response:', responseData);
     } catch (parseError) {
-      console.error('Failed to parse response as JSON:', parseError);
+      // console.error('Failed to parse response as JSON:', parseError);
       return {
         success: false,
         error: 'Invalid response from server',
@@ -1281,10 +1281,114 @@ export const resetPassword = async (
       data: responseData,
     };
   } catch (error) {
-    console.error('Reset Password Error:', error);
+    // console.error('Reset Password Error:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Network error occurred',
+    };
+  }
+};
+
+// Search History APIs
+export const getSearchHistory = async (): Promise<{ success: boolean; data?: string[]; error?: string }> => {
+  try {
+    const token = await getStoredToken();
+    if (!token) {
+      return {
+        success: false,
+        error: 'Not authenticated',
+      };
+    }
+
+    const response = await apiClient.get('/users/search-history', {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (response.data && response.data.status === 'success' && Array.isArray(response.data.data)) {
+      return {
+        success: true,
+        data: response.data.data,
+      };
+    }
+
+    return {
+      success: false,
+      error: 'Invalid response from server',
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.response?.data?.message || error.message || 'Failed to fetch search history',
+    };
+  }
+};
+
+export const deleteSearchKeyword = async (keyword: string): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const token = await getStoredToken();
+    if (!token) {
+      return {
+        success: false,
+        error: 'Not authenticated',
+      };
+    }
+
+    const response = await apiClient.delete(`/users/search-history/${encodeURIComponent(keyword)}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (response.data && response.data.status === 'success') {
+      return {
+        success: true,
+      };
+    }
+
+    return {
+      success: false,
+      error: 'Invalid response from server',
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.response?.data?.message || error.message || 'Failed to delete search keyword',
+    };
+  }
+};
+
+export const clearSearchHistory = async (): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const token = await getStoredToken();
+    if (!token) {
+      return {
+        success: false,
+        error: 'Not authenticated',
+      };
+    }
+
+    const response = await apiClient.delete('/users/search-history', {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (response.data && response.data.status === 'success') {
+      return {
+        success: true,
+      };
+    }
+
+    return {
+      success: false,
+      error: 'Invalid response from server',
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.response?.data?.message || error.message || 'Failed to clear search history',
     };
   }
 };

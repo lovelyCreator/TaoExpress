@@ -33,7 +33,7 @@ export const useDeleteCartBatchMutation = (
     try {
       const response = await cartApi.deleteCartBatch(cartItemIds);
 
-      console.log('useDeleteCartBatchMutation: API response:', response);
+      // console.log('useDeleteCartBatchMutation: API response:', response);
 
       if (response.success && response.data) {
         setData(response.data);

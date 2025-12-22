@@ -62,8 +62,8 @@ export const addressApi = {
       }
 
       const url = `${API_BASE_URL}/users/addresses`;
-      console.log('Sending add address request to:', url);
-      console.log('Add address request body:', JSON.stringify(request, null, 2));
+      // console.log('Sending add address request to:', url);
+      // console.log('Add address request body:', JSON.stringify(request, null, 2));
 
       const response = await fetch(url, {
         method: 'POST',
@@ -75,16 +75,16 @@ export const addressApi = {
         body: JSON.stringify(request),
       });
 
-      console.log('Add address response status:', response.status);
+      // console.log('Add address response status:', response.status);
 
       const responseText = await response.text();
-      console.log('Add address response text:', responseText.substring(0, 500));
+      // console.log('Add address response text:', responseText.substring(0, 500));
 
       let responseData;
       try {
         responseData = JSON.parse(responseText);
       } catch (parseError) {
-        console.error('Failed to parse response as JSON:', parseError);
+        // console.error('Failed to parse response as JSON:', parseError);
         return {
           success: false,
           error: 'Invalid response from server. Please try again.',
@@ -111,7 +111,7 @@ export const addressApi = {
         data: responseData.data,
       };
     } catch (error: any) {
-      console.error('Add address error:', error);
+      // console.error('Add address error:', error);
       const errorMessage = error.message || 'An unexpected error occurred. Please try again.';
       return {
         success: false,
@@ -133,7 +133,7 @@ export const addressApi = {
       }
 
       const url = `${API_BASE_URL}/users/addresses`;
-      console.log('Sending get addresses request to:', url);
+      // console.log('Sending get addresses request to:', url);
 
       const response = await fetch(url, {
         method: 'GET',
@@ -144,16 +144,16 @@ export const addressApi = {
         },
       });
 
-      console.log('Get addresses response status:', response.status);
+      // console.log('Get addresses response status:', response.status);
 
       const responseText = await response.text();
-      console.log('Get addresses response text:', responseText.substring(0, 500));
+      // console.log('Get addresses response text:', responseText.substring(0, 500));
 
       let responseData;
       try {
         responseData = JSON.parse(responseText);
       } catch (parseError) {
-        console.error('Failed to parse response as JSON:', parseError);
+        // console.error('Failed to parse response as JSON:', parseError);
         return {
           success: false,
           error: 'Invalid response from server. Please try again.',
@@ -180,7 +180,7 @@ export const addressApi = {
         data: responseData.data,
       };
     } catch (error: any) {
-      console.error('Get addresses error:', error);
+      // console.error('Get addresses error:', error);
       const errorMessage = error.message || 'An unexpected error occurred. Please try again.';
       return {
         success: false,
@@ -205,8 +205,8 @@ export const addressApi = {
       }
 
       const url = `${API_BASE_URL}/users/addresses/${addressId}`;
-      console.log('Sending update address request to:', url);
-      console.log('Update address request body:', JSON.stringify(request, null, 2));
+      // console.log('Sending update address request to:', url);
+      // console.log('Update address request body:', JSON.stringify(request, null, 2));
 
       const response = await fetch(url, {
         method: 'PUT',
@@ -218,16 +218,16 @@ export const addressApi = {
         body: JSON.stringify(request),
       });
 
-      console.log('Update address response status:', response.status);
+      // console.log('Update address response status:', response.status);
 
       const responseText = await response.text();
-      console.log('Update address response text:', responseText.substring(0, 500));
+      // console.log('Update address response text:', responseText.substring(0, 500));
 
       let responseData;
       try {
         responseData = JSON.parse(responseText);
       } catch (parseError) {
-        console.error('Failed to parse response as JSON:', parseError);
+        // console.error('Failed to parse response as JSON:', parseError);
         return {
           success: false,
           error: 'Invalid response from server. Please try again.',
@@ -254,7 +254,7 @@ export const addressApi = {
         data: responseData.data,
       };
     } catch (error: any) {
-      console.error('Update address error:', error);
+      // console.error('Update address error:', error);
       const errorMessage = error.message || 'An unexpected error occurred. Please try again.';
       return {
         success: false,
@@ -276,7 +276,7 @@ export const addressApi = {
       }
 
       const url = `${API_BASE_URL}/users/addresses/${addressId}`;
-      console.log('Sending delete address request to:', url);
+      // console.log('Sending delete address request to:', url);
 
       const response = await fetch(url, {
         method: 'DELETE',
@@ -287,16 +287,16 @@ export const addressApi = {
         },
       });
 
-      console.log('Delete address response status:', response.status);
+      // console.log('Delete address response status:', response.status);
 
       const responseText = await response.text();
-      console.log('Delete address response text:', responseText.substring(0, 500));
+      // console.log('Delete address response text:', responseText.substring(0, 500));
 
       let responseData;
       try {
         responseData = JSON.parse(responseText);
       } catch (parseError) {
-        console.error('Failed to parse response as JSON:', parseError);
+        // console.error('Failed to parse response as JSON:', parseError);
         return {
           success: false,
           error: 'Invalid response from server. Please try again.',
@@ -323,7 +323,7 @@ export const addressApi = {
         data: responseData.data,
       };
     } catch (error: any) {
-      console.error('Delete address error:', error);
+      // console.error('Delete address error:', error);
       const errorMessage = error.message || 'An unexpected error occurred. Please try again.';
       return {
         success: false,

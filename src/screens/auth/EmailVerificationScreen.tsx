@@ -59,7 +59,7 @@ const EmailVerificationScreen = () => {
       // Clear any error messages
       setErrorMessage('');
       
-      console.log('EmailVerificationScreen: Verification successful, data:', data);
+      // console.log('EmailVerificationScreen: Verification successful, data:', data);
       
       // The token and user data are already stored in the API call
       // Now update the AuthContext with the user data
@@ -88,7 +88,7 @@ const EmailVerificationScreen = () => {
           updatedAt: data.user.updatedAt || new Date(),
         };
         
-        console.log('EmailVerificationScreen: Updating AuthContext with user data:', user);
+        // console.log('EmailVerificationScreen: Updating AuthContext with user data:', user);
         
         // Update auth state - this will trigger the app to show as logged in
         setAuthenticatedUser(user);
@@ -103,7 +103,7 @@ const EmailVerificationScreen = () => {
         
         // Navigate to main screen after a short delay to show the success message
         setTimeout(() => {
-          console.log('EmailVerificationScreen: Navigating to Main screen');
+          // console.log('EmailVerificationScreen: Navigating to Main screen');
           navigation.reset({
             index: 0,
             routes: [{ name: 'Main' as any }],

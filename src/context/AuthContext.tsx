@@ -58,7 +58,7 @@ const initialState: AuthState = {
 };
 
 const authReducer = (state: AuthState, action: AuthAction): AuthState => {
-  console.log('AuthContext: Reducer called with action:', action.type, 'current state:', state);
+  // console.log('AuthContext: Reducer called with action:', action.type, 'current state:', state);
   switch (action.type) {
     case 'AUTH_START':
       return {
@@ -69,7 +69,7 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
         signupError: null,
       };
     case 'AUTH_LOGIN_SUCCESS':
-      console.log('AuthContext: AUTH_LOGIN_SUCCESS dispatched with user:', action.payload);
+      // console.log('AuthContext: AUTH_LOGIN_SUCCESS dispatched with user:', action.payload);
       return {
         ...state,
         user: action.payload,
@@ -82,7 +82,7 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
         shouldNavigateToProfile: false, // Don't automatically navigate to profile
       };
     case 'AUTH_SUCCESS':
-      console.log('AuthContext: AUTH_SUCCESS dispatched with user:', action.payload);
+      // console.log('AuthContext: AUTH_SUCCESS dispatched with user:', action.payload);
       return {
         ...state,
         user: action.payload,
@@ -114,7 +114,7 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
         error: action.payload,
       };
     case 'AUTH_LOGIN_FAILURE':
-      console.log('AuthContext: AUTH_LOGIN_FAILURE dispatched with:', action.payload);
+      // console.log('AuthContext: AUTH_LOGIN_FAILURE dispatched with:', action.payload);
       return {
         ...state,
         user: null,
@@ -124,8 +124,8 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
         loginError: action.payload,
       };
     case 'AUTH_SIGNUP_FAILURE':
-      console.log('AuthContext: AUTH_SIGNUP_FAILURE dispatched with:', action.payload);
-      console.log('AuthContext: AUTH_SIGNUP_FAILURE call stack:', new Error().stack);
+      // console.log('AuthContext: AUTH_SIGNUP_FAILURE dispatched with:', action.payload);
+      // console.log('AuthContext: AUTH_SIGNUP_FAILURE call stack:', new Error().stack);
       return {
         ...state,
         user: null,
@@ -178,7 +178,7 @@ export const useAuth = () => {
   if (context === null) {
     // This is a more specific check - only return default context if context is explicitly null
     // This helps distinguish between "not wrapped in provider" and "provider value is undefined"
-    console.warn('useAuth must be used within an AuthProvider. Returning default context.');
+    // console.warn('useAuth must be used within an AuthProvider. Returning default context.');
     return {
       user: null,
       isAuthenticated: false,
@@ -214,20 +214,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
   
   // Log state changes - but only when specific properties change to avoid infinite loops
-  useEffect(() => {
-    console.log('AuthContext: State changed to:', {
-      isAuthenticated: state.isAuthenticated,
-      isLoading: state.isLoading,
-      isGuest: state.isGuest,
-      user: state.user ? 'user exists' : 'no user'
-    });
-  }, [state.isAuthenticated, state.isLoading, state.isGuest, state.user]);
+  // useEffect(() => {
+  //   console.log('AuthContext: State changed to:', {
+  //     isAuthenticated: state.isAuthenticated,
+  //     isLoading: state.isLoading,
+  //     isGuest: state.isGuest,
+  //     user: state.user ? 'user exists' : 'no user'
+  //   });
+  // }, [state.isAuthenticated, state.isLoading, state.isGuest, state.user]);
   
-  console.log('AuthProvider: Rendering with state:', {
-    isAuthenticated: state.isAuthenticated,
-    isLoading: state.isLoading,
-    isGuest: state.isGuest
-  });
+  // console.log('AuthProvider: Rendering with state:', {
+  //   isAuthenticated: state.isAuthenticated,
+  //   isLoading: state.isLoading,
+  //   isGuest: state.isGuest
+  // });
 
   // Load user data on app start
   useEffect(() => {
@@ -236,14 +236,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const loadUserData = async () => {
     try {
-      console.log('AuthContext: Loading user data...');
+      // console.log('AuthContext: Loading user data...');
       // Check if we have a stored token
       const token = await getStoredToken();
-      console.log('AuthContext: Stored token:', token);
+      // console.log('AuthContext: Stored token:', token);
       if (token) {
         // If we have a token, try to get user data
         const userData = await getStoredUserData();
-        console.log('AuthContext: Stored user data:', userData);
+        // console.log('AuthContext: Stored user data:', userData);
         if (userData) {
           dispatch({ type: 'AUTH_SUCCESS', payload: userData });
           return;
@@ -251,10 +251,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
       
       // If no token or user data, start in guest mode
-      console.log('AuthContext: No stored data, starting in guest mode');
+      // console.log('AuthContext: No stored data, starting in guest mode');
       dispatch({ type: 'AUTH_LOGOUT' });
     } catch (error) {
-      console.error('Error loading user data:', error);
+      // console.error('Error loading user data:', error);
       dispatch({ type: 'AUTH_LOGOUT' });
     }
   };
@@ -350,7 +350,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await clearAuthData();
       dispatch({ type: 'AUTH_LOGOUT' });
     } catch (error) {
-      console.error('Error during logout:', error);
+      // console.error('Error during logout:', error);
     }
   };
 
@@ -388,7 +388,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // New function to set authenticated user directly
   const setAuthenticatedUser = (user: User) => {
-    console.log('AuthContext: Setting authenticated user:', user);
+    // console.log('AuthContext: Setting authenticated user:', user);
     
     // Ensure default values for user properties
     const userWithDefaults: User = {
@@ -419,10 +419,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Store user data in AsyncStorage
     AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(userWithDefaults))
       .then(() => {
-        console.log('AuthContext: User data stored successfully');
+        // console.log('AuthContext: User data stored successfully');
       })
       .catch((error) => {
-        console.error('AuthContext: Error storing user data:', error);
+        // console.error('AuthContext: Error storing user data:', error);
       });
     
     dispatch({ type: 'AUTH_LOGIN_SUCCESS', payload: userWithDefaults });
@@ -515,12 +515,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setAuthenticatedUser,
   };
 
-  console.log('AuthProvider: Providing context value:', {
-    isAuthenticated: value.isAuthenticated,
-    isGuest: value.isGuest,
-    user: value.user ? 'user exists' : 'no user',
-    isLoading: value.isLoading
-  });
+  // console.log('AuthProvider: Providing context value:', {
+  //   isAuthenticated: value.isAuthenticated,
+  //   isGuest: value.isGuest,
+  //   user: value.user ? 'user exists' : 'no user',
+  //   isLoading: value.isLoading
+  // });
 
   return (
     <AuthContext.Provider value={value}>

@@ -51,7 +51,7 @@ const GeneralInquiryListScreen: React.FC = () => {
       await getInquiriesList(selectedStatus === 'all' ? undefined : selectedStatus);
       await refreshUnreadCounts();
     } catch (error) {
-      console.error('Failed to refresh inquiries:', error);
+      // console.error('Failed to refresh inquiries:', error);
     } finally {
       setRefreshing(false);
     }

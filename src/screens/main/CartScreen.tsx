@@ -201,12 +201,12 @@ const CartScreen: React.FC = () => {
 
   // Memoize callbacks to prevent fetchCart from being recreated
   const handleCartSuccess = useCallback((data: any) => {
-    console.log('Cart fetched successfully:', data);
+    // console.log('Cart fetched successfully:', data);
     mapCartData(data);
   }, [mapCartData]);
 
   const handleCartError = useCallback((error: string) => {
-    console.error('Failed to fetch cart:', error);
+    // console.error('Failed to fetch cart:', error);
     showToast(error || t('cart.failedToLoad'), 'error');
     setCart({ items: [], totalAmount: 0, totalItems: 0, currency: 'CNY' });
   }, [showToast, t]);
@@ -218,52 +218,52 @@ const CartScreen: React.FC = () => {
   
   const { mutate: updateCartItem } = useUpdateCartItemMutation({
     onSuccess: (data) => {
-      console.log('Cart item updated successfully:', data);
+      // console.log('Cart item updated successfully:', data);
       mapCartData(data);
       showToast(t('cart.quantityUpdated'), 'success');
     },
     onError: (error) => {
-      console.error('Failed to update cart item:', error);
+      // console.error('Failed to update cart item:', error);
       showToast(error || t('cart.failedToUpdateQuantity'), 'error');
     },
   });
 
   const { mutate: deleteCartItem } = useDeleteCartItemMutation({
     onSuccess: (data) => {
-      console.log('Cart item deleted successfully:', data);
+      // console.log('Cart item deleted successfully:', data);
       mapCartData(data);
       showToast(t('cart.itemRemoved'), 'success');
     },
     onError: (error) => {
-      console.error('Failed to delete cart item:', error);
+      // console.error('Failed to delete cart item:', error);
       showToast(error || t('cart.failedToRemove'), 'error');
     },
   });
 
   const { mutate: clearCart } = useClearCartMutation({
     onSuccess: (data) => {
-      console.log('Cart cleared successfully:', data);
+      // console.log('Cart cleared successfully:', data);
       mapCartData(data);
       showToast(t('cart.cartCleared'), 'success');
       setSelectedItems(new Set());
       setAllSelected(false);
     },
     onError: (error) => {
-      console.error('Failed to clear cart:', error);
+      // console.error('Failed to clear cart:', error);
       showToast(error || t('cart.failedToClear'), 'error');
     },
   });
 
   const { mutate: deleteCartBatch } = useDeleteCartBatchMutation({
     onSuccess: (data) => {
-      console.log('Cart items deleted successfully:', data);
+      // console.log('Cart items deleted successfully:', data);
       mapCartData(data);
       showToast(t('cart.itemsRemoved'), 'success');
       setSelectedItems(new Set());
       setAllSelected(false);
     },
     onError: (error) => {
-      console.error('Failed to delete cart items:', error);
+      // console.error('Failed to delete cart items:', error);
       showToast(error || t('cart.failedToDelete'), 'error');
     },
   });
@@ -282,6 +282,8 @@ const CartScreen: React.FC = () => {
   const [isLoadingMoreRecommendations, setIsLoadingMoreRecommendations] = useState(false);
   const isLoadingMoreRef = useRef(false);
   const lastSuccessfulPageRef = useRef(1); // Track last successful page to revert on error
+  const lastLoadMoreCallRef = useRef(0); // Track last load more call time for debouncing
+  const currentPageRef = useRef(1); // Track current page for pagination (avoids stale closure issues)
   
   // Store fetchCart in a ref to avoid dependency issues
   const fetchCartRef = useRef(fetchCart);
@@ -299,15 +301,29 @@ const CartScreen: React.FC = () => {
       setIsLoadingMoreRecommendations(false);
       isLoadingMoreRef.current = false;
       
-      if (data && data.recommendations && data.recommendations.result && Array.isArray(data.recommendations.result)) {
+      // Updated API structure: data.products (not data.recommendations)
+      const productsArray = data?.products || [];
+      const pagination = data?.pagination || {};
+      
+      if (productsArray.length > 0) {
+        // Use pagination info from API response
+        const currentPageFromData = pagination.page || recommendationsPage;
+        const pageSize = pagination.pageSize || 20;
+        const total = pagination.total || 0;
+        const totalPages = pagination.totalPages || 0;
         
-        const pageSize = data.pageSize || 20;
-        const currentPageFromData = data.page || recommendationsPage;
-        const hasMore = data.recommendations.result.length >= pageSize;
+        // Update currentPageRef to match the page we just received
+        currentPageRef.current = currentPageFromData;
+        
+        // Simple rule: If we got a FULL page (20 items), always try to load next page
+        // Only stop if we got LESS than a full page (meaning we've reached the end)
+        // This matches the behavior before the API update
+        const hasMore = productsArray.length >= pageSize;
+        
         setHasMoreRecommendations(hasMore);
         
         // Map API response to Product format
-        const mappedProducts = data.recommendations.result.map((item: any): Product => {
+        const mappedProducts = productsArray.map((item: any): Product => {
           const price = parseFloat(item.priceInfo?.price || item.priceInfo?.consignPrice || 0);
           const originalPrice = parseFloat(item.priceInfo?.consignPrice || item.priceInfo?.price || 0);
           const discount = originalPrice > price && originalPrice > 0
@@ -385,36 +401,70 @@ const CartScreen: React.FC = () => {
     },
   });
 
-  // Load more recommendations function
+  // Load more recommendations function (infinite scroll - only called at end of scroll)
   const loadMoreRecommendations = useCallback(() => {
+    // Use refs to get current values (avoid stale closure)
+    const currentHasMore = hasMoreRecommendations;
+    const currentIsLoading = isLoadingMoreRef.current || isLoadingMoreRecommendations;
+    
     // Prevent multiple simultaneous calls
-    if (isLoadingMoreRef.current || isLoadingMoreRecommendations || !hasMoreRecommendations || !locale) {
+    if (currentIsLoading || !currentHasMore || !locale || !fetchRecommendations) {
       return;
     }
     
+    // Debounce: prevent calls within 500ms of each other (reduced from 1000ms)
+    const now = Date.now();
+    const timeSinceLastCall = now - lastLoadMoreCallRef.current;
+    const DEBOUNCE_MS = 500; // Minimum 500ms between calls
+    
+    if (timeSinceLastCall < DEBOUNCE_MS) {
+      // Schedule a retry after the debounce period
+      setTimeout(() => {
+        // Check again after debounce period
+        if (!isLoadingMoreRef.current && hasMoreRecommendations && !isLoadingMoreRecommendations) {
+          loadMoreRecommendations();
+        }
+      }, DEBOUNCE_MS - timeSinceLastCall);
+      return;
+    }
+    
+    // Calculate next page number from current page ref
+    const nextPage = currentPageRef.current + 1;
+    
+    // Update refs and state BEFORE making the API call
+    lastLoadMoreCallRef.current = now;
     isLoadingMoreRef.current = true;
-    const nextPage = recommendationsPage + 1;
     setIsLoadingMoreRecommendations(true);
     setRecommendationsPage(nextPage);
     
     // Use user ID if available, otherwise use default 'dferg0001'
     const outMemberId = user?.id?.toString() || 'dferg0001';
-    fetchRecommendations(locale || 'en', outMemberId, nextPage, 20);
-  }, [recommendationsPage, hasMoreRecommendations, isLoadingMoreRecommendations, locale, user?.id, fetchRecommendations]);
+    fetchRecommendations(locale || 'en', outMemberId, nextPage, 20, selectedPlatform || '1688');
+  }, [hasMoreRecommendations, isLoadingMoreRecommendations, locale, user?.id, selectedPlatform, fetchRecommendations]);
 
-  // Fetch recommendations when screen comes into focus (works for both authenticated and unauthenticated users)
-  useFocusEffect(
-    useCallback(() => {
-      if (recommendationsProducts.length === 0 && !isLoadingMoreRef.current) {
+  // Track if initial fetch has been done (prevent real-time updates)
+  const hasInitialFetchRef = useRef<string | null>(null);
+
+  // Fetch recommendations only once on mount or when locale/user changes (not on every focus)
+  useEffect(() => {
+    if (locale) {
+      const outMemberId = isAuthenticated ? (user?.id?.toString() || 'dferg0001') : 'dferg0001';
+      const fetchKey = `${locale}-${outMemberId}-${selectedPlatform || '1688'}`;
+      
+      // Only fetch if this is the first time or locale/user/platform changed
+      if (!hasInitialFetchRef.current || hasInitialFetchRef.current !== fetchKey) {
+        hasInitialFetchRef.current = fetchKey;
+        currentPageRef.current = 1; // Reset current page ref
+        setRecommendationsPage(1);
+        lastSuccessfulPageRef.current = 1;
+        setHasMoreRecommendations(true);
+        setRecommendationsProducts([]);
         isLoadingMoreRef.current = true;
         setIsLoadingMoreRecommendations(true);
-        setRecommendationsPage(1);
-        // Use user ID if authenticated, otherwise use default 'dferg0001' or undefined
-        const outMemberId = isAuthenticated ? user?.id : 'dferg0001';
-        fetchRecommendations(locale || 'en', outMemberId, 1, 20);
+        fetchRecommendations(locale || 'en', outMemberId, 1, 20, selectedPlatform || '1688');
       }
-    }, [isAuthenticated, locale, user?.id, recommendationsProducts.length, fetchRecommendations])
-  );
+    }
+  }, [locale, user?.id, isAuthenticated, selectedPlatform, fetchRecommendations]);
 
   // Fetch cart status when screen comes into focus (but debounced to prevent too frequent calls)
   useFocusEffect(
@@ -573,6 +623,12 @@ const CartScreen: React.FC = () => {
           windowSize={5}
           initialNumToRender={10}
           updateCellsBatchingPeriod={50}
+          onEndReached={() => {
+            // For nested FlatList with scrollEnabled={false}, onEndReached may not fire reliably
+            // Rely on parent ScrollView scroll detection instead
+            // This is kept as a backup but parent scroll detection is primary
+          }}
+          onEndReachedThreshold={0.5}
           ListFooterComponent={() => (
             <>
               {/* Loading indicator for pagination */}
@@ -1042,13 +1098,14 @@ const CartScreen: React.FC = () => {
         onScroll={(event) => {
           const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
           
-          // Check if user has scrolled near the bottom (within 200px)
-          const isNearBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - 200;
-          
-          // Load more if near bottom, has more items, and not already loading
-          if (isNearBottom && hasMoreRecommendations && !isLoadingMoreRecommendations && !isLoadingMoreRef.current) {
-            loadMoreRecommendations();
-          }
+            // Check if user has scrolled near the bottom (within 200px)
+            const isNearBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - 200;
+            
+            // Load more if near bottom, has more items, and not already loading
+            // Let loadMoreRecommendations handle debouncing internally
+            if (isNearBottom && hasMoreRecommendations && !isLoadingMoreRecommendations && !isLoadingMoreRef.current) {
+              loadMoreRecommendations();
+            }
         }}
         scrollEventThrottle={400}
       >

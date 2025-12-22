@@ -61,7 +61,7 @@ export const useUpdateProfileMutation = (
             email: user.email || existingUser.email || '',
             name: user.user_id || existingUser.name || '',
             phone: user.phone || existingUser.phone || '',
-            birthday: user.birthday ? new Date(user.birthday) : existingUser.birthday,
+            birthday: user.birthday || existingUser.birthday,
             avatar: user.pictureUrl || existingUser.avatar,
             addresses: user.addresses || existingUser.addresses || [],
             wishlist: user.wishlist || existingUser.wishlist || [],

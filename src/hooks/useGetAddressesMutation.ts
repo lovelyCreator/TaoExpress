@@ -33,7 +33,7 @@ export const useGetAddressesMutation = (
     try {
       const response = await addressApi.getAddresses();
 
-      console.log('useGetAddressesMutation: API response:', response);
+      // console.log('useGetAddressesMutation: API response:', response);
 
       if (response.success && response.data) {
         setData(response.data);

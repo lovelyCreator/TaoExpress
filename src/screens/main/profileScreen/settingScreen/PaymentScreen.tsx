@@ -137,13 +137,13 @@ const PaymentScreen: React.FC = () => {
 
   // Handle input check service confirmation
   const handleInputCheckServiceConfirm = (selectedServices: string[]) => {
-    console.log('Selected services:', selectedServices);
+    // console.log('Selected services:', selectedServices);
     // showToast('Input check services updated', 'success');
   };
 
   // Handle order service confirmation
   const handleOrderServiceConfirm = (selectedServices: string[]) => {
-    console.log('Selected order services:', selectedServices);
+    // console.log('Selected order services:', selectedServices);
     // showToast('Order services updated', 'success');
   };
 
@@ -445,7 +445,7 @@ const PaymentScreen: React.FC = () => {
                 <View style={styles.addressInfo}>
                   <View style={styles.addressHeader}>
                     <Text style={styles.addressName}>
-                      {address.name || address.recipient || user?.name || 'Unnamed'}
+                      {address.name || user?.name || 'Unnamed'}
                     </Text>
                     {address.isDefault && (
                       <View style={styles.defaultBadge}>
@@ -453,9 +453,9 @@ const PaymentScreen: React.FC = () => {
                       </View>
                     )}
                   </View>
-                  <Text style={styles.addressPhone}>{address.phone || address.contact || ''}</Text>
+                  <Text style={styles.addressPhone}>{address.phone || ''}</Text>
                   <Text style={styles.addressText}>
-                    {address.street || address.detailedAddress || ''}
+                    {address.street || ''}
                     {address.zipCode ? `, ${address.zipCode}` : ''}
                   </Text>
                   {address.city && (
@@ -691,13 +691,13 @@ const PaymentScreen: React.FC = () => {
   // Create order mutation
   const { mutate: createOrder, isLoading: isCreatingOrder } = useCreateOrderMutation({
     onSuccess: (data) => {
-      console.log('Order created successfully:', data);
+      // console.log('Order created successfully:', data);
       showToast('Order created successfully', 'success');
       // Navigate back to cart page
       navigation.navigate('Cart');
     },
     onError: (error) => {
-      console.error('Failed to create order:', error);
+      // console.error('Failed to create order:', error);
       Alert.alert('Error', error || 'Failed to create order. Please try again.');
     },
   });
@@ -733,7 +733,7 @@ const PaymentScreen: React.FC = () => {
     const orderType = orderTypeMap[selectedDeliveryMethod] || 'General';
 
     // Map transferMethod from selectedTransportType
-    const transferMethod = selectedTransportType === 'ship' ? 'ship' : 'air';
+    const transferMethod: 'air' | 'ship' = selectedTransportType === 'ship' ? 'ship' : 'air';
 
     // Build itemDetails object
     const itemDetails: Record<string, any> = {};
@@ -763,7 +763,7 @@ const PaymentScreen: React.FC = () => {
       addressId: selectedAddress.id,
     };
 
-    console.log('Creating order with request:', JSON.stringify(orderRequest, null, 2));
+    // console.log('Creating order with request:', JSON.stringify(orderRequest, null, 2));
     createOrder(orderRequest);
   };
 

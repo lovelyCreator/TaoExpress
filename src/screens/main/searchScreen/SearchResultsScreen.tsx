@@ -99,7 +99,7 @@ const SearchResultsScreen: React.FC = () => {
         setProducts(response.data);
       }
     } catch (error) {
-      console.error('Error searching products:', error);
+      // console.error('Error searching products:', error);
     } finally {
       setLoading(false);
     }

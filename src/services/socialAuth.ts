@@ -92,16 +92,16 @@ export const signInWithGoogle = async () => {
   try {
     // Check if Play Services are available (Android only)
     await GoogleSignin.hasPlayServices();
-    console.log("Google Signin Start");
+    // console.log("Google Signin Start");
     
     // Sign in with Google - this shows the native Google Sign-In modal
     const response = await GoogleSignin.signIn();
     
-    console.log('Google Sign-In Success:', response);
+    // console.log('Google Sign-In Success:', response);
 
     // Check if sign-in was successful
     if (!response || !response.data) {
-      console.log('Google Sign-In: No response data');
+      // console.log('Google Sign-In: No response data');
       return {
         success: false,
         error: 'Sign-in failed - no response data',
@@ -112,14 +112,14 @@ export const signInWithGoogle = async () => {
     const idToken = response.data.idToken;
     
     if (!idToken) {
-      console.log('Google Sign-In: No ID token in response');
+      // console.log('Google Sign-In: No ID token in response');
       return {
         success: false,
         error: 'Failed to get authentication token',
       };
     }
     
-    console.log("Google ID Token: ", idToken);
+    // console.log("Google ID Token: ", idToken);
 
     // Send idToken to backend
     const API_BASE_URL = 'https://todaymall.co.kr/api/v1';
@@ -134,19 +134,19 @@ export const signInWithGoogle = async () => {
       }),
     });
 
-    console.log('Backend Response Status:', backendResponse.status);
+    // console.log('Backend Response Status:', backendResponse.status);
     
     // Get response text first
     const responseText = await backendResponse.text();
-    console.log('Backend Response Text:', responseText.substring(0, 200));
+    // console.log('Backend Response Text:', responseText.substring(0, 200));
     
     // Try to parse as JSON
     let backendData;
     try {
       backendData = JSON.parse(responseText);
-      console.log('Backend Response:', backendData);
+      // console.log('Backend Response:', backendData);
     } catch (parseError) {
-      console.error('Failed to parse backend response:', parseError);
+      // console.error('Failed to parse backend response:', parseError);
       return {
         success: false,
         error: 'Invalid response from server',
@@ -179,9 +179,9 @@ export const signInWithGoogle = async () => {
       },
     };
   } catch (error: any) {
-    console.error('Google Sign-In Error:', error);
-    console.error('Error code:', error.code);
-    console.error('Error message:', error.message);
+    // console.error('Google Sign-In Error:', error);
+    // console.error('Error code:', error.code);
+    // console.error('Error message:', error.message);
     
     // Handle specific error codes
     if (error.code === 'SIGN_IN_CANCELLED' || error.code === '-5') {
@@ -288,7 +288,7 @@ export const signInWithFacebook = async () => {
       };
     }
   } catch (error) {
-    console.error('Facebook Sign-In Error:', error);
+    // console.error('Facebook Sign-In Error:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
@@ -334,7 +334,7 @@ export const signInWithApple = async () => {
         error: 'Authentication cancelled',
       };
     }
-    console.error('Apple Sign-In Error:', error);
+    // console.error('Apple Sign-In Error:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
@@ -411,14 +411,14 @@ export const useSocialLogin = (options?: SocialLoginOptions): SocialLoginResult 
 // Twitter Sign In with OAuth 2.0 PKCE
 export const signInWithTwitter = async () => {
   try {
-    console.log('Twitter Sign-In: Starting OAuth 2.0 authentication');
-    console.log('Twitter Redirect URI:', TWITTER_REDIRECT_URI);
+    // console.log('Twitter Sign-In: Starting OAuth 2.0 authentication');
+    // console.log('Twitter Redirect URI:', TWITTER_REDIRECT_URI);
     
     // Generate PKCE codes
     const codeVerifier = await generateRandomString(64);
     const codeChallenge = await generateCodeChallenge(codeVerifier);
     
-    console.log('Twitter: PKCE codes generated');
+    // console.log('Twitter: PKCE codes generated');
     
     // Twitter OAuth 2.0 endpoints
     const discovery = {
@@ -437,17 +437,17 @@ export const signInWithTwitter = async () => {
       },
     });
     
-    console.log('Twitter: Prompting user for authentication');
+    // console.log('Twitter: Prompting user for authentication');
     
     // Prompt user for authentication
     const response = await authRequest.promptAsync(discovery, {
       windowFeatures: { width: 500, height: 600 },
     });
     
-    console.log('Twitter: Auth response received:', response.type);
+    // console.log('Twitter: Auth response received:', response.type);
     
     if (response.type === 'success') {
-      console.log('Twitter: Exchanging code for token');
+      // console.log('Twitter: Exchanging code for token');
       
       // Exchange code for token
       const tokenResponse = await AuthSession.exchangeCodeAsync(
@@ -462,7 +462,7 @@ export const signInWithTwitter = async () => {
         discovery
       );
       
-      console.log('Twitter: Token received, fetching user info');
+      // console.log('Twitter: Token received, fetching user info');
       
       // Get user info from Twitter API v2
       const userInfoResponse = await fetch(
@@ -475,7 +475,7 @@ export const signInWithTwitter = async () => {
       );
       
       const userInfoData = await userInfoResponse.json();
-      console.log('Twitter: User info received:', userInfoData);
+      // console.log('Twitter: User info received:', userInfoData);
       
       const userInfo = userInfoData.data;
       
@@ -494,13 +494,13 @@ export const signInWithTwitter = async () => {
       };
     }
     
-    console.log('Twitter: Authentication cancelled by user');
+    // console.log('Twitter: Authentication cancelled by user');
     return {
       success: false,
       error: 'Authentication cancelled',
     };
   } catch (error) {
-    console.error('Twitter Sign-In Error:', error);
+    // console.error('Twitter Sign-In Error:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',

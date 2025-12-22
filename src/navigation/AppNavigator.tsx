@@ -114,10 +114,10 @@ const AuthNavigator = React.memo(() => {
     initialRoute = "Login";
   }
   
-  console.log('AuthNavigator: Rendering AuthNavigator');
-  console.log('AuthNavigator: loginError:', loginError, 'signupError:', signupError);
-  console.log('AuthNavigator: initialRoute:', initialRoute);
-  console.log('AuthNavigator: Call stack:', new Error().stack);
+  // console.log('AuthNavigator: Rendering AuthNavigator');
+  // console.log('AuthNavigator: loginError:', loginError, 'signupError:', signupError);
+  // console.log('AuthNavigator: initialRoute:', initialRoute);
+  // console.log('AuthNavigator: Call stack:', new Error().stack);
   
   return (
     <AuthStack.Navigator
@@ -145,14 +145,14 @@ const MainTabNavigator = () => {
   const isGuest = authContext?.isGuest;
   const navigation = useNavigation();
   
-  console.log('MainTabNavigator: Rendering with shouldNavigateToProfile:', shouldNavigateToProfile, 'isGuest:', isGuest);
+  // console.log('MainTabNavigator: Rendering with shouldNavigateToProfile:', shouldNavigateToProfile, 'isGuest:', isGuest);
   
   // Navigate to Profile tab after login if needed
   useEffect(() => {
-    console.log('MainTabNavigator: shouldNavigateToProfile changed to', shouldNavigateToProfile);
+    // console.log('MainTabNavigator: shouldNavigateToProfile changed to', shouldNavigateToProfile);
     if (shouldNavigateToProfile) {
       // Navigate to the Profile tab
-      console.log('MainTabNavigator: Navigating to Profile screen');
+      // console.log('MainTabNavigator: Navigating to Profile screen');
       navigation.navigate('Profile' as never);
       // Clear the flag after handling
       clearNavigateToProfile();
@@ -235,12 +235,12 @@ const RootNavigator = () => {
   const authContext = useAuth();
   const isAuthenticated = authContext?.isAuthenticated;
   const isLoading = authContext?.isLoading;
-  console.log('RootNavigator: Rendering with isAuthenticated:', isAuthenticated, 'isLoading:', isLoading);
+  // console.log('RootNavigator: Rendering with isAuthenticated:', isAuthenticated, 'isLoading:', isLoading);
 
   // Debug authentication state changes
   useEffect(() => {
-    console.log('AppNavigator: Authentication state changed - isAuthenticated:', isAuthenticated, 'isLoading:', isLoading);
-    console.log('AppNavigator: Current screen should be:', !isAuthenticated ? 'Auth' : 'Main');
+    // console.log('AppNavigator: Authentication state changed - isAuthenticated:', isAuthenticated, 'isLoading:', isLoading);
+    // console.log('AppNavigator: Current screen should be:', !isAuthenticated ? 'Auth' : 'Main');
   }, [isAuthenticated, isLoading]);
 
   if (isLoading) {

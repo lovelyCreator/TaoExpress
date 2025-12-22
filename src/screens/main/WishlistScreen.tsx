@@ -49,7 +49,7 @@ const WishlistScreen: React.FC = () => {
   // Get wishlist mutation
   const { mutate: fetchWishlist, isLoading: wishlistLoading } = useGetWishlistMutation({
     onSuccess: (data) => {
-      console.log('Wishlist fetched successfully:', data);
+      // console.log('Wishlist fetched successfully:', data);
       if (data && data.wishlist) {
         // Map API response to Product format
         const mappedItems = data.wishlist.map((item: any) => ({
@@ -98,7 +98,7 @@ const WishlistScreen: React.FC = () => {
       }
     },
     onError: (error) => {
-      console.error('Failed to fetch wishlist:', error);
+      // console.error('Failed to fetch wishlist:', error);
       showToast(error || 'Failed to fetch wishlist', 'error');
     },
   });
@@ -106,14 +106,14 @@ const WishlistScreen: React.FC = () => {
   // Delete from wishlist mutation
   const { mutate: deleteFromWishlist } = useDeleteFromWishlistMutation({
     onSuccess: (data) => {
-      console.log('Product removed from wishlist successfully:', data);
+      // console.log('Product removed from wishlist successfully:', data);
       showToast('Product removed from wishlist', 'success');
       refreshExternalIds();
       // Refresh wishlist after deletion
       fetchWishlist();
     },
     onError: (error) => {
-      console.error('Failed to remove product from wishlist:', error);
+      // console.error('Failed to remove product from wishlist:', error);
       showToast(error || 'Failed to remove product from wishlist', 'error');
     },
   });
@@ -137,12 +137,12 @@ const WishlistScreen: React.FC = () => {
       '';
 
     if (!externalId) {
-      console.error('No externalId found for product:', product);
+      // console.error('No externalId found for product:', product);
       showToast('Invalid product ID', 'error');
       return;
     }
 
-    console.log('Deleting wishlist item with externalId:', externalId);
+    // console.log('Deleting wishlist item with externalId:', externalId);
     // Remove from wishlist using externalId
     deleteFromWishlist(externalId);
   };
@@ -171,7 +171,7 @@ const WishlistScreen: React.FC = () => {
   // Fetch wishlist only once when component mounts
   useEffect(() => {
     if (isAuthenticated && !hasFetchedRef.current) {
-      console.log('📱 WishlistScreen: Fetching wishlist on mount');
+      // console.log('📱 WishlistScreen: Fetching wishlist on mount');
       fetchWishlist();
       hasFetchedRef.current = true;
     }
@@ -250,13 +250,13 @@ const WishlistScreen: React.FC = () => {
   useEffect(() => {
     // Only proceed if product detail is fully loaded (not loading and has data)
     if (!productDetailLoading && productDetailData && !hasProcessedProductDetail) {
-      console.log('Wishlist: Product detail fetched', productDetailData);
+      // console.log('Wishlist: Product detail fetched', productDetailData);
       
       // Mark as processed to prevent infinite loop
       setHasProcessedProductDetail(true);
       
       // Add directly to cart without showing variation modal
-      console.log('Wishlist: Adding product to cart directly');
+      // console.log('Wishlist: Adding product to cart directly');
       handleAddToCart(productDetailData, 1);
     }
   }, [productDetailData, productDetailLoading, hasProcessedProductDetail]);
@@ -265,7 +265,7 @@ const WishlistScreen: React.FC = () => {
   // Note: Error toast is already shown in onError callback, this is just a safety check
   useEffect(() => {
     if (productDetailError && !productDetailLoading && !hasProcessedProductDetail) {
-      console.error('Wishlist: Product detail fetch failed (useEffect)', productDetailError);
+      // console.error('Wishlist: Product detail fetch failed (useEffect)', productDetailError);
       // Toast already shown in onError callback, just mark as processed
       setHasProcessedProductDetail(true); // Mark as processed to prevent infinite loop
     }

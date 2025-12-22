@@ -46,7 +46,7 @@ const CustomerServiceScreen: React.FC = () => {
             // The socket context will handle updates via its own event listeners
           }
         } catch (error) {
-          console.error('Failed to fetch unread counts:', error);
+          // console.error('Failed to fetch unread counts:', error);
         }
       };
       fetchUnreadCounts();
@@ -93,7 +93,7 @@ const CustomerServiceScreen: React.FC = () => {
 
   const handleKakaoTalk = () => {
     // Open KakaoTalk or show message
-    console.log('Open KakaoTalk');
+    // console.log('Open KakaoTalk');
     // You can implement deep linking to KakaoTalk here
   };
 

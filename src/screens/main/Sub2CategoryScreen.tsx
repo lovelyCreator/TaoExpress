@@ -113,7 +113,7 @@ const Sub2CategoryScreen: React.FC = () => {
   const renderSub2CategoryItem = (item: { id: string; name: string; image?: string }, index: number) => {
     // Add safety check for item
     if (!item) {
-      console.warn('Sub2Category item is null or undefined');
+      // console.warn('Sub2Category item is null or undefined');
       return null;
     }
     
@@ -176,7 +176,7 @@ const Sub2CategoryScreen: React.FC = () => {
     const validCategories = filteredCategories.filter(item => {
       if (!item) return false;
       if (!item.name || typeof item.name !== 'string') {
-        console.warn('Sub2Category item missing name:', item);
+        // console.warn('Sub2Category item missing name:', item);
         return false;
       }
       return true;

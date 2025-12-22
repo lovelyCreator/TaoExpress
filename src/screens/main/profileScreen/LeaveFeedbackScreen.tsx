@@ -55,7 +55,7 @@ const LeaveFeedbackScreen: React.FC = () => {
   };
   // const options = variatons ? JSON.parse(variatons[0].options) : null
   const imgUrl = options ? options[0].image : ''
-  console.log("Variations", product);
+  // console.log("Variations", product);
 
   
     // API hook removed

@@ -84,18 +84,18 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   // Connect socket when authenticated
   const connect = useCallback(async () => {
     if (!isAuthenticated || !user) {
-      console.log('Not authenticated, skipping socket connection');
+      // console.log('Not authenticated, skipping socket connection');
       return;
     }
 
     if (socketService.isConnected()) {
-      console.log('Socket already connected');
+      // console.log('Socket already connected');
       setIsConnected(true);
       return;
     }
 
     if (isConnecting) {
-      console.log('Socket connection already in progress');
+      // console.log('Socket connection already in progress');
       return;
     }
 
@@ -104,7 +104,7 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       const token = await getStoredToken();
       
       if (!token) {
-        console.warn('No token available for socket connection');
+        // console.warn('No token available for socket connection');
         setIsConnecting(false);
         return;
       }
@@ -116,7 +116,7 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       // Set up event listeners
       setupEventListeners();
     } catch (error) {
-      console.error('Failed to connect socket:', error);
+      // console.error('Failed to connect socket:', error);
       setIsConnecting(false);
       setIsConnected(false);
     }
@@ -142,12 +142,12 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     // Connection status
     socket.on('connect', () => {
-      console.log('Socket connected in context');
+      // console.log('Socket connected in context');
       setIsConnected(true);
     });
 
     socket.on('disconnect', () => {
-      console.log('Socket disconnected in context');
+      // console.log('Socket disconnected in context');
       setIsConnected(false);
     });
 
@@ -156,16 +156,16 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     // Subscribe/Unsubscribe success
     socket.on('user:inquiry:subscribe:success', (data: { inquiryId: string; message: string }) => {
-      console.log('Subscribed to inquiry:', data.inquiryId);
+      // console.log('Subscribed to inquiry:', data.inquiryId);
     });
 
     socket.on('user:inquiry:unsubscribe:success', (data: { inquiryId: string; message: string }) => {
-      console.log('Unsubscribed from inquiry:', data.inquiryId);
+      // console.log('Unsubscribed from inquiry:', data.inquiryId);
     });
 
     // Unread counts response
     socket.on('user:inquiry:unread-counts:response', (data: { totalUnread: number; inquiries: Array<{ inquiryId: string; unreadCount: number }> }) => {
-      console.log('Unread counts:', data);
+      // console.log('Unread counts:', data);
       setUnreadCount(data.totalUnread);
       if (onUnreadCountUpdatedCallbackRef.current) {
         onUnreadCountUpdatedCallbackRef.current(data.totalUnread);
@@ -179,18 +179,18 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       unreadCount?: number; 
       totalUnreadCount?: number;
     }) => {
-      console.log('🔔 SocketContext: user:inquiry:message:received event fired!', {
-        inquiryId: data.inquiryId,
-        messageId: data.message?._id,
-        messageText: data.message?.message || 'N/A',
-        senderType: data.message?.senderType,
-        unreadCount: data.unreadCount,
-        totalUnreadCount: data.totalUnreadCount,
-        fullData: JSON.stringify(data, null, 2),
-      });
+      // console.log('🔔 SocketContext: user:inquiry:message:received event fired!', {
+      //   inquiryId: data.inquiryId,
+      //   messageId: data.message?._id,
+      //   messageText: data.message?.message || 'N/A',
+      //   senderType: data.message?.senderType,
+      //   unreadCount: data.unreadCount,
+      //   totalUnreadCount: data.totalUnreadCount,
+      //   fullData: JSON.stringify(data, null, 2),
+      // });
       
       if (data.totalUnreadCount !== undefined) {
-        console.log(`📊 SocketContext: Updating total unread count to ${data.totalUnreadCount}`);
+        // console.log(`📊 SocketContext: Updating total unread count to ${data.totalUnreadCount}`);
         setUnreadCount(data.totalUnreadCount);
       }
       
@@ -203,15 +203,15 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
             return AsyncStorage.setItem(STORAGE_KEYS.INQUIRY_UNREAD_COUNTS, JSON.stringify(savedCounts));
           })
           .then(() => {
-            console.log(`💾 SocketContext: Saved unread count for inquiry ${data.inquiryId} to AsyncStorage`);
+            // console.log(`💾 SocketContext: Saved unread count for inquiry ${data.inquiryId} to AsyncStorage`);
           })
           .catch((error) => {
-            console.error('SocketContext: Failed to save unread count:', error);
+            // console.error('SocketContext: Failed to save unread count:', error);
           });
       }
       
       if (onMessageReceivedCallbackRef.current) {
-        console.log('✅ SocketContext: Calling onMessageReceived callback');
+        // console.log('✅ SocketContext: Calling onMessageReceived callback');
         onMessageReceivedCallbackRef.current({
           message: data.message,
           inquiryId: data.inquiryId,
@@ -219,7 +219,7 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
           totalUnreadCount: data.totalUnreadCount,
         });
       } else {
-        console.warn('⚠️ SocketContext: No onMessageReceived callback registered');
+        // console.warn('⚠️ SocketContext: No onMessageReceived callback registered');
       }
     });
 
@@ -230,14 +230,14 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       readByName: string; 
       readAt: string;
     }) => {
-      console.log('Admin read your messages:', data);
+      // console.log('Admin read your messages:', data);
       if (onMessagesReadCallbackRef.current) {
         onMessagesReadCallbackRef.current(data);
       }
     });
 
     socket.on('user:inquiry:new', (data: { inquiry: GeneralInquiry }) => {
-      console.log('New inquiry created by admin:', data.inquiry);
+      // console.log('New inquiry created by admin:', data.inquiry);
       setInquiries(prev => [data.inquiry, ...prev]);
       if (onInquiryCreatedCallbackRef.current) {
         onInquiryCreatedCallbackRef.current(data.inquiry);
@@ -245,7 +245,7 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     });
 
     socket.on('user:inquiry:closed', (data: { inquiryId: string; status: string }) => {
-      console.log('Inquiry closed:', data.inquiryId);
+      // console.log('Inquiry closed:', data.inquiryId);
       setInquiries(prev => 
         prev.map(inq => inq._id === data.inquiryId ? { ...inq, status: 'closed' as const } : inq)
       );
@@ -255,7 +255,7 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     });
 
     socket.on('user:inquiry:reopened', (data: { inquiryId: string; status: string }) => {
-      console.log('Inquiry reopened:', data.inquiryId);
+      // console.log('Inquiry reopened:', data.inquiryId);
       setInquiries(prev => 
         prev.map(inq => inq._id === data.inquiryId ? { ...inq, status: 'open' as const } : inq)
       );
@@ -265,9 +265,16 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       inquiryId: string; 
       assignedAdmin: { _id: string; name: string };
     }) => {
-      console.log('Admin assigned to inquiry:', data);
+      // console.log('Admin assigned to inquiry:', data);
       setInquiries(prev => 
-        prev.map(inq => inq._id === data.inquiryId ? { ...inq, assignedAdmin: data.assignedAdmin } : inq)
+        prev.map(inq => inq._id === data.inquiryId ? { 
+          ...inq, 
+          assignedAdmin: { 
+            _id: data.assignedAdmin._id,
+            name: data.assignedAdmin.name,
+            email: inq.assignedAdmin?.email || '' 
+          } 
+        } : inq)
       );
     });
 
@@ -275,16 +282,16 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     
     // Subscribe/Unsubscribe success
     socket.on('user:general-inquiry:subscribe:success', (data: { inquiryId: string; message: string }) => {
-      console.log('Subscribed to general inquiry:', data.inquiryId);
+      // console.log('Subscribed to general inquiry:', data.inquiryId);
     });
 
     socket.on('user:general-inquiry:unsubscribe:success', (data: { inquiryId: string; message: string }) => {
-      console.log('Unsubscribed from general inquiry:', data.inquiryId);
+      // console.log('Unsubscribed from general inquiry:', data.inquiryId);
     });
 
     // Unread counts response
     socket.on('user:general-inquiry:unread-counts:response', (data: { totalUnread: number; inquiries: Array<{ inquiryId: string; unreadCount: number }> }) => {
-      console.log('General inquiry unread counts:', data);
+      // console.log('General inquiry unread counts:', data);
       setGeneralInquiryUnreadCount(data.totalUnread);
       if (onGeneralInquiryUnreadCountUpdatedCallbackRef.current) {
         onGeneralInquiryUnreadCountUpdatedCallbackRef.current(data.totalUnread);
@@ -292,7 +299,7 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     });
 
     socket.on('user:general-inquiry:unread-count:response', (data: { count: number }) => {
-      console.log('General inquiry total unread count:', data.count);
+      // console.log('General inquiry total unread count:', data.count);
       setGeneralInquiryUnreadCount(data.count);
       if (onGeneralInquiryUnreadCountUpdatedCallbackRef.current) {
         onGeneralInquiryUnreadCountUpdatedCallbackRef.current(data.count);
@@ -301,7 +308,7 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     // Create inquiry success
     socket.on('user:general-inquiry:create:success', (data: { inquiry: GeneralInquiry }) => {
-      console.log('General inquiry created:', data.inquiry);
+      // console.log('General inquiry created:', data.inquiry);
       setGeneralInquiries(prev => [data.inquiry, ...prev]);
       if (onGeneralInquiryCreatedCallbackRef.current) {
         onGeneralInquiryCreatedCallbackRef.current(data.inquiry);
@@ -310,7 +317,7 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     // Send message success
     socket.on('user:general-inquiry:message:success', (data: { inquiry: GeneralInquiry }) => {
-      console.log('General inquiry message sent:', data.inquiry);
+      // console.log('General inquiry message sent:', data.inquiry);
       setGeneralInquiries(prev => 
         prev.map(inq => inq._id === data.inquiry._id ? data.inquiry : inq)
       );
@@ -321,7 +328,7 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     // Get inquiry response
     socket.on('user:general-inquiry:get:response', (data: { inquiry: GeneralInquiry }) => {
-      console.log('General inquiry fetched:', data.inquiry);
+      // console.log('General inquiry fetched:', data.inquiry);
       setCurrentGeneralInquiry(data.inquiry);
       setGeneralInquiries(prev => {
         const existing = prev.find(inq => inq._id === data.inquiry._id);
@@ -334,13 +341,13 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     // Get inquiries list response
     socket.on('user:general-inquiry:list:response', (data: { inquiries: GeneralInquiry[] }) => {
-      console.log('General inquiries list:', data.inquiries);
+      // console.log('General inquiries list:', data.inquiries);
       setGeneralInquiries(data.inquiries);
     });
 
     // Mark read success
     socket.on('user:general-inquiry:mark-read:success', (data: { inquiryId: string; inquiry: GeneralInquiry }) => {
-      console.log('General inquiry marked as read:', data.inquiryId);
+      // console.log('General inquiry marked as read:', data.inquiryId);
       setGeneralInquiries(prev => 
         prev.map(inq => inq._id === data.inquiryId ? data.inquiry : inq)
       );
@@ -351,7 +358,7 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     // Close inquiry success
     socket.on('user:general-inquiry:close:success', (data: { inquiry: GeneralInquiry }) => {
-      console.log('General inquiry closed:', data.inquiry._id);
+      // console.log('General inquiry closed:', data.inquiry._id);
       setGeneralInquiries(prev => 
         prev.map(inq => inq._id === data.inquiry._id ? data.inquiry : inq)
       );
@@ -367,14 +374,14 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       unreadCount?: number; 
       totalUnreadCount?: number;
     }) => {
-      console.log('🔔 General inquiry message received:', {
-        inquiryId: data.inquiryId,
-        messageId: data.message?._id,
-        messageText: data.message?.message || 'N/A',
-        senderType: data.message?.senderType,
-        unreadCount: data.unreadCount,
-        totalUnreadCount: data.totalUnreadCount,
-      });
+      // console.log('🔔 General inquiry message received:', {
+      //   inquiryId: data.inquiryId,
+      //   messageId: data.message?._id,
+      //   messageText: data.message?.message || 'N/A',
+      //   senderType: data.message?.senderType,
+      //   unreadCount: data.unreadCount,
+      //   totalUnreadCount: data.totalUnreadCount,
+      // });
       
       if (data.totalUnreadCount !== undefined) {
         setGeneralInquiryUnreadCount(data.totalUnreadCount);
@@ -420,14 +427,14 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       readByName: string; 
       readAt: string;
     }) => {
-      console.log('Admin read general inquiry messages:', data);
+      // console.log('Admin read general inquiry messages:', data);
       if (onGeneralInquiryMessagesReadCallbackRef.current) {
         onGeneralInquiryMessagesReadCallbackRef.current(data);
       }
     });
 
     socket.on('user:general-inquiry:new', (data: { inquiry: GeneralInquiry }) => {
-      console.log('New general inquiry created by admin:', data.inquiry);
+      // console.log('New general inquiry created by admin:', data.inquiry);
       setGeneralInquiries(prev => [data.inquiry, ...prev]);
       if (onGeneralInquiryCreatedCallbackRef.current) {
         onGeneralInquiryCreatedCallbackRef.current(data.inquiry);
@@ -435,7 +442,7 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     });
 
     socket.on('user:general-inquiry:closed', (data: { inquiryId: string; status: string }) => {
-      console.log('General inquiry closed:', data.inquiryId);
+      // console.log('General inquiry closed:', data.inquiryId);
       setGeneralInquiries(prev => 
         prev.map(inq => inq._id === data.inquiryId ? { ...inq, status: 'closed' as const } : inq)
       );
@@ -445,7 +452,7 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     });
 
     socket.on('user:general-inquiry:reopened', (data: { inquiryId: string; status: string }) => {
-      console.log('General inquiry reopened:', data.inquiryId);
+      // console.log('General inquiry reopened:', data.inquiryId);
       setGeneralInquiries(prev => 
         prev.map(inq => inq._id === data.inquiryId ? { ...inq, status: 'open' as const } : inq)
       );
@@ -455,9 +462,16 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       inquiryId: string; 
       assignedAdmin: { _id: string; name: string };
     }) => {
-      console.log('Admin assigned to general inquiry:', data);
+      // console.log('Admin assigned to general inquiry:', data);
       setGeneralInquiries(prev => 
-        prev.map(inq => inq._id === data.inquiryId ? { ...inq, assignedAdmin: data.assignedAdmin } : inq)
+        prev.map(inq => inq._id === data.inquiryId ? { 
+          ...inq, 
+          assignedAdmin: { 
+            _id: data.assignedAdmin._id,
+            name: data.assignedAdmin.name,
+            email: inq.assignedAdmin?.email || '' 
+          } 
+        } : inq)
       );
     });
 
@@ -465,7 +479,7 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     
     // Receive note broadcast
     socket.on('note:broadcast', (note: BroadcastNote) => {
-      console.log('📢 Note broadcast received:', note);
+      // console.log('📢 Note broadcast received:', note);
       
       // Check if note is for users (targetAudience is 'all' or 'users')
       if (note.targetAudience === 'all' || note.targetAudience === 'users') {
@@ -474,7 +488,7 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
           const expiresAt = new Date(note.expiresAt);
           const now = new Date();
           if (now > expiresAt) {
-            console.log('Note has expired, ignoring:', note.noteId);
+            // console.log('Note has expired, ignoring:', note.noteId);
             return;
           }
         }
@@ -502,7 +516,7 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     // Receive note deletion notification
     socket.on('note:deleted', (data: { noteId: string }) => {
-      console.log('🗑️ Note deleted:', data.noteId);
+      // console.log('🗑️ Note deleted:', data.noteId);
       
       // Remove note from state
       setNotes(prev => prev.filter(n => n.noteId !== data.noteId));
@@ -515,19 +529,19 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     // Error events
     socket.on('user:general-inquiry:create:error', (data: { message: string; code: string }) => {
-      console.error('General inquiry create error:', data);
+      // console.error('General inquiry create error:', data);
     });
 
     socket.on('user:general-inquiry:message:error', (data: { message: string; code: string }) => {
-      console.error('General inquiry message error:', data);
+      // console.error('General inquiry message error:', data);
     });
 
     socket.on('user:general-inquiry:list:error', (data: { message: string; code: string }) => {
-      console.error('General inquiry list error:', data);
+      // console.error('General inquiry list error:', data);
     });
 
     socket.on('user:general-inquiry:get:error', (data: { message: string; code: string }) => {
-      console.error('General inquiry get error:', data);
+      // console.error('General inquiry get error:', data);
     });
   }, []);
 

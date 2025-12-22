@@ -74,7 +74,7 @@ const LocationScreen: React.FC = () => {
       // Use empty array instead of mock data
       setAddresses([]);
     } catch (error) {
-      console.error('Error loading addresses:', error);
+      // console.error('Error loading addresses:', error);
     } finally {
       setLoading(false);
     }

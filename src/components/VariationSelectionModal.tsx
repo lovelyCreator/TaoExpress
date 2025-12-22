@@ -239,7 +239,7 @@ const VariationSelectionModal: React.FC<VariationSelectionModalProps> = ({
       await onAddToCart(product, quantity, selectedColor || undefined, selectedSize || undefined);
       onClose();
     } catch (error) {
-      console.error('Failed to add to cart:', error);
+      // console.error('Failed to add to cart:', error);
     } finally {
       setIsAdding(false);
     }

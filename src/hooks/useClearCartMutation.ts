@@ -33,7 +33,7 @@ export const useClearCartMutation = (
     try {
       const response = await cartApi.clearCart();
 
-      console.log('useClearCartMutation: API response:', response);
+      // console.log('useClearCartMutation: API response:', response);
 
       if (response.success && response.data) {
         setData(response.data);

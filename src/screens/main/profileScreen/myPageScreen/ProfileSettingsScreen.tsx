@@ -69,12 +69,12 @@ const ProfileSettingsScreen: React.FC = () => {
       await logout();
       navigation.navigate('Auth');
     } catch (error) {
-      console.error('Logout error:', error);
+      // console.error('Logout error:', error);
     }
   };
 
   const showComingSoon = (feature: string) => {
-    console.log(`${feature} feature coming soon`);
+    // console.log(`${feature} feature coming soon`);
   };
 
   const handleDeleteAccount = async (password: string) => {

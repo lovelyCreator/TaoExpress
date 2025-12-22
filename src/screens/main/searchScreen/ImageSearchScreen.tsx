@@ -135,7 +135,7 @@ const ImageSearchScreen: React.FC = () => {
 
         // Only Taobao image search is supported per requirements
         if (selectedPlatform !== 'taobao') {
-          console.warn('Image search is currently only supported for Taobao platform.');
+          // console.warn('Image search is currently only supported for Taobao platform.');
           setIsLoading(false);
           setLoadingMore(false);
           setHasMore(false);
@@ -150,7 +150,7 @@ const ImageSearchScreen: React.FC = () => {
         const response = await productsApi.imageSearchTaobao(language, base64);
 
         if (!response.success || !response.data || !Array.isArray(response.data.products)) {
-          console.error('ImageSearchScreen: Taobao image search failed:', response.message);
+          // console.error('ImageSearchScreen: Taobao image search failed:', response.message);
           setProducts([]);
           setHasMore(false);
           return;
@@ -216,7 +216,7 @@ const ImageSearchScreen: React.FC = () => {
           setProducts(mappedProducts);
         }
       } catch (error) {
-        console.error('ImageSearchScreen: Failed to load image search products:', error);
+        // console.error('ImageSearchScreen: Failed to load image search products:', error);
         setProducts([]);
         setHasMore(false);
       } finally {
@@ -269,12 +269,12 @@ const ImageSearchScreen: React.FC = () => {
   };
 
   const handleGoBack = () => {
-    console.log('Back button pressed - attempting to go back');
+    // console.log('Back button pressed - attempting to go back');
     try {
       navigation.goBack();
-      console.log('Navigation goBack called successfully');
+      // console.log('Navigation goBack called successfully');
     } catch (error) {
-      console.error('Error going back:', error);
+      // console.error('Error going back:', error);
     }
   };
 

@@ -125,15 +125,15 @@ export const productsApi = {
 
         const taobaoUrl = `${API_BASE_URL}/products/taobao-global/search?${taobaoParams.toString()}`;
 
-        console.log('🔍 [Taobao Search API] Request:', {
-          url: taobaoUrl,
-          keyword,
-          page,
-          pageSize,
-          language,
-          source,
-          country,
-        });
+        // console.log('🔍 [Taobao Search API] Request:', {
+        //   url: taobaoUrl,
+        //   keyword,
+        //   page,
+        //   pageSize,
+        //   language,
+        //   source,
+        //   country,
+        // });
 
         const taobaoResponse = await axios.get(taobaoUrl, {
           headers: {
@@ -144,20 +144,20 @@ export const productsApi = {
 
         const taobaoData = taobaoResponse.data;
 
-        console.log('🔍 [Taobao Search API] Response:', {
-          status: taobaoResponse.status,
-          statusText: taobaoResponse.statusText,
-          dataStructure: {
-            hasData: !!taobaoData?.data,
-            isArray: Array.isArray(taobaoData?.data),
-            hasNestedData: !!taobaoData?.data?.data,
-            isNestedArray: Array.isArray(taobaoData?.data?.data),
-            hasStatus: !!taobaoData?.status,
-            status: taobaoData?.status,
-          },
-          firstItem: taobaoData?.data?.[0] || taobaoData?.data?.data?.[0] || null,
-          itemCount: taobaoData?.data?.length || taobaoData?.data?.data?.length || 0,
-        });
+        // console.log('🔍 [Taobao Search API] Response:', {
+        //   status: taobaoResponse.status,
+        //   statusText: taobaoResponse.statusText,
+        //   dataStructure: {
+        //     hasData: !!taobaoData?.data,
+        //     isArray: Array.isArray(taobaoData?.data),
+        //     hasNestedData: !!taobaoData?.data?.data,
+        //     isNestedArray: Array.isArray(taobaoData?.data?.data),
+        //     hasStatus: !!taobaoData?.status,
+        //     status: taobaoData?.status,
+        //   },
+        //   firstItem: taobaoData?.data?.[0] || taobaoData?.data?.data?.[0] || null,
+        //   itemCount: taobaoData?.data?.length || taobaoData?.data?.data?.length || 0,
+        // });
 
         // Handle different possible response structures
         // Structure 1: { status: 'success', data: { data: [...] } }
@@ -174,7 +174,7 @@ export const productsApi = {
         } else if (taobaoData?.data?.data && Array.isArray(taobaoData.data.data)) {
           items = taobaoData.data.data;
         } else {
-          console.error('Taobao search API - Unexpected response structure:', taobaoData);
+          // console.error('Taobao search API - Unexpected response structure:', taobaoData);
           return {
             success: false,
             message: 'No Taobao search data received or invalid response structure',
@@ -349,7 +349,8 @@ export const productsApi = {
     country: string = 'en',
     outMemberId: string = 'dferg0001',
     beginPage: number = 1,
-    pageSize: number = 20
+    pageSize: number = 20,
+    platform: string = '1688'
   ): Promise<ApiResponse<any>> => {
     try {
       const token = await getStoredToken();
@@ -362,7 +363,8 @@ export const productsApi = {
         pageSize: pageSize.toString(),
       });
       
-      const url = `${API_BASE_URL}/products/recommendations?${params.toString()}`;
+      // Updated API endpoint: /products/{platform}/recommendations
+      const url = `${API_BASE_URL}/products/${platform}/recommendations?${params.toString()}`;
       
       const response = await axios.get(url, {
         headers: {
@@ -415,7 +417,7 @@ export const productsApi = {
       // Check cache first
       const cacheKey = platform;
       if (categoryTreeCache[cacheKey]) {
-        console.log(`[CategoryCache] Using cached data for platform: ${platform}`);
+        // console.log(`[CategoryCache] Using cached data for platform: ${platform}`);
         return {
           success: true,
           data: categoryTreeCache[cacheKey],
@@ -437,7 +439,7 @@ export const productsApi = {
       if (response.data && response.data.status === 'success' && response.data.data) {
         // Save to cache
         categoryTreeCache[cacheKey] = response.data.data;
-        console.log(`[CategoryCache] Cached data for platform: ${platform}`);
+        // console.log(`[CategoryCache] Cached data for platform: ${platform}`);
         
         return {
           success: true,
@@ -518,14 +520,14 @@ export const productsApi = {
 
         const taobaoUrl = `${API_BASE_URL}/products/taobao-global/${productId}/detail?item_resource=Taobao&language=${language}`;
 
-        console.log('📦 [Taobao Product Detail API] Request:', {
-          url: taobaoUrl,
-          productId,
-          productIdType: typeof productId,
-          source,
-          country,
-          language,
-        });
+        // console.log('📦 [Taobao Product Detail API] Request:', {
+        //   url: taobaoUrl,
+        //   productId,
+        //   productIdType: typeof productId,
+        //   source,
+        //   country,
+        //   language,
+        // });
 
         const taobaoResponse = await axios.get(taobaoUrl, {
           headers: {
@@ -533,36 +535,36 @@ export const productsApi = {
             'Content-Type': 'application/json',
           },
         }).catch((error) => {
-          console.error('📦 [Taobao Product Detail API] Error:', {
-            message: error.message,
-            response: error.response?.data,
-            status: error.response?.status,
-            statusText: error.response?.statusText,
-            url: error.config?.url,
-            productId,
-          });
+          // console.error('📦 [Taobao Product Detail API] Error:', {
+          //   message: error.message,
+          //   response: error.response?.data,
+          //   status: error.response?.status,
+          //   statusText: error.response?.statusText,
+          //   url: error.config?.url,
+          //   productId,
+          // });
           throw error;
         });
 
         const taobaoData = taobaoResponse.data;
 
-        console.log('📦 [Taobao Product Detail API] Response:', {
-          status: taobaoResponse.status,
-          statusText: taobaoResponse.statusText,
-          hasData: !!taobaoData,
-          biz_error_code: taobaoData?.biz_error_code,
-          biz_error_msg: taobaoData?.biz_error_msg,
-          hasDataField: !!taobaoData?.data,
-          dataKeys: taobaoData?.data ? Object.keys(taobaoData.data) : [],
-        });
+        // console.log('📦 [Taobao Product Detail API] Response:', {
+        //   status: taobaoResponse.status,
+        //   statusText: taobaoResponse.statusText,
+        //   hasData: !!taobaoData,
+        //   biz_error_code: taobaoData?.biz_error_code,
+        //   biz_error_msg: taobaoData?.biz_error_msg,
+        //   hasDataField: !!taobaoData?.data,
+        //   dataKeys: taobaoData?.data ? Object.keys(taobaoData.data) : [],
+        // });
 
         if (!taobaoData || taobaoData.biz_error_code !== null || !taobaoData.data) {
-          console.error('📦 [Taobao Product Detail API] Validation failed:', {
-            hasData: !!taobaoData,
-            biz_error_code: taobaoData?.biz_error_code,
-            biz_error_msg: taobaoData?.biz_error_msg,
-            hasDataField: !!taobaoData?.data,
-          });
+          // console.error('📦 [Taobao Product Detail API] Validation failed:', {
+          //   hasData: !!taobaoData,
+          //   biz_error_code: taobaoData?.biz_error_code,
+          //   biz_error_msg: taobaoData?.biz_error_msg,
+          //   hasDataField: !!taobaoData?.data,
+          // });
           return {
             success: false,
             message: taobaoData?.biz_error_msg || 'Failed to get Taobao product detail',
@@ -609,7 +611,7 @@ export const productsApi = {
         message: 'Product detail retrieved successfully',
       };
     } catch (error: any) {
-      console.error('Get product detail error:', error);
+      // console.error('Get product detail error:', error);
       
       if (error.response) {
         return {

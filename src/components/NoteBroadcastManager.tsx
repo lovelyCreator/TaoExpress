@@ -14,7 +14,7 @@ const NoteBroadcastManager: React.FC = () => {
   // Handle new note received
   useEffect(() => {
     const handleNoteReceived = (note: BroadcastNote) => {
-      console.log('📢 NoteBroadcastManager: New note received:', note.noteId);
+      // console.log('📢 NoteBroadcastManager: New note received:', note.noteId);
       
       // Add to queue if not already shown
       if (!shownNoteIds.has(note.noteId)) {

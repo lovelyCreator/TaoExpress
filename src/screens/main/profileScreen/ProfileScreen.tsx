@@ -71,6 +71,9 @@ const ProfileScreen: React.FC = () => {
   const isLoadingMoreRef = useRef(false);
   const lastSuccessfulPageRef = useRef(1);
   const lastLoadMoreCallRef = useRef(0); // Track last load more call time for debouncing
+  const fetchRecommendationsRef = useRef<((country: string, outMemberId?: string, beginPage?: number, pageSize?: number, platform?: string) => Promise<void>) | null>(null);
+  const hasInitialFetchRef = useRef<string | null>(null); // Track locale+user combination for initial fetch
+  const currentPageRef = useRef(1); // Track current page for pagination (avoids stale closure issues)
   
   // Wishlist hooks
   const { isProductLiked } = useWishlistStatus();
@@ -89,7 +92,7 @@ const ProfileScreen: React.FC = () => {
             // The socket context will handle updates via its own event listeners
           }
         } catch (error) {
-          console.error('Failed to fetch unread counts:', error);
+          // console.error('Failed to fetch unread counts:', error);
         }
       };
       fetchUnreadCounts();
@@ -109,22 +112,22 @@ const ProfileScreen: React.FC = () => {
           const userDataString = await AsyncStorage.getItem(STORAGE_KEYS.USER_DATA);
           if (userDataString) {
             const userData = JSON.parse(userDataString);
-            console.log('=== User Information from Local Storage ===');
-            console.log('User Data:', JSON.stringify(userData, null, 2));
-            console.log('User ID:', userData.id);
-            console.log('User Email:', userData.email);
-            console.log('User Name:', userData.name);
-            console.log('User Phone:', userData.phone);
-            console.log('User Avatar:', userData.avatar);
-            console.log('User Addresses:', userData.addresses);
-            console.log('User Wishlist:', userData.wishlist);
-            console.log('User Preferences:', userData.preferences);
-            console.log('==========================================');
+            // console.log('=== User Information from Local Storage ===');
+            // console.log('User Data:', JSON.stringify(userData, null, 2));
+            // console.log('User ID:', userData.id);
+            // console.log('User Email:', userData.email);
+            // console.log('User Name:', userData.name);
+            // console.log('User Phone:', userData.phone);
+            // console.log('User Avatar:', userData.avatar);
+            // console.log('User Addresses:', userData.addresses);
+            // console.log('User Wishlist:', userData.wishlist);
+            // console.log('User Preferences:', userData.preferences);
+            // console.log('==========================================');
           } else {
-            console.log('No user data found in local storage');
+            // console.log('No user data found in local storage');
           }
         } catch (error) {
-          console.error('Error reading user data from local storage:', error);
+          // console.error('Error reading user data from local storage:', error);
         }
       };
       logUserInfo();
@@ -179,7 +182,7 @@ const ProfileScreen: React.FC = () => {
   };
 
   const showComingSoon = (feature: string) => {
-    console.log(`${feature} feature coming soon`);
+    // console.log(`${feature} feature coming soon`);
     // You can add an alert or toast here if needed
   };
 
@@ -190,28 +193,32 @@ const ProfileScreen: React.FC = () => {
     isError: recommendationsError 
   } = useRecommendationsMutation({
     onSuccess: (data) => {
-      console.log('📦 [Profile More to Love] API Success - Raw data:', data);
       setIsLoadingMoreRecommendations(false);
       isLoadingMoreRef.current = false;
       
-      if (data && data.recommendations && data.recommendations.result && Array.isArray(data.recommendations.result)) {
-        const pageSize = data.pageSize || 20;
-        const currentPageFromData = data.page || recommendationsPage;
-        const hasMore = data.recommendations.result.length >= pageSize;
-        const receivedCount = data.recommendations.result.length;
+      // Updated API structure: data.products (not data.recommendations)
+      const productsArray = data?.products || [];
+      const pagination = data?.pagination || {};
+      
+      if (productsArray.length > 0) {
+        // Use pagination info from API response
+        const currentPageFromData = pagination.page || recommendationsPage;
+        const pageSize = pagination.pageSize || 20;
+        const total = pagination.total || 0;
+        const totalPages = pagination.totalPages || 0;
         
-        console.log('📦 [Profile More to Love] Processing response:', {
-          currentPage: currentPageFromData,
-          receivedCount,
-          pageSize,
-          hasMore,
-          totalProductsBefore: recommendationsProducts.length,
-        });
+        // Update currentPageRef to match the page we just received
+        currentPageRef.current = currentPageFromData;
+        
+        // Simple rule: If we got a FULL page (20 items), always try to load next page
+        // Only stop if we got LESS than a full page (meaning we've reached the end)
+        // This matches the behavior before the API update
+        const hasMore = productsArray.length >= pageSize;
         
         setHasMoreRecommendations(hasMore);
         
         // Map API response to Product format
-        const mappedProducts = data.recommendations.result.map((item: any): Product => {
+        const mappedProducts = productsArray.map((item: any): Product => {
           const price = parseFloat(item.priceInfo?.price || item.priceInfo?.consignPrice || 0);
           const originalPrice = parseFloat(item.priceInfo?.consignPrice || item.priceInfo?.price || 0);
           const discount = originalPrice > price && originalPrice > 0
@@ -264,20 +271,17 @@ const ProfileScreen: React.FC = () => {
         });
         
         if (currentPageFromData === 1) {
-          console.log('📦 [Profile More to Love] Setting initial products (Page 1):', mappedProducts.length);
           setRecommendationsProducts(mappedProducts);
           lastSuccessfulPageRef.current = 1;
         } else {
-          console.log('📦 [Profile More to Love] Appending products (Page', currentPageFromData, '):', mappedProducts.length, 'new products');
           setRecommendationsProducts(prev => {
             const newProducts = [...prev, ...mappedProducts];
-            console.log('📦 [Profile More to Love] Total products after append:', newProducts.length);
             return newProducts;
           });
           lastSuccessfulPageRef.current = currentPageFromData;
         }
       } else {
-        console.log('⚠️ [Profile More to Love] Invalid data structure:', data);
+        console.warn('⚠️ [Profile More to Love] Invalid or empty data structure:', data);
       }
     },
     onError: (error) => {
@@ -289,68 +293,70 @@ const ProfileScreen: React.FC = () => {
     },
   });
 
-  // Fetch recommendations when locale or user changes
+  // Store fetchRecommendations in ref to prevent dependency issues
   useEffect(() => {
-    if (currentLocale) {
+    fetchRecommendationsRef.current = fetchRecommendations;
+  }, [fetchRecommendations]);
+
+  // Fetch recommendations when locale or user changes (only once per locale/user change)
+  useEffect(() => {
+    if (currentLocale && fetchRecommendationsRef.current) {
       const outMemberId = user?.id?.toString() || 'dferg0001';
-      console.log('🔄 [Profile More to Love] Initial fetch triggered:', {
-        locale: currentLocale,
-        userId: outMemberId,
-        page: 1,
-      });
-      setRecommendationsPage(1);
-      lastSuccessfulPageRef.current = 1;
-      setHasMoreRecommendations(true);
-      setRecommendationsProducts([]);
-      fetchRecommendations(currentLocale, outMemberId, 1, 20);
+      const localeKey = `${currentLocale}-${outMemberId}`;
+      
+      // Only fetch if locale or user changed (prevent infinite loops)
+      if (!hasInitialFetchRef.current || hasInitialFetchRef.current !== localeKey) {
+        hasInitialFetchRef.current = localeKey;
+        currentPageRef.current = 1; // Reset current page ref
+        setRecommendationsPage(1);
+        lastSuccessfulPageRef.current = 1;
+        setHasMoreRecommendations(true);
+        setRecommendationsProducts([]);
+        fetchRecommendationsRef.current(currentLocale, outMemberId, 1, 20, selectedPlatform || '1688');
+      }
     }
   }, [currentLocale, user?.id]);
 
   // Load more recommendations (infinite scroll)
   const loadMoreRecommendations = useCallback(() => {
+    // Use refs to get current values (avoid stale closure)
+    const currentHasMore = hasMoreRecommendations;
+    const currentIsLoading = isLoadingMoreRef.current || isLoadingMoreRecommendations;
+    
+    // Prevent multiple simultaneous calls
+    if (currentIsLoading || !currentHasMore || !currentLocale || !fetchRecommendationsRef.current) {
+      return;
+    }
+    
+    // Debounce: prevent calls within 500ms of each other
     const now = Date.now();
     const timeSinceLastCall = now - lastLoadMoreCallRef.current;
     const DEBOUNCE_MS = 500; // Minimum 500ms between calls
     
-    console.log('📜 [Profile More to Love] loadMoreRecommendations called:', {
-      currentPage: recommendationsPage,
-      isLoadingMore: isLoadingMoreRef.current,
-      isLoadingMoreState: isLoadingMoreRecommendations,
-      hasMore: hasMoreRecommendations,
-      locale: currentLocale,
-      currentProductsCount: recommendationsProducts.length,
-      timeSinceLastCall,
-    });
-    
-    // Debounce: prevent calls within 500ms of each other
     if (timeSinceLastCall < DEBOUNCE_MS) {
-      console.log('⏸️ [Profile More to Love] Debounced - too soon since last call:', timeSinceLastCall, 'ms');
+      // Schedule a retry after the debounce period
+      setTimeout(() => {
+        // Check again after debounce period
+        if (!isLoadingMoreRef.current && hasMoreRecommendations && !isLoadingMoreRecommendations) {
+          loadMoreRecommendations();
+        }
+      }, DEBOUNCE_MS - timeSinceLastCall);
       return;
     }
     
-    // Prevent multiple simultaneous calls
-    if (isLoadingMoreRef.current || isLoadingMoreRecommendations || !hasMoreRecommendations || !currentLocale) {
-      console.log('⏸️ [Profile More to Love] loadMoreRecommendations blocked:', {
-        isLoadingMoreRef: isLoadingMoreRef.current,
-        isLoadingMoreState: isLoadingMoreRecommendations,
-        hasMore: hasMoreRecommendations,
-        hasLocale: !!currentLocale,
-      });
-      return;
-    }
+    // Calculate next page number from current page ref
+    const nextPage = currentPageRef.current + 1;
     
+    // Update refs and state BEFORE making the API call
     lastLoadMoreCallRef.current = now;
     isLoadingMoreRef.current = true;
-    const nextPage = recommendationsPage + 1;
-    console.log('⬇️ [Profile More to Love] Loading more - Next page:', nextPage);
     setIsLoadingMoreRecommendations(true);
     setRecommendationsPage(nextPage);
     
     // Use user ID if available, otherwise use default 'dferg0001'
     const outMemberId = user?.id?.toString() || 'dferg0001';
-    console.log('📡 [Profile More to Love] Fetching page', nextPage, 'for user:', outMemberId);
-    fetchRecommendations(currentLocale, outMemberId, nextPage, 20);
-  }, [recommendationsPage, hasMoreRecommendations, isLoadingMoreRecommendations, currentLocale, user?.id, fetchRecommendations, recommendationsProducts.length]);
+    fetchRecommendationsRef.current(currentLocale, outMemberId, nextPage, 20, selectedPlatform || '1688');
+  }, [hasMoreRecommendations, isLoadingMoreRecommendations, currentLocale, user?.id, selectedPlatform]);
 
   // Toggle wishlist function
   const toggleWishlist = async (product: Product) => {
@@ -852,14 +858,14 @@ const ProfileScreen: React.FC = () => {
   const renderMoreToLove = () => {
     const productsToDisplay = recommendationsProducts;
     
-    console.log('🎨 [Profile More to Love] renderMoreToLove called:', {
-      productsCount: productsToDisplay.length,
-      isLoading: recommendationsLoading,
-      isLoadingMore: isLoadingMoreRecommendations,
-      hasError: recommendationsError,
-      hasMore: hasMoreRecommendations,
-      currentPage: recommendationsPage,
-    });
+    // console.log('🎨 [Profile More to Love] renderMoreToLove called:', {
+    //   productsCount: productsToDisplay.length,
+    //   isLoading: recommendationsLoading,
+    //   isLoadingMore: isLoadingMoreRecommendations,
+    //   hasError: recommendationsError,
+    //   hasMore: hasMoreRecommendations,
+    //   currentPage: recommendationsPage,
+    // });
     
     // Show loading state if fetching
     if (recommendationsLoading && productsToDisplay.length === 0) {
@@ -906,16 +912,16 @@ const ProfileScreen: React.FC = () => {
           initialNumToRender={10}
           updateCellsBatchingPeriod={50}
           onEndReached={() => {
-            console.log('🔚 [Profile More to Love] onEndReached triggered');
+            // console.log('🔚 [Profile More to Love] onEndReached triggered');
             loadMoreRecommendations();
           }}
           onEndReachedThreshold={0.1}
           ListFooterComponent={() => {
-            console.log('👣 [Profile More to Love] ListFooterComponent rendered:', {
-              isLoadingMore: isLoadingMoreRecommendations,
-              hasMore: hasMoreRecommendations,
-              productsCount: productsToDisplay.length,
-            });
+            // console.log('👣 [Profile More to Love] ListFooterComponent rendered:', {
+            //   isLoadingMore: isLoadingMoreRecommendations,
+            //   hasMore: hasMoreRecommendations,
+            //   productsCount: productsToDisplay.length,
+            // });
             return (
             <>
               {/* Loading indicator for pagination */}

@@ -45,7 +45,7 @@ const AddAddressScreen: React.FC = () => {
     }
 
     // Save address logic here
-    console.log('Saving address:', formData);
+    // console.log('Saving address:', formData);
     Alert.alert(
       'Success',
       'Address saved successfully!',

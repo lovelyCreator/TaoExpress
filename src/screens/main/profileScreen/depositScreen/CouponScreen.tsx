@@ -94,14 +94,14 @@ const CouponScreen = () => {
 
   const handleChangeCoupon = () => {
     if (couponCode.trim()) {
-      console.log('Adding coupon:', couponCode);
+      // console.log('Adding coupon:', couponCode);
       // Handle coupon code submission
       setCouponCode('');
     }
   };
 
   const handleUseCoupon = (coupon: Coupon) => {
-    console.log('Using coupon:', coupon.code);
+    // console.log('Using coupon:', coupon.code);
     // Handle coupon usage
   };
 

@@ -69,7 +69,7 @@ export const inquiryApi = {
       });
 
       const url = `${API_BASE_URL}/inquiries`;
-      console.log('Sending create inquiry request to:', url);
+      // console.log('Sending create inquiry request to:', url);
 
       const response = await fetch(url, {
         method: 'POST',
@@ -85,7 +85,7 @@ export const inquiryApi = {
       try {
         responseData = JSON.parse(responseText);
       } catch (parseError) {
-        console.error('Failed to parse response as JSON:', parseError);
+        // console.error('Failed to parse response as JSON:', parseError);
         return {
           success: false,
           error: 'Invalid response from server. Please try again.',
@@ -112,7 +112,7 @@ export const inquiryApi = {
         data: responseData.data,
       };
     } catch (error: any) {
-      console.error('Create inquiry error:', error);
+      // console.error('Create inquiry error:', error);
       return {
         success: false,
         error: error.message || 'An unexpected error occurred. Please try again.',
@@ -141,7 +141,7 @@ export const inquiryApi = {
       });
 
       const url = `${API_BASE_URL}/inquiries/${inquiryId}/messages`;
-      console.log('Sending message request to:', url);
+      // console.log('Sending message request to:', url);
 
       const response = await fetch(url, {
         method: 'POST',
@@ -157,7 +157,7 @@ export const inquiryApi = {
       try {
         responseData = JSON.parse(responseText);
       } catch (parseError) {
-        console.error('Failed to parse response as JSON:', parseError);
+        // console.error('Failed to parse response as JSON:', parseError);
         return {
           success: false,
           error: 'Invalid response from server. Please try again.',
@@ -184,7 +184,7 @@ export const inquiryApi = {
         data: responseData.data,
       };
     } catch (error: any) {
-      console.error('Send message error:', error);
+      // console.error('Send message error:', error);
       return {
         success: false,
         error: error.message || 'An unexpected error occurred. Please try again.',
@@ -207,7 +207,7 @@ export const inquiryApi = {
       }
 
       const url = `${API_BASE_URL}/inquiries/${inquiryId}/mark-read`;
-      console.log('Sending mark as read request to:', url);
+      // console.log('Sending mark as read request to:', url);
 
       const response = await fetch(url, {
         method: 'POST',
@@ -223,7 +223,7 @@ export const inquiryApi = {
       try {
         responseData = JSON.parse(responseText);
       } catch (parseError) {
-        console.error('Failed to parse response as JSON:', parseError);
+        // console.error('Failed to parse response as JSON:', parseError);
         return {
           success: false,
           error: 'Invalid response from server. Please try again.',
@@ -250,7 +250,7 @@ export const inquiryApi = {
         data: responseData.data,
       };
     } catch (error: any) {
-      console.error('Mark as read error:', error);
+      // console.error('Mark as read error:', error);
       return {
         success: false,
         error: error.message || 'An unexpected error occurred. Please try again.',
@@ -273,7 +273,7 @@ export const inquiryApi = {
       }
 
       const url = `${API_BASE_URL}/inquiries/${inquiryId}/close`;
-      console.log('Sending close inquiry request to:', url);
+      // console.log('Sending close inquiry request to:', url);
 
       const response = await fetch(url, {
         method: 'POST',
@@ -289,7 +289,7 @@ export const inquiryApi = {
       try {
         responseData = JSON.parse(responseText);
       } catch (parseError) {
-        console.error('Failed to parse response as JSON:', parseError);
+        // console.error('Failed to parse response as JSON:', parseError);
         return {
           success: false,
           error: 'Invalid response from server. Please try again.',
@@ -316,7 +316,7 @@ export const inquiryApi = {
         data: responseData.data,
       };
     } catch (error: any) {
-      console.error('Close inquiry error:', error);
+      // console.error('Close inquiry error:', error);
       return {
         success: false,
         error: error.message || 'An unexpected error occurred. Please try again.',
@@ -339,7 +339,7 @@ export const inquiryApi = {
       }
 
       const url = `${API_BASE_URL}/inquiries/${inquiryId}`;
-      console.log('Sending get inquiry request to:', url);
+      // console.log('Sending get inquiry request to:', url);
 
       const response = await fetch(url, {
         method: 'GET',
@@ -350,16 +350,16 @@ export const inquiryApi = {
         },
       });
 
-      console.log('Get inquiry response status:', response.status);
+      // console.log('Get inquiry response status:', response.status);
 
       const responseText = await response.text();
-      console.log('Get inquiry response text:', responseText.substring(0, 500));
+      // console.log('Get inquiry response text:', responseText.substring(0, 500));
 
       let responseData;
       try {
         responseData = JSON.parse(responseText);
       } catch (parseError) {
-        console.error('Failed to parse response as JSON:', parseError);
+        // console.error('Failed to parse response as JSON:', parseError);
         return {
           success: false,
           error: 'Invalid response from server. Please try again.',
@@ -386,7 +386,7 @@ export const inquiryApi = {
         data: responseData.data,
       };
     } catch (error: any) {
-      console.error('Get inquiry error:', error);
+      // console.error('Get inquiry error:', error);
       const errorMessage = error.message || 'An unexpected error occurred. Please try again.';
       return {
         success: false,
@@ -410,7 +410,7 @@ export const inquiryApi = {
       }
 
       const url = `${API_BASE_URL}/inquiries/order/${orderId}`;
-      console.log('Sending get inquiries by order ID request to:', url);
+      // console.log('Sending get inquiries by order ID request to:', url);
 
       const response = await fetch(url, {
         method: 'GET',
@@ -421,16 +421,16 @@ export const inquiryApi = {
         },
       });
 
-      console.log('Get inquiries by order ID response status:', response.status);
+      // console.log('Get inquiries by order ID response status:', response.status);
 
       const responseText = await response.text();
-      console.log('Get inquiries by order ID response text:', responseText.substring(0, 500));
+      // console.log('Get inquiries by order ID response text:', responseText.substring(0, 500));
 
       let responseData;
       try {
         responseData = JSON.parse(responseText);
       } catch (parseError) {
-        console.error('Failed to parse response as JSON:', parseError);
+        // console.error('Failed to parse response as JSON:', parseError);
         return {
           success: false,
           error: 'Invalid response from server. Please try again.',
@@ -457,7 +457,7 @@ export const inquiryApi = {
         data: responseData.data,
       };
     } catch (error: any) {
-      console.error('Get inquiries by order ID error:', error);
+      // console.error('Get inquiries by order ID error:', error);
       const errorMessage = error.message || 'An unexpected error occurred. Please try again.';
       return {
         success: false,
@@ -481,7 +481,7 @@ export const inquiryApi = {
       }
 
       const url = `${API_BASE_URL}/inquiries/order/${orderNumber}`;
-      console.log('Sending get inquiries by order number request to:', url);
+      // console.log('Sending get inquiries by order number request to:', url);
 
       const response = await fetch(url, {
         method: 'GET',
@@ -492,16 +492,16 @@ export const inquiryApi = {
         },
       });
 
-      console.log('Get inquiries by order number response status:', response.status);
+      // console.log('Get inquiries by order number response status:', response.status);
 
       const responseText = await response.text();
-      console.log('Get inquiries by order number response text:', responseText.substring(0, 500));
+      // console.log('Get inquiries by order number response text:', responseText.substring(0, 500));
 
       let responseData;
       try {
         responseData = JSON.parse(responseText);
       } catch (parseError) {
-        console.error('Failed to parse response as JSON:', parseError);
+        // console.error('Failed to parse response as JSON:', parseError);
         return {
           success: false,
           error: 'Invalid response from server. Please try again.',
@@ -528,7 +528,7 @@ export const inquiryApi = {
         data: responseData.data,
       };
     } catch (error: any) {
-      console.error('Get inquiries by order number error:', error);
+      // console.error('Get inquiries by order number error:', error);
       const errorMessage = error.message || 'An unexpected error occurred. Please try again.';
       return {
         success: false,
@@ -554,7 +554,7 @@ export const inquiryApi = {
       const url = status 
         ? `${API_BASE_URL}/inquiries?status=${status}`
         : `${API_BASE_URL}/inquiries`;
-      console.log('Sending get inquiries request to:', url);
+      // console.log('Sending get inquiries request to:', url);
 
       const response = await fetch(url, {
         method: 'GET',
@@ -565,16 +565,16 @@ export const inquiryApi = {
         },
       });
 
-      console.log('Get inquiries response status:', response.status);
+      // console.log('Get inquiries response status:', response.status);
 
       const responseText = await response.text();
-      console.log('Get inquiries response text:', responseText.substring(0, 500));
+      // console.log('Get inquiries response text:', responseText.substring(0, 500));
 
       let responseData;
       try {
         responseData = JSON.parse(responseText);
       } catch (parseError) {
-        console.error('Failed to parse response as JSON:', parseError);
+        // console.error('Failed to parse response as JSON:', parseError);
         return {
           success: false,
           error: 'Invalid response from server. Please try again.',
@@ -601,7 +601,7 @@ export const inquiryApi = {
         data: responseData.data,
       };
     } catch (error: any) {
-      console.error('Get inquiries error:', error);
+      // console.error('Get inquiries error:', error);
       const errorMessage = error.message || 'An unexpected error occurred. Please try again.';
       return {
         success: false,
@@ -625,7 +625,7 @@ export const inquiryApi = {
       }
 
       const url = `${API_BASE_URL}/inquiries/unread-counts`;
-      console.log('Sending get unread counts request to:', url);
+      // console.log('Sending get unread counts request to:', url);
 
       const response = await fetch(url, {
         method: 'GET',
@@ -636,16 +636,16 @@ export const inquiryApi = {
         },
       });
 
-      console.log('Get unread counts response status:', response.status);
+      // console.log('Get unread counts response status:', response.status);
 
       const responseText = await response.text();
-      console.log('Get unread counts response text:', responseText.substring(0, 500));
+      // console.log('Get unread counts response text:', responseText.substring(0, 500));
 
       let responseData;
       try {
         responseData = JSON.parse(responseText);
       } catch (parseError) {
-        console.error('Failed to parse response as JSON:', parseError);
+        // console.error('Failed to parse response as JSON:', parseError);
         return {
           success: false,
           error: 'Invalid response from server. Please try again.',
@@ -672,7 +672,7 @@ export const inquiryApi = {
         data: responseData.data,
       };
     } catch (error: any) {
-      console.error('Get unread counts error:', error);
+      // console.error('Get unread counts error:', error);
       const errorMessage = error.message || 'An unexpected error occurred. Please try again.';
       return {
         success: false,

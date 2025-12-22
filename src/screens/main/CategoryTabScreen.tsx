@@ -53,13 +53,13 @@ const CategoryTabScreen: React.FC = () => {
   // Add to wishlist mutation
   const { mutate: addToWishlist } = useAddToWishlistMutation({
     onSuccess: async (data) => {
-      console.log('Product added to wishlist successfully:', data);
+      // console.log('Product added to wishlist successfully:', data);
       showToast('Product added to wishlist', 'success');
       // Immediately refresh external IDs to update heart icon color
       await refreshExternalIds();
     },
     onError: (error) => {
-      console.error('Failed to add product to wishlist:', error);
+      // console.error('Failed to add product to wishlist:', error);
       showToast(error || 'Failed to add product to wishlist', 'error');
     },
   });
@@ -67,13 +67,13 @@ const CategoryTabScreen: React.FC = () => {
   // Delete from wishlist mutation
   const { mutate: deleteFromWishlist } = useDeleteFromWishlistMutation({
     onSuccess: async (data) => {
-      console.log('Product removed from wishlist successfully:', data);
+      // console.log('Product removed from wishlist successfully:', data);
       showToast('Product removed from wishlist', 'success');
       // Immediately refresh external IDs to update heart icon color
       await refreshExternalIds();
     },
     onError: (error) => {
-      console.error('Failed to remove product from wishlist:', error);
+      // console.error('Failed to remove product from wishlist:', error);
       showToast(error || 'Failed to remove product from wishlist', 'error');
     },
   });
@@ -193,14 +193,14 @@ const CategoryTabScreen: React.FC = () => {
   // Category tree mutation
   const { mutate: fetchCategoryTree, isLoading: isLoadingCategories } = useCategoryTreeMutation({
     onSuccess: (data) => {
-      console.log('Category tree fetched successfully:', data);
+      // console.log('Category tree fetched successfully:', data);
       // Store category tree in Zustand store
       setCategoriesTree(data);
       // Mark this platform as fetched
       hasFetchedRef.current = data.platform;
     },
     onError: (error) => {
-      console.error('Failed to fetch category tree:', error);
+      // console.error('Failed to fetch category tree:', error);
       // Reset ref on error so we can retry
       hasFetchedRef.current = null;
       showToast(error || 'Failed to load categories', 'error');
@@ -260,7 +260,7 @@ const CategoryTabScreen: React.FC = () => {
   // Search products mutation for "For You" section
   const { mutate: searchForYouProducts, isLoading: isLoadingForYou } = useSearchProductsMutation({
     onSuccess: (data) => {
-      console.log('For You products fetched successfully:', data);
+      // console.log('For You products fetched successfully:', data);
       if (data && data.data && data.data.products && Array.isArray(data.data.products)) {
         // Map API response to Product format
         const mappedProducts = data.data.products.map((item: any) => {
@@ -335,7 +335,7 @@ const CategoryTabScreen: React.FC = () => {
       }
     },
     onError: (error) => {
-      console.error('Failed to fetch For You products:', error);
+      // console.error('Failed to fetch For You products:', error);
       setForYouProducts([]);
       // Reset ref on error so we can retry
       hasFetchedForYouRef.current = null;
@@ -427,7 +427,7 @@ const CategoryTabScreen: React.FC = () => {
       });
       return base64;
     } catch (error) {
-      console.error('Error converting URI to base64:', error);
+      // console.error('Error converting URI to base64:', error);
       return null;
     }
   };
@@ -542,7 +542,7 @@ const CategoryTabScreen: React.FC = () => {
                   // Update selectedPlatform in store based on selected company
                   const platform = getPlatformFromCompany(company);
                   setSelectedPlatform(platform);
-                  console.log('[CategoryTabScreen] Company selected:', company, 'Platform updated to:', platform);
+                  // console.log('[CategoryTabScreen] Company selected:', company, 'Platform updated to:', platform);
                   // Reset fetch refs to allow refetch with new company
                   hasFetchedRef.current = null; // Reset category tree fetch ref
                   hasFetchedForYouRef.current = null; // Reset products fetch ref
@@ -707,7 +707,7 @@ const CategoryTabScreen: React.FC = () => {
               try {
                 await toggleWishlist(product);
               } catch (error) {
-                console.error('Error toggling wishlist:', error);
+                // console.error('Error toggling wishlist:', error);
               }
             };
 

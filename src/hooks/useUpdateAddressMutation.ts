@@ -35,7 +35,7 @@ export const useUpdateAddressMutation = (
     try {
       const response = await addressApi.updateAddress(addressId, request);
 
-      console.log('useUpdateAddressMutation: API response:', response);
+      // console.log('useUpdateAddressMutation: API response:', response);
 
       if (response.success && response.data) {
         setData(response.data);

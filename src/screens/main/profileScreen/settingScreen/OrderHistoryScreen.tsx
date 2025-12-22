@@ -50,7 +50,7 @@ const OrderHistoryScreen: React.FC = () => {
       setLoading(true);
       await getCustomerOrders(13, 1, activeTab);
     } catch (error) {
-      console.error('Error loading orders:', error);
+      // console.error('Error loading orders:', error);
     } finally {
       setLoading(false);
     }
@@ -59,13 +59,13 @@ const OrderHistoryScreen: React.FC = () => {
   // Handle data updates from the mutation
   useEffect(() => {
     if (isSuccess && data) {
-      console.log('Received customer orders data:', data);
+      // console.log('Received customer orders data:', data);
       const ordersData = data as { orders: CustomerOrderDetails[] };
       setOrders(ordersData.orders);
     }
     
     if (isError && error) {
-      console.error('Error fetching customer orders:', error);
+      // console.error('Error fetching customer orders:', error);
     }
   }, [isSuccess, data, isError, error]);
 
@@ -77,7 +77,7 @@ const OrderHistoryScreen: React.FC = () => {
 
   const handleOrderPress = (order: CustomerOrderDetails) => {
     // In a real app, this would navigate to order details
-    console.log('Order details:', order.id);
+    // console.log('Order details:', order.id);
   };
 
   const getStatusColor = (status: string) => {

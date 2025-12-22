@@ -51,7 +51,7 @@ const NoteScreen: React.FC = () => {
       await getInquiriesList();
       await refreshUnreadCounts();
     } catch (error) {
-      console.error('Failed to refresh:', error);
+      // console.error('Failed to refresh:', error);
     } finally {
       setRefreshing(false);
     }

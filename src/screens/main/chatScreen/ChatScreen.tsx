@@ -61,7 +61,7 @@ const ChatScreen: React.FC = () => {
   const { showToast } = useToast();
   const { user } = useAuth();
   
-  console.log('ChatScreen rendered with params:', route.params);
+  // console.log('ChatScreen rendered with params:', route.params);
   
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
@@ -138,7 +138,7 @@ const ChatScreen: React.FC = () => {
             showToast(response.error || 'Failed to load chat history', 'error');
           }
         } catch (error) {
-          console.error('Error fetching inquiry:', error);
+          // console.error('Error fetching inquiry:', error);
           showToast('Failed to load chat history', 'error');
         } finally {
           setIsLoading(false);
@@ -153,19 +153,22 @@ const ChatScreen: React.FC = () => {
   useEffect(() => {
     const ensureSocketConnected = async () => {
       if (!isConnected && !isConnecting) {
-        console.log('Socket not connected, attempting to connect...');
+        // console.log('Socket not connected, attempting to connect...');
         try {
           await connect();
-          console.log('Socket connected successfully');
+          // console.log('Socket connected successfully');
           
           // If we have an inquiryId, subscribe to it after connection
           if (inquiryId) {
             subscribeToInquiry(inquiryId);
             // Mark as read via REST API
-            inquiryApi.markAsRead(inquiryId).catch(err => console.error('Failed to mark as read:', err));
+            inquiryApi.markAsRead(inquiryId).catch(
+              err => {}
+              // console.error('Failed to mark as read:', err)
+            );
           }
         } catch (error) {
-          console.error('Failed to connect socket:', error);
+          // console.error('Failed to connect socket:', error);
           // Don't show error toast here, just log it
         }
       }
@@ -232,7 +235,7 @@ const ChatScreen: React.FC = () => {
       const { status } = await Audio.requestPermissionsAsync();
       setHasPermission(status === 'granted');
     } catch (error) {
-      console.error('Error requesting audio permission:', error);
+      // console.error('Error requesting audio permission:', error);
       setHasPermission(false);
     }
   };
@@ -258,7 +261,7 @@ const ChatScreen: React.FC = () => {
       setIsListening(true);
       setListeningText(t('chat.listening'));
     } catch (error) {
-      console.error('Failed to start recording:', error);
+      // console.error('Failed to start recording:', error);
       Alert.alert('Error', 'Failed to start recording. Please try again.');
     }
   };
@@ -282,13 +285,13 @@ const ChatScreen: React.FC = () => {
         // - Or use a React Native library like @react-native-voice/voice
         
         // For now, we'll simulate the transcription
-        console.log('Audio recorded at:', uri);
+        // console.log('Audio recorded at:', uri);
         setTimeout(() => {
           setListeningText("I need buy some shoes but im confuse which one is fit for me, could you help me?");
         }, 1000);
       }
     } catch (error) {
-      console.error('Failed to stop recording:', error);
+      // console.error('Failed to stop recording:', error);
       Alert.alert('Error', 'Failed to stop recording.');
     }
   };
@@ -303,7 +306,7 @@ const ChatScreen: React.FC = () => {
         try {
           await connect();
         } catch (error) {
-          console.error('Failed to connect socket:', error);
+          // console.error('Failed to connect socket:', error);
           showToast('Failed to connect. Please try again.', 'error');
           return;
         }
@@ -338,7 +341,7 @@ const ChatScreen: React.FC = () => {
         socketService.sendMessage(inquiryId, messageText);
         showToast('Message sent', 'success');
       } catch (error) {
-        console.error('Error sending message:', error);
+        // console.error('Error sending message:', error);
         // Remove optimistic message on error
         setMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id));
         showToast('Failed to send message. Please try again.', 'error');
@@ -384,7 +387,7 @@ const ChatScreen: React.FC = () => {
   };
 
   const handleMoreOptionPress = async (option: string) => {
-    console.log(`${option} option pressed`);
+    // console.log(`${option} option pressed`);
     setShowMoreModal(false);
     
     if (option === 'Gallery') {
@@ -418,7 +421,7 @@ const ChatScreen: React.FC = () => {
 
       if (!result.canceled && result.assets[0]) {
         const imageUri = result.assets[0].uri;
-        console.log('Selected image:', imageUri);
+        // console.log('Selected image:', imageUri);
         
         // TODO: Send image as message
         // For now, we'll add it as a text message indicating image was selected
@@ -443,7 +446,7 @@ const ChatScreen: React.FC = () => {
         }, 1000);
       }
     } catch (error) {
-      console.error('Error opening gallery:', error);
+      // console.error('Error opening gallery:', error);
       Alert.alert('Error', 'Failed to open gallery. Please try again.');
     }
   };
@@ -471,7 +474,7 @@ const ChatScreen: React.FC = () => {
 
       if (!result.canceled && result.assets[0]) {
         const imageUri = result.assets[0].uri;
-        console.log('Captured image:', imageUri);
+        // console.log('Captured image:', imageUri);
         
         // TODO: Send image as message
         // For now, we'll add it as a text message indicating photo was taken
@@ -496,7 +499,7 @@ const ChatScreen: React.FC = () => {
         }, 1000);
       }
     } catch (error) {
-      console.error('Error opening camera:', error);
+      // console.error('Error opening camera:', error);
       Alert.alert('Error', 'Failed to open camera. Please try again.');
     }
   };

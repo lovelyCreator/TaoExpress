@@ -33,7 +33,7 @@ export const useAddToCartMutation = (
     try {
       const response = await cartApi.addToCart(request);
 
-      console.log('useAddToCartMutation: API response:', response);
+      // console.log('useAddToCartMutation: API response:', response);
 
       if (response.success && response.data) {
         setData(response.data);

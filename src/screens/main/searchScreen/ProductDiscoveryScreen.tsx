@@ -77,7 +77,7 @@ const ProductDiscoveryScreen: React.FC = () => {
   useEffect(() => {
     if (routeSource) {
       setSelectedPlatform(routeSource);
-      console.log('[ProductDiscoveryScreen] Platform set from route params:', routeSource);
+      // console.log('[ProductDiscoveryScreen] Platform set from route params:', routeSource);
     }
   }, [routeSource, setSelectedPlatform]);
   
@@ -97,13 +97,13 @@ const ProductDiscoveryScreen: React.FC = () => {
   // Add to wishlist mutation
   const { mutate: addToWishlist } = useAddToWishlistMutation({
     onSuccess: async (data) => {
-      console.log('Product added to wishlist successfully:', data);
+      // console.log('Product added to wishlist successfully:', data);
       showToast('Product added to wishlist', 'success');
       // Immediately refresh external IDs to update heart icon color
       await refreshExternalIds();
     },
     onError: (error) => {
-      console.error('Failed to add product to wishlist:', error);
+      // console.error('Failed to add product to wishlist:', error);
       showToast(error || 'Failed to add product to wishlist', 'error');
     },
   });
@@ -111,13 +111,13 @@ const ProductDiscoveryScreen: React.FC = () => {
   // Delete from wishlist mutation
   const { mutate: deleteFromWishlist } = useDeleteFromWishlistMutation({
     onSuccess: async (data) => {
-      console.log('Product removed from wishlist successfully:', data);
+      // console.log('Product removed from wishlist successfully:', data);
       showToast('Product removed from wishlist', 'success');
       // Immediately refresh external IDs to update heart icon color
       await refreshExternalIds();
     },
     onError: (error) => {
-      console.error('Failed to remove product from wishlist:', error);
+      // console.error('Failed to remove product from wishlist:', error);
       showToast(error || 'Failed to remove product from wishlist', 'error');
     },
   });
@@ -216,7 +216,7 @@ const ProductDiscoveryScreen: React.FC = () => {
           }]);
         }
       } catch (error) {
-        console.error('Error getting subsubcategories:', error);
+        // console.error('Error getting subsubcategories:', error);
         // On error, show "All" item
         setDisplaySubSubCategories([{
           id: 'all',
@@ -257,7 +257,7 @@ const ProductDiscoveryScreen: React.FC = () => {
           }]);
         }
       } catch (error) {
-        console.error('Error getting subsubcategories from category:', error);
+        // console.error('Error getting subsubcategories from category:', error);
         // On error, show "All" item
         setDisplaySubSubCategories([{
           id: 'all',
@@ -333,7 +333,7 @@ const ProductDiscoveryScreen: React.FC = () => {
   useEffect(() => {
     // If we have a subcategoryId, no subsubcategories, and no products yet, load products for the subcategory
     if (subcategoryId && displaySubSubCategories.length === 0 && products.length === 0 && !categoryLoading && !isLoadingRef.current) {
-      console.log('Loading products for subcategory (no subsubcategories):', subcategoryId);
+      // console.log('Loading products for subcategory (no subsubcategories):', subcategoryId);
       // Small delay to ensure state updates
       setTimeout(() => {
         // Don't show loading spinner on initial load
@@ -392,7 +392,7 @@ const ProductDiscoveryScreen: React.FC = () => {
     
     // Prevent loading when refreshing
     if (isRefreshingRef.current) {
-      console.log('Skipping search query effect during refresh');
+      // console.log('Skipping search query effect during refresh');
       return;
     }
     
@@ -419,15 +419,15 @@ const ProductDiscoveryScreen: React.FC = () => {
 
   // Load more products when offset changes (infinite scroll)
   useEffect(() => {
-    console.log('Offset changed to:', offset);
+    // console.log('Offset changed to:', offset);
     // Prevent loading more data when refreshing
     if (isRefreshingRef.current) {
-      console.log('Skipping offset effect during refresh');
+      // console.log('Skipping offset effect during refresh');
       return;
     }
     
     if (offset > 1) {
-      console.log('Loading more products for offset:', offset);
+      // console.log('Loading more products for offset:', offset);
       loadProducts(selectedSort, offset); // Use the sort from context
     }
   }, [offset, selectedSort]);
@@ -444,7 +444,7 @@ const ProductDiscoveryScreen: React.FC = () => {
   // Search products mutation
   const { mutate: searchProducts, isLoading: isSearching } = useSearchProductsMutation({
     onSuccess: (data) => {
-      console.log('Products fetched successfully:', data);
+      // console.log('Products fetched successfully:', data);
       isLoadingRef.current = false;
       
       const currentPage = currentPageOffsetRef.current;
@@ -528,7 +528,7 @@ const ProductDiscoveryScreen: React.FC = () => {
       }
     },
     onError: (error) => {
-      console.error('Failed to fetch products:', error);
+      // console.error('Failed to fetch products:', error);
       isLoadingRef.current = false;
       
       const currentPage = currentPageOffsetRef.current;
@@ -552,7 +552,7 @@ const ProductDiscoveryScreen: React.FC = () => {
   const loadProducts = async (sortType: string = selectedSort || 'popularity', pageOffset: number = offset || 1 ) => {
     // Prevent multiple simultaneous API calls
     if (isLoadingRef.current || isSearching) {
-      console.log('Skipping loadProducts call - already loading', pageOffset);
+      // console.log('Skipping loadProducts call - already loading', pageOffset);
       return;
     }
     
@@ -588,21 +588,21 @@ const ProductDiscoveryScreen: React.FC = () => {
     }
     
     if (!searchKeyword) {
-      console.warn('No search keyword available, skipping product load');
+      // console.warn('No search keyword available, skipping product load');
       isLoadingRef.current = false;
       return;
       }
       
-    console.log('loadProducts called:', { 
-      offset: pageOffset, 
-      searchKeyword, 
-      searchQuery,
-      selectedSubSubCategory,
-      subCategoryName,
-      minPrice,
-      maxPrice,
-      sortType
-    });
+    // console.log('loadProducts called:', { 
+    //   offset: pageOffset, 
+    //   searchKeyword, 
+    //   searchQuery,
+    //   selectedSubSubCategory,
+    //   subCategoryName,
+    //   minPrice,
+    //   maxPrice,
+    //   sortType
+    // });
     isLoadingRef.current = true;
     // Only show loading spinner for first page, not during pagination
     if (pageOffset === 1) {
@@ -628,7 +628,7 @@ const ProductDiscoveryScreen: React.FC = () => {
       sortParam = 'popularity';
     }
     
-    console.log('Sort mapping:', { sortType, sortParam, pageOffset });
+    // console.log('Sort mapping:', { sortType, sortParam, pageOffset });
     
     // Convert price strings to numbers
     const priceStart = minPrice ? parseFloat(minPrice) : undefined;
@@ -641,14 +641,14 @@ const ProductDiscoveryScreen: React.FC = () => {
     // Since company line is hidden, use routeSource or selectedPlatform
     const platformSource = routeSource || selectedPlatform || '1688';
     
-    console.log('🔍 [ProductDiscovery] Loading products:', {
-      keyword: searchKeyword,
-      source: platformSource,
-      page: pageOffset,
-      sort: sortParam,
-      routeSource,
-      selectedPlatform,
-    });
+    // console.log('🔍 [ProductDiscovery] Loading products:', {
+    //   keyword: searchKeyword,
+    //   source: platformSource,
+    //   page: pageOffset,
+    //   sort: sortParam,
+    //   routeSource,
+    //   selectedPlatform,
+    // });
     
     // Call search API
     searchProducts(
@@ -666,21 +666,21 @@ const ProductDiscoveryScreen: React.FC = () => {
 
   // Handle end reached for infinite scroll
   const handleEndReached = () => {
-    console.log('handleEndReached called:', { hasMore, searchQuery, offset });
+    // console.log('handleEndReached called:', { hasMore, searchQuery, offset });
     // Prevent loading more data when refreshing
     if (isRefreshingRef.current) {
-      console.log('Skipping handleEndReached during refresh');
+      // console.log('Skipping handleEndReached during refresh');
       return;
     }
     
     if (hasMore) {
-      console.log('Incrementing offset to:', offset + 1);
+      // console.log('Incrementing offset to:', offset + 1);
       setOffset(prev => prev + 1);
     } else {
-      console.log('Not loading more because:', { 
-        hasMore, 
-        reason: 'no more products'
-      });
+      // console.log('Not loading more because:', { 
+      //   hasMore, 
+      //   reason: 'no more products'
+      // });
     }
   };
 
@@ -836,14 +836,14 @@ const ProductDiscoveryScreen: React.FC = () => {
                     // Reset searchQuery to subcategory name
                     const categoryNameToUse = subCategoryName || categoryName || '';
                     setSearchQuery(categoryNameToUse);
-                    console.log('Selected "All" - will search by subcategory name:', categoryNameToUse);
+                    // console.log('Selected "All" - will search by subcategory name:', categoryNameToUse);
                   } else {
                     // For specific subsubcategory, set the selection (use ID if available, otherwise name)
                     const subSubCatId = subSubCat.id || subSubCat.name;
                     setSelectedSubSubCategory(subSubCatId);
                     // Update searchQuery to subsubcategory name
                     setSearchQuery(subSubCat.name);
-                    console.log('Selected subsubcategory - will search by:', subSubCat.name);
+                    // console.log('Selected subsubcategory - will search by:', subSubCat.name);
                   }
                   // Reload products for this subsubcategory
                   setOffset(1);

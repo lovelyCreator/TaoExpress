@@ -68,13 +68,13 @@ class SocketService {
   connect(token: string): Promise<void> {
     return new Promise((resolve, reject) => {
       if (this.socket?.connected) {
-        console.log('Socket already connected');
+        // console.log('Socket already connected');
         resolve();
         return;
       }
 
       if (this.isConnecting) {
-        console.log('Socket connection already in progress');
+        // console.log('Socket connection already in progress');
         resolve();
         return;
       }
@@ -95,14 +95,14 @@ class SocketService {
         });
 
         this.socket.on('connect', () => {
-          console.log('✅ Socket connected:', this.socket?.id);
+          // console.log('✅ Socket connected:', this.socket?.id);
           this.isConnecting = false;
           this.reconnectAttempts = 0;
           resolve();
         });
 
         this.socket.on('connect_error', (error) => {
-          console.error('❌ Socket connection error:', error);
+          // console.error('❌ Socket connection error:', error);
           this.isConnecting = false;
           this.reconnectAttempts++;
           
@@ -115,24 +115,24 @@ class SocketService {
         });
 
         this.socket.on('disconnect', (reason) => {
-          console.log('🔌 Socket disconnected:', reason);
+          // console.log('🔌 Socket disconnected:', reason);
           this.isConnecting = false;
         });
 
         this.socket.on('reconnect', (attemptNumber) => {
-          console.log('🔄 Socket reconnected after', attemptNumber, 'attempts');
+          // console.log('🔄 Socket reconnected after', attemptNumber, 'attempts');
           this.reconnectAttempts = 0;
         });
 
         this.socket.on('reconnect_error', (error) => {
-          console.error('❌ Socket reconnection error:', error);
+          // console.error('❌ Socket reconnection error:', error);
         });
 
         this.socket.on('reconnect_failed', () => {
-          console.error('❌ Socket reconnection failed after max attempts');
+          // console.error('❌ Socket reconnection failed after max attempts');
         });
       } catch (error) {
-        console.error('❌ Error creating socket connection:', error);
+        // console.error('❌ Error creating socket connection:', error);
         this.isConnecting = false;
         reject(error);
       }
@@ -144,7 +144,7 @@ class SocketService {
    */
   disconnect(): void {
     if (this.socket) {
-      console.log('🔌 Disconnecting socket...');
+      // console.log('🔌 Disconnecting socket...');
       this.socket.disconnect();
       this.socket = null;
       this.isConnecting = false;
@@ -173,7 +173,7 @@ class SocketService {
     if (this.socket?.connected) {
       this.socket.emit(event, data);
     } else {
-      console.warn('⚠️ Socket not connected. Cannot emit event:', event);
+      // console.warn('⚠️ Socket not connected. Cannot emit event:', event);
     }
   }
 

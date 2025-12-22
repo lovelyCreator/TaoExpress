@@ -15,15 +15,15 @@ const CLOUDINARY_API_BASE = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_
  * @returns Promise with Cloudinary response
  */
 export const uploadToCloudinary = async (uri: string, name?: string): Promise<CloudinaryUploadResponse> => {
-  console.log('=== CLOUDINARY IMAGE UPLOAD START ===');
-  console.log('Image URI:', uri);
-  console.log('Image name:', name);
-  console.log('Platform:', Platform.OS);
+  // console.log('=== CLOUDINARY IMAGE UPLOAD START ===');
+  // console.log('Image URI:', uri);
+  // console.log('Image name:', name);
+  // console.log('Platform:', Platform.OS);
   
   // For React Native, we'll use a specialized approach
   if (Platform.OS === 'android' || Platform.OS === 'ios') {
     if (uri) {
-      console.log('Processing React Native image object');
+      // console.log('Processing React Native image object');
       
       // Create a proper file object for React Native
       const fileData: any = {
@@ -32,7 +32,7 @@ export const uploadToCloudinary = async (uri: string, name?: string): Promise<Cl
         name: name || `image_${Date.now()}.jpg`,
       };
       
-      console.log('File data for upload:', fileData);
+      // console.log('File data for upload:', fileData);
       
       // Use fetch with proper configuration for React Native
       try {
@@ -43,7 +43,7 @@ export const uploadToCloudinary = async (uri: string, name?: string): Promise<Cl
         formData.append('cloud_name', CLOUDINARY_CLOUD_NAME);
         
         const url = `${CLOUDINARY_API_BASE}/image/upload`;
-        console.log('Sending React Native image upload request to:', url);
+        // console.log('Sending React Native image upload request to:', url);
         
         // Use a more compatible approach for React Native
         const response = await fetch(url, {
@@ -51,21 +51,21 @@ export const uploadToCloudinary = async (uri: string, name?: string): Promise<Cl
           body: formData,
         });
         
-        console.log('React Native image upload response status:', response.status);
+        // console.log('React Native image upload response status:', response.status);
         
         if (!response.ok) {
           const errorText = await response.text();
-          console.error('React Native image upload failed. Response text:', errorText);
+          // console.error('React Native image upload failed. Response text:', errorText);
           throw new Error(`HTTP ${response.status}: ${errorText || 'Upload failed'}`);
         }
         
         const responseData = await response.json();
-        console.log('React Native image upload SUCCESS. Response:', responseData);
+        // console.log('React Native image upload SUCCESS. Response:', responseData);
         return responseData;
       } catch (error: any) {
-        console.error('React Native Cloudinary upload error:', error);
-        console.error('Error name:', error.name);
-        console.error('Error message:', error.message);
+        // console.error('React Native Cloudinary upload error:', error);
+        // console.error('Error name:', error.name);
+        // console.error('Error message:', error.message);
         
         if (error.message.includes('Network request failed')) {
           throw new Error('Network error during Cloudinary upload. Please check your internet connection.');
@@ -78,13 +78,13 @@ export const uploadToCloudinary = async (uri: string, name?: string): Promise<Cl
     }
   } else {
     // For web/browser environments, use axios
-    console.log('Processing web file object');
+    // console.log('Processing web file object');
     
     const formData = new FormData();
     formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
     
     try {
-      console.log('Sending web image upload request to:', `${CLOUDINARY_API_BASE}/image/upload`);
+      // console.log('Sending web image upload request to:', `${CLOUDINARY_API_BASE}/image/upload`);
       const response = await axios.post<CloudinaryUploadResponse>(
         `${CLOUDINARY_API_BASE}/image/upload`,
         formData,
@@ -95,20 +95,20 @@ export const uploadToCloudinary = async (uri: string, name?: string): Promise<Cl
           timeout: 30000, // 30 second timeout
         }
       );
-      console.log('Web image upload SUCCESS. Response:', response.data);
+      // console.log('Web image upload SUCCESS. Response:', response.data);
       return response.data;
     } catch (error: any) {
-      console.error('Web Cloudinary upload error:', error);
+      // console.error('Web Cloudinary upload error:', error);
       
       if (error.response) {
-        console.error('Error response data:', error.response.data);
-        console.error('Error response status:', error.response.status);
-        console.error('Error response headers:', error.response.headers);
+        // console.error('Error response data:', error.response.data);
+        // console.error('Error response status:', error.response.status);
+        // console.error('Error response headers:', error.response.headers);
       } else if (error.request) {
-        console.error('Error request data:', error.request);
-        console.error('No response received. Possible network/CORS issues.');
+        // console.error('Error request data:', error.request);
+        // console.error('No response received. Possible network/CORS issues.');
       } else {
-        console.error('Error message:', error.message);
+        // console.error('Error message:', error.message);
       }
       
       throw new Error(`Failed to upload file to Cloudinary: ${error.message || 'Unknown error'}`);
@@ -122,20 +122,20 @@ export const uploadToCloudinary = async (uri: string, name?: string): Promise<Cl
  * @returns Promise with Cloudinary response
  */
 export const uploadVideoToCloudinary = async (uri: any, fileName: any): Promise<CloudinaryUploadResponse> => {
-  console.log('=== CLOUDINARY VIDEO UPLOAD START ===');
-//   console.log('File object:', file);
-//   console.log('File object type:', typeof file);
-//   console.log('File object keys:', Object.keys(file));
-  console.log('Platform:', Platform.OS);
+  // console.log('=== CLOUDINARY VIDEO UPLOAD START ===');
+  // console.log('File object:', file);
+  // console.log('File object type:', typeof file);
+  // console.log('File object keys:', Object.keys(file));
+  // console.log('Platform:', Platform.OS);
   
   // For React Native, we'll use a specialized approach
   if (Platform.OS === 'android' || Platform.OS === 'ios') {
     if (uri) {
-      console.log('Processing React Native video file object');
+      // console.log('Processing React Native video file object');
       
       // Log the URI to make sure it's valid
-      console.log('File URI:', uri);
-      console.log('File URI type:', typeof uri);
+      // console.log('File URI:', uri);
+      // console.log('File URI type:', typeof uri);
       
       // Create a proper file object for React Native
       const fileData: any = {
@@ -144,7 +144,7 @@ export const uploadVideoToCloudinary = async (uri: any, fileName: any): Promise<
         name: fileName,
       };
       
-      console.log('Video file data for upload:', fileData);
+      // console.log('Video file data for upload:', fileData);
       
       // Use fetch with proper configuration for React Native
       try {
@@ -155,7 +155,7 @@ export const uploadVideoToCloudinary = async (uri: any, fileName: any): Promise<
         formData.append('cloud_name', CLOUDINARY_CLOUD_NAME);
         
         const url = `${CLOUDINARY_API_BASE}/video/upload`;
-        console.log('Sending React Native video upload request to:', url);
+        // console.log('Sending React Native video upload request to:', url);
         
         // Use a more compatible approach for React Native
         const response = await fetch(url, {
@@ -166,28 +166,28 @@ export const uploadVideoToCloudinary = async (uri: any, fileName: any): Promise<
           },
         });
         
-        console.log('React Native video upload response status:', response.status);
+        // console.log('React Native video upload response status:', response.status);
         
         if (!response.ok) {
           const errorText = await response.text();
-          console.error('React Native video upload failed. Response text:', errorText);
+          // console.error('React Native video upload failed. Response text:', errorText);
           throw new Error(`HTTP ${response.status}: ${errorText || 'Upload failed'}`);
         }
         
         const responseData = await response.json();
-        console.log('React Native video upload SUCCESS. Response:', responseData);
+        // console.log('React Native video upload SUCCESS. Response:', responseData);
         return responseData;
       } catch (error: any) {
-        console.error('React Native Cloudinary video upload error:', error);
-        console.error('Error name:', error.name);
-        console.error('Error message:', error.message);
+        // console.error('React Native Cloudinary video upload error:', error);
+        // console.error('Error name:', error.name);
+        // console.error('Error message:', error.message);
         
         if (error.cause) {
-          console.error('Error cause:', error.cause);
+          // console.error('Error cause:', error.cause);
         }
         
         if (error.stack) {
-          console.error('Error stack:', error.stack);
+          // console.error('Error stack:', error.stack);
         }
         
         if (error.message.includes('Network request failed')) {
@@ -201,14 +201,14 @@ export const uploadVideoToCloudinary = async (uri: any, fileName: any): Promise<
     }
   } else {
     // For web/browser environments, use axios
-    console.log('Processing web video file object');
+    // console.log('Processing web video file object');
     
     const formData = new FormData();
     // formData.append('file', file);
     formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
     
     try {
-      console.log('Sending web video upload request to:', `${CLOUDINARY_API_BASE}/video/upload`);
+      // console.log('Sending web video upload request to:', `${CLOUDINARY_API_BASE}/video/upload`);
       const response = await axios.post<CloudinaryUploadResponse>(
         `${CLOUDINARY_API_BASE}/video/upload`,
         formData,
@@ -219,20 +219,20 @@ export const uploadVideoToCloudinary = async (uri: any, fileName: any): Promise<
           timeout: 60000, // 60 second timeout for videos
         }
       );
-      console.log('Web video upload SUCCESS. Response:', response.data);
+      // console.log('Web video upload SUCCESS. Response:', response.data);
       return response.data;
     } catch (error: any) {
-      console.error('Web Cloudinary video upload error:', error);
+      // console.error('Web Cloudinary video upload error:', error);
       
       if (error.response) {
-        console.error('Error response data:', error.response.data);
-        console.error('Error response status:', error.response.status);
-        console.error('Error response headers:', error.response.headers);
+        // console.error('Error response data:', error.response.data);
+        // console.error('Error response status:', error.response.status);
+        // console.error('Error response headers:', error.response.headers);
       } else if (error.request) {
-        console.error('Error request data:', error.request);
-        console.error('No response received. Possible network/CORS issues.');
+        // console.error('Error request data:', error.request);
+        // console.error('No response received. Possible network/CORS issues.');
       } else {
-        console.error('Error message:', error.message);
+        // console.error('Error message:', error.message);
       }
       
       throw new Error(`Failed to upload video to Cloudinary: ${error.message || 'Unknown error'}`);
@@ -250,7 +250,7 @@ export const uploadImageToCloudinary = async (uri: string): Promise<string> => {
     const response = await uploadToCloudinary(uri, `profile_${Date.now()}.jpg`);
     return response.secure_url;
   } catch (error) {
-    console.error('Error uploading image to Cloudinary:', error);
+    // console.error('Error uploading image to Cloudinary:', error);
     throw error;
   }
 };
@@ -274,7 +274,7 @@ export const deleteFromCloudinary = async (publicId: string): Promise<any> => {
     
     return response.data;
   } catch (error) {
-    console.error('Cloudinary delete error:', error);
+    // console.error('Cloudinary delete error:', error);
     throw new Error('Failed to delete file from Cloudinary');
   }
 };

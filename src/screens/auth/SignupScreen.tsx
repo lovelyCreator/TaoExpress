@@ -41,13 +41,13 @@ const SignupScreen: React.FC = () => {
     onSuccess: (data) => {
       // The AuthContext will handle updating the global state
       // This is just for side effects if needed
-      console.log('User Registeration successful:', data);
+      // console.log('User Registeration successful:', data);
       showToast(t('auth.signupSuccess') || 'Signup successful', 'success');
       handleLogin();
     },
     onError: (errorMessage, errorCode) => {
       // Handle specific error codes
-      console.log('User signup error:', errorMessage, 'Code:', errorCode);
+      // console.log('User signup error:', errorMessage, 'Code:', errorCode);
       
       if (errorCode === 'EMAIL_ALREADY_REGISTERED') {
         // Show error only on email field
@@ -77,12 +77,12 @@ const SignupScreen: React.FC = () => {
   const { mutate: socialLoginMutation, isLoading: isSocialLoading, isError: isSocialError, error: socialError } = useSocialLogin({
     onSuccess: (data) => {
       // Handle successful social login
-      console.log('Social login successful:', data);
+      // console.log('Social login successful:', data);
       // showToast({ message: `Welcome ${data.userInfo.name || 'User'}!`, type: 'success' });
     },
     onError: (error) => {
       // Handle social login error
-      console.log('Social signup error:', error);
+      // console.log('Social signup error:', error);
       // showToast({ message: error, type: 'error' });
     }
   });
@@ -167,7 +167,7 @@ const SignupScreen: React.FC = () => {
   };
 
   const handleSignup = async () => {
-    console.log('SignupScreen: handleSignup called');
+    // console.log('SignupScreen: handleSignup called');
     // Always clear field errors and signup errors first
     setErrors({});
     setHasSignupError(false);
@@ -175,17 +175,17 @@ const SignupScreen: React.FC = () => {
 
     const isValid = validateForm();
     if (!isValid) {
-      console.log('SignupScreen: Form validation failed');
+      // console.log('SignupScreen: Form validation failed');
       return;
     }
 
-    console.log('SignupScreen: Calling signup function with data:', {
-      email: formData.email,
-      name: formData.name,
-      phone: formData.phone || '',
-      isBusiness: isBusinessAccount,
-      referralCode: formData.referralCode || '',
-    });
+    // console.log('SignupScreen: Calling signup function with data:', {
+    //   email: formData.email,
+    //   name: formData.name,
+    //   phone: formData.phone || '',
+    //   isBusiness: isBusinessAccount,
+    //   referralCode: formData.referralCode || '',
+    // });
     await register({
       email: formData.email,
       password: formData.password,
@@ -194,7 +194,7 @@ const SignupScreen: React.FC = () => {
       isBusiness: isBusinessAccount,
       referralCode: formData.referralCode || undefined, // Optional referral code
     });
-    console.log('SignupScreen: Signup function completed');
+    // console.log('SignupScreen: Signup function completed');
   };
 
   // Demo signup function
@@ -230,14 +230,14 @@ const SignupScreen: React.FC = () => {
     try {
       await socialLoginMutation(provider);
     } catch (error) {
-      console.log('Social signup error:', error);
+      // console.log('Social signup error:', error);
       // showToast({ message: error as string, type: 'error' });
     }
   };
 
   const handleLogin = () => {
-    console.log('SignupScreen: handleLogin called - navigating to Login');
-    console.log('SignupScreen: handleLogin call stack:', new Error().stack);
+    // console.log('SignupScreen: handleLogin called - navigating to Login');
+    // console.log('SignupScreen: handleLogin call stack:', new Error().stack);
     // Clear any signup errors before navigating to login
     clearSignupError();
     navigation.navigate('Login' as never);
@@ -245,12 +245,12 @@ const SignupScreen: React.FC = () => {
 
   useFocusEffect(
     React.useCallback(() => {
-      console.log('SignupScreen: useFocusEffect - screen focused');
-      console.log('SignupScreen: Current signupError when focused:', signupError);
-      console.log('SignupScreen: Current hasSignupError when focused:', hasSignupError);
+      // console.log('SignupScreen: useFocusEffect - screen focused');
+      // console.log('SignupScreen: Current signupError when focused:', signupError);
+      // console.log('SignupScreen: Current hasSignupError when focused:', hasSignupError);
       
       const onBackPress = () => {
-        console.log('SignupScreen: Back button pressed');
+        // console.log('SignupScreen: Back button pressed');
         if ((navigation as any).canGoBack && (navigation as any).canGoBack()) {
           (navigation as any).goBack();
         }
@@ -259,9 +259,9 @@ const SignupScreen: React.FC = () => {
       const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
       
       return () => {
-        console.log('SignupScreen: useFocusEffect - screen unfocused');
-        console.log('SignupScreen: Current signupError when unfocused:', signupError);
-        console.log('SignupScreen: Current hasSignupError when unfocused:', hasSignupError);
+        // console.log('SignupScreen: useFocusEffect - screen unfocused');
+        // console.log('SignupScreen: Current signupError when unfocused:', signupError);
+        // console.log('SignupScreen: Current hasSignupError when unfocused:', hasSignupError);
         sub.remove();
       };
     }, [navigation, signupError, hasSignupError])
@@ -709,7 +709,7 @@ const styles = StyleSheet.create({
     ...SHADOWS.sm,
   },
   registerButtonDisabled: {
-    backgroundColor: COLORS.redLight,
+    backgroundColor: COLORS.lightRed,
     opacity: 0.6,
   },
   registerButtonText: {

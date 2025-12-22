@@ -75,7 +75,7 @@ const DepositScreen = () => {
 
   const handleSearch = () => {
     // Search is handled automatically by useMemo
-    console.log('Searching with:', { searchQuery, startDate, endDate });
+    // console.log('Searching with:', { searchQuery, startDate, endDate });
   };
 
   const handleClearFilters = () => {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -200,10 +200,23 @@ const HomeScreen: React.FC = () => {
   const [isLoadingMoreRecommendations, setIsLoadingMoreRecommendations] = useState(false);
   const isLoadingMoreRef = useRef(false); // Ref to prevent multiple simultaneous calls
   const lastSuccessfulPageRef = useRef(1); // Track last successful page to revert on error
+  const fetchRecommendationsRef = useRef<((country: string, outMemberId?: string, beginPage?: number, pageSize?: number, platform?: string) => Promise<void>) | null>(null);
+  const hasInitialFetchRef = useRef<string | null>(null); // Track locale+user combination for initial fetch
+  const lastLoadMoreCallRef = useRef(0); // Track last load more call time for debouncing
+  const currentPageRef = useRef(1); // Track current page for pagination (avoids stale closure issues)
+  const requestedPageRef = useRef(1); // Track the requested page
   
   // Default categories state
   const [defaultCategories, setDefaultCategories] = useState<any[]>([]);
-  
+
+  // Debug: Log when recommendationsProducts changes
+  useEffect(() => {
+    console.log('More to Love - recommendationsProducts state changed, count:', recommendationsProducts.length);
+    if (recommendationsProducts.length > 0) {
+      console.log('More to Love - First product in state:', recommendationsProducts[0]);
+    }
+  }, [recommendationsProducts]);
+
   // Recommendations API mutation
   const { 
     mutate: fetchRecommendations, 
@@ -214,16 +227,54 @@ const HomeScreen: React.FC = () => {
       setIsLoadingMoreRecommendations(false);
       isLoadingMoreRef.current = false; // Reset the ref flag
       
-      if (data && data.recommendations && data.recommendations.result && Array.isArray(data.recommendations.result)) {
+      console.log('More to Love API Response - Raw data:', JSON.stringify(data, null, 2));
+      
+      // Updated API structure: data.products (not data.recommendations)
+      const productsArray = data?.products || [];
+      const pagination = data?.pagination || {};
+      
+      console.log('More to Love API Response - products count:', productsArray.length);
+      console.log('More to Love API Response - pagination:', pagination);
+      console.log('More to Love API Response - First item sample:', productsArray[0]);
+      
+      if (productsArray.length > 0) {
+        console.log('More to Love - Processing', productsArray.length, 'products');
         
-        // Check if there are more pages (if we got fewer items than pageSize, we've reached the end)
-        const pageSize = data.pageSize || 20;
-        const currentPageFromData = data.page || recommendationsPage;
-        const hasMore = data.recommendations.result.length >= pageSize;
+        // Use pagination info from API response
+        const currentPageFromData = pagination.page || requestedPageRef.current;
+        const pageSize = pagination.pageSize || 20;
+        const total = pagination.total || 0;
+        const totalPages = pagination.totalPages || 0;
+        
+        // Simple rule: If we got a FULL page (20 items), always try to load next page
+        // Only stop if we got LESS than a full page (meaning we've reached the end)
+        // This matches the behavior before the API update
+        const hasMore = productsArray.length >= pageSize;
+        
+        console.log('More to Love - Pagination decision:', {
+          page: currentPageFromData,
+          pageSize,
+          productsReceived: productsArray.length,
+          hasMore,
+          apiHasNext: pagination.hasNext,
+          total,
+          totalPages
+        });
+        
+        console.log('More to Love - Pagination check:', {
+          page: currentPageFromData,
+          pageSize,
+          total,
+          totalPages,
+          hasNext: pagination.hasNext,
+          calculatedHasMore: hasMore,
+          productsReceived: productsArray.length
+        });
+        
         setHasMoreRecommendations(hasMore);
         
-        // Map API response to Product format
-        const mappedProducts = data.recommendations.result.map((item: any): Product => {
+        // Map API response to Product format (updated to match actual API structure)
+        const mappedProducts = productsArray.map((item: any): Product => {
           const price = parseFloat(item.priceInfo?.price || item.priceInfo?.consignPrice || 0);
           const originalPrice = parseFloat(item.priceInfo?.consignPrice || item.priceInfo?.price || 0);
           const discount = originalPrice > price && originalPrice > 0
@@ -276,14 +327,40 @@ const HomeScreen: React.FC = () => {
           return productData;
         });
         
+        console.log('More to Love Products - MappedProducts count:', mappedProducts.length);
+        console.log('More to Love Products - First product sample:', mappedProducts[0]);
+        
+        // Update currentPageRef to match the page we just received
+        currentPageRef.current = currentPageFromData;
+        
         // If it's the first page, replace products, otherwise append
         if (currentPageFromData === 1) {
-          setRecommendationsProducts(mappedProducts);
+          console.log('More to Love - Setting page 1 products, count:', mappedProducts.length);
+          // Use functional update to ensure we're setting the correct state
+          setRecommendationsProducts(() => {
+            console.log('More to Love - State setter called with products:', mappedProducts.length);
+            return mappedProducts;
+          });
           lastSuccessfulPageRef.current = 1; // Update last successful page
+          
+          // Verify state was set (this will log on next render)
+          setTimeout(() => {
+            console.log('More to Love - State verification (after setState):', mappedProducts.length, 'products');
+            console.log('More to Love - Total products at first page:', recommendationsProducts.length);
+          }, 100);
         } else {
-          setRecommendationsProducts(prev => [...prev, ...mappedProducts]);
+          console.log(`More to Love - Appending page ${currentPageFromData} products, count:`, mappedProducts.length);
+          setRecommendationsProducts(prev => {
+            const newProducts = [...prev, ...mappedProducts];
+            console.log('More to Love - Total products after append:', newProducts.length);
+            return newProducts;
+          });
           lastSuccessfulPageRef.current = currentPageFromData; // Update last successful page
+          console.log('More to Love - Total products after append:', recommendationsProducts.length);
         }
+      } else {
+        console.warn('More to Love - Invalid or empty data structure. Data:', data);
+        console.warn('More to Love - productsArray length:', productsArray.length);
       }
     },
     onError: (error) => {
@@ -295,6 +372,12 @@ const HomeScreen: React.FC = () => {
       setHasMoreRecommendations(false);
     },
   });
+
+  // Store fetchRecommendations in ref to prevent dependency issues
+  // Use useLayoutEffect to update ref synchronously before other effects run
+  useLayoutEffect(() => {
+    fetchRecommendationsRef.current = fetchRecommendations;
+  }, [fetchRecommendations]);
   const recommendationsHasMore = false;
   const [isScrolled, setIsScrolled] = useState(false); // Track if scrolled past threshold
   
@@ -442,35 +525,95 @@ const HomeScreen: React.FC = () => {
     }
   }, [selectedPlatform]);
 
-  // Fetch recommendations when locale or user changes
+  // Fetch recommendations when locale, user, or platform changes (only once per change)
   useEffect(() => {
-    if (locale) {
-      // Use user ID if available, otherwise use default 'dferg0001'
+    if (locale && fetchRecommendationsRef.current) {
       const outMemberId = user?.id?.toString() || 'dferg0001';
-      setRecommendationsPage(1);
-      lastSuccessfulPageRef.current = 1; // Reset last successful page
-      setHasMoreRecommendations(true);
-      setRecommendationsProducts([]); // Clear existing products
-      fetchRecommendations(locale, outMemberId, 1, 20);
+      const platform = selectedPlatform || '1688';
+      const fetchKey = `${locale}-${outMemberId}-${platform}`;
+      
+      // Only fetch if locale, user, or platform changed (prevent infinite loops)
+      if (!hasInitialFetchRef.current || hasInitialFetchRef.current !== fetchKey) {
+        hasInitialFetchRef.current = fetchKey;
+        requestedPageRef.current = 1; // Track the requested page
+        currentPageRef.current = 1; // Reset current page ref
+        setRecommendationsPage(1);
+        lastSuccessfulPageRef.current = 1; // Reset last successful page
+        setHasMoreRecommendations(true);
+        // Clear existing products BEFORE making the API call
+        setRecommendationsProducts([]);
+        // Use setTimeout to ensure state is cleared before API call
+        setTimeout(() => {
+          if (fetchRecommendationsRef.current) {
+            fetchRecommendationsRef.current(locale, outMemberId, 1, 20, platform);
+          }
+        }, 0);
+      }
     }
-  }, [locale, user?.id]);
+    // Only depend on locale, user?.id, and selectedPlatform - not fetchRecommendationsRef
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locale, user?.id, selectedPlatform]);
 
-  // Load more recommendations (infinite scroll)
+  // Load more recommendations (infinite scroll) - only called at end of scroll
   const loadMoreRecommendations = useCallback(() => {
+    // Use refs to get current values (avoid stale closure)
+    const currentHasMore = hasMoreRecommendations;
+    const currentIsLoading = isLoadingMoreRef.current || isLoadingMoreRecommendations;
+    
     // Prevent multiple simultaneous calls
-    if (isLoadingMoreRef.current || isLoadingMoreRecommendations || !hasMoreRecommendations || !locale) {
+    if (currentIsLoading || !currentHasMore || !locale || !fetchRecommendationsRef.current) {
+      console.log('More to Love - Cannot load more:', {
+        currentIsLoading,
+        currentHasMore,
+        locale: !!locale,
+        hasFetchFn: !!fetchRecommendationsRef.current
+      });
       return;
     }
     
+    // Debounce: prevent calls within 500ms of each other (reduced from 1000ms)
+    const now = Date.now();
+    const timeSinceLastCall = now - lastLoadMoreCallRef.current;
+    const DEBOUNCE_MS = 500; // Minimum 500ms between calls
+    
+    if (timeSinceLastCall < DEBOUNCE_MS) {
+      console.log('More to Love - Debouncing load more call, will retry after', DEBOUNCE_MS - timeSinceLastCall, 'ms');
+      // Schedule a retry after the debounce period
+      setTimeout(() => {
+        // Check again after debounce period
+        if (!isLoadingMoreRef.current && hasMoreRecommendations && !isLoadingMoreRecommendations) {
+          loadMoreRecommendations();
+        }
+      }, DEBOUNCE_MS - timeSinceLastCall);
+      return;
+    }
+    
+    // Calculate next page number from current page ref
+    const nextPage = currentPageRef.current + 1;
+    console.log('More to Love - Loading page', nextPage, 'from current page', currentPageRef.current);
+    
+    // Update refs and state BEFORE making the API call
+    lastLoadMoreCallRef.current = now;
     isLoadingMoreRef.current = true;
-    const nextPage = recommendationsPage + 1;
+    requestedPageRef.current = nextPage; // Track the requested page
     setIsLoadingMoreRecommendations(true);
     setRecommendationsPage(nextPage);
     
     // Use user ID if available, otherwise use default 'dferg0001'
     const outMemberId = user?.id?.toString() || 'dferg0001';
-    fetchRecommendations(locale, outMemberId, nextPage, 20);
-  }, [recommendationsPage, hasMoreRecommendations, isLoadingMoreRecommendations, locale, user?.id, fetchRecommendations]);
+    const platform = selectedPlatform || '1688';
+    
+    console.log('More to Love - Calling API with:', {
+      locale,
+      outMemberId,
+      beginPage: nextPage,
+      pageSize: 20,
+      platform
+    });
+    
+    // Call API with the next page number
+    fetchRecommendationsRef.current(locale, outMemberId, nextPage, 20, platform);
+  }, [hasMoreRecommendations, isLoadingMoreRecommendations, locale, user?.id, selectedPlatform]);
 
   // Auto-scroll new in products (3 items per page, longer interval than brand)
   useEffect(() => {
@@ -1330,7 +1473,6 @@ const HomeScreen: React.FC = () => {
                 // Error toggling wishlist
               }
             };
-            
             return (
               <ProductCard
                 key={`moretolove-${product.id || index}`}
@@ -1349,7 +1491,6 @@ const HomeScreen: React.FC = () => {
   const renderMoreToLove = () => {
     // Use recommendations API data for "More to Love"
     const productsToDisplay = recommendationsProducts;
-    
     // Show loading state if fetching
     if (recommendationsLoading && productsToDisplay.length === 0) {
       return (
@@ -1394,6 +1535,12 @@ const HomeScreen: React.FC = () => {
           windowSize={5}
           initialNumToRender={10}
           updateCellsBatchingPeriod={50}
+          onEndReached={() => {
+            // For nested FlatList with scrollEnabled={false}, onEndReached may not fire reliably
+            // Rely on parent ScrollView scroll detection instead
+            // This is kept as a backup but parent scroll detection is primary
+          }}
+          onEndReachedThreshold={0.5}
           ListFooterComponent={() => (
             <>
           {/* Loading indicator for pagination */}
@@ -1440,14 +1587,29 @@ const HomeScreen: React.FC = () => {
         }
         
         // Detect when user scrolls to the end for infinite scroll
-        // Only trigger when actually at or very close to the bottom (within 100px)
-        const paddingToBottom = 100;
+        // Only trigger when actually at or very close to the bottom (within 200px for better UX)
+        const paddingToBottom = 200;
         const scrollBottomPosition = layoutMeasurement.height + contentOffset.y;
         const isAtBottom = scrollBottomPosition >= contentSize.height - paddingToBottom;
         
         // Only load more if we're at the bottom, have more to load, and not already loading
+        // Let loadMoreRecommendations handle debouncing internally
         if (isAtBottom && hasMoreRecommendations && !isLoadingMoreRecommendations && !isLoadingMoreRef.current) {
+          console.log('More to Love - Scroll detected at bottom, calling loadMoreRecommendations...', {
+            hasMoreRecommendations,
+            isLoadingMoreRecommendations,
+            isLoadingMoreRef: isLoadingMoreRef.current,
+            currentPage: currentPageRef.current
+          });
           loadMoreRecommendations();
+        } else if (isAtBottom) {
+          console.log('More to Love - At bottom but not loading:', {
+            hasMoreRecommendations,
+            isLoadingMoreRecommendations,
+            isLoadingMoreRef: isLoadingMoreRef.current,
+            isAtBottom,
+            currentPage: currentPageRef.current
+          });
         }
         
         if (scrollPosition > 300 && !showScrollToTop) {
@@ -1464,10 +1626,6 @@ const HomeScreen: React.FC = () => {
             useNativeDriver: true,
           }).start(() => setShowScrollToTop(false));
         }
-        
-        // Infinite scroll for recommendations - fetch next page when scrolling to bottom
-        const paddingToEnd = 20;
-        const isCloseToBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - paddingToEnd;
         
       }
     }

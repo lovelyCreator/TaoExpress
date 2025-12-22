@@ -60,12 +60,12 @@ const SubCategoryScreen: React.FC = () => {
   useEffect(() => {
     setIsLoading(true);
     
-    console.log('SubCategoryScreen - categoryId:', categoryId, 'categoryIdParam:', categoryIdParam);
-    console.log('SubCategoryScreen - passedSubcategories:', passedSubcategories);
+    // console.log('SubCategoryScreen - categoryId:', categoryId, 'categoryIdParam:', categoryIdParam);
+    // console.log('SubCategoryScreen - passedSubcategories:', passedSubcategories);
     
     // If subcategories are passed from navigation, use them directly
     if (passedSubcategories && passedSubcategories.length > 0) {
-      console.log('Using passed subcategories:', passedSubcategories.length);
+      // console.log('Using passed subcategories:', passedSubcategories.length);
       setIsShowingSubcategories(true);
       const formattedSubcategories: SubSubCategory[] = passedSubcategories.map((sub: any) => ({
         id: sub.id || sub._id || '',
@@ -97,7 +97,7 @@ const SubCategoryScreen: React.FC = () => {
       // Try to get from categories tree first
       if (categoriesTree && categoriesTree.tree) {
         const subcategories = getSubcategoriesFromTree(normalizedCategoryId, locale);
-        console.log('Subcategories from tree:', subcategories);
+        // console.log('Subcategories from tree:', subcategories);
         const formattedSubcategories: SubSubCategory[] = subcategories.map((sub: any) => ({
           id: sub.id || sub._id,
           name: sub.name || '',
@@ -107,7 +107,7 @@ const SubCategoryScreen: React.FC = () => {
       } else {
         // Fallback to mock data
         const subcategories = topLevelCategory.subcategories || [];
-        console.log('Subcategories from mock data:', subcategories);
+        // console.log('Subcategories from mock data:', subcategories);
         const formattedSubcategories: SubSubCategory[] = subcategories.map((sub: any) => ({
           id: sub.id,
           name: typeof sub.name === 'object' ? (sub.name[locale] || sub.name.en || sub.name) : sub.name,
@@ -252,7 +252,7 @@ const SubCategoryScreen: React.FC = () => {
   const renderSubSubCategoryItem = (item: SubSubCategory, index: number) => {
     // Add safety check for item
     if (!item) {
-      console.warn('SubSubCategory item is null or undefined');
+      // console.warn('SubSubCategory item is null or undefined');
       return null;
     }
     
@@ -324,7 +324,7 @@ const SubCategoryScreen: React.FC = () => {
     const validSubSubCategories = filteredSubSubCategories.filter(item => {
       if (!item) return false;
       if (!item.name || typeof item.name !== 'string') {
-        console.warn('SubSubCategory item missing name:', item);
+        // console.warn('SubSubCategory item missing name:', item);
         return false;
       }
       return true;

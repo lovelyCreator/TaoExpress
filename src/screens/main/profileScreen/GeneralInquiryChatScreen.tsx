@@ -119,7 +119,7 @@ const GeneralInquiryChatScreen: React.FC = () => {
       if (inquiryId && !hasMarkedReadRef.current) {
         markAsRead(inquiryId).then(() => {
           hasMarkedReadRef.current = true;
-        }).catch(err => console.error('Failed to mark as read:', err));
+        }).catch(err => {/* console.error('Failed to mark as read:', err) */});
       }
       return () => {
         hasMarkedReadRef.current = false;
@@ -141,7 +141,7 @@ const GeneralInquiryChatScreen: React.FC = () => {
         scrollViewRef.current?.scrollToEnd({ animated: true });
       }, 100);
     } catch (error) {
-      console.error('Failed to send message:', error);
+      // console.error('Failed to send message:', error);
       setInputText(messageText); // Restore message on error
     } finally {
       setIsSending(false);

@@ -79,7 +79,7 @@ const EditProfileScreen: React.FC = () => {
         });
       }
     } catch (error) {
-      console.error('Error loading user profile:', error);
+      // console.error('Error loading user profile:', error);
     } finally {
       setLoadingProfile(false);
     }

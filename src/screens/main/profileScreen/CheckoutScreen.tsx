@@ -176,11 +176,11 @@ const CheckoutScreen: React.FC = () => {
   // Fetch cart items
   const { mutate: fetchCart } = useGetCartMutation({
     onSuccess: (data) => {
-      console.log('Cart fetched successfully in Checkout:', data);
+      // console.log('Cart fetched successfully in Checkout:', data);
       mapCartData(data);
     },
     onError: (error) => {
-      console.error('Failed to fetch cart in Checkout:', error);
+      // console.error('Failed to fetch cart in Checkout:', error);
       setIsLoadingCart(false);
       // Don't show error toast, just keep cart empty
     },
@@ -252,7 +252,7 @@ const CheckoutScreen: React.FC = () => {
   // Create order mutation
   const { mutate: createOrder, isLoading: isCreatingOrder } = useCreateOrderMutation({
     onSuccess: (data) => {
-      console.log('Order created successfully:', data);
+      // console.log('Order created successfully:', data);
       showToast('Order created successfully', 'success');
       clearCart();
       // Navigate to order confirmation
@@ -265,7 +265,7 @@ const CheckoutScreen: React.FC = () => {
       }
     },
     onError: (error) => {
-      console.error('Failed to create order:', error);
+      // console.error('Failed to create order:', error);
       Alert.alert('Error', error || 'Failed to create order. Please try again.');
     },
   });
@@ -329,7 +329,7 @@ const CheckoutScreen: React.FC = () => {
       addressId: selectedAddress.id,
     };
 
-    console.log('Creating order with request:', JSON.stringify(orderRequest, null, 2));
+    // console.log('Creating order with request:', JSON.stringify(orderRequest, null, 2));
     createOrder(orderRequest);
   };
 

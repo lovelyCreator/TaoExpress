@@ -57,14 +57,14 @@ const ShareAppScreen: React.FC = () => {
       if (result.action === Share.sharedAction) {
         if (result.activityType) {
           // Shared with activity type of result.activityType
-          console.log('Shared with activity type:', result.activityType);
+          // console.log('Shared with activity type:', result.activityType);
         } else {
           // Shared successfully
           Alert.alert(t('shareApp.success'), t('shareApp.thankYouForSharing'));
         }
       } else if (result.action === Share.dismissedAction) {
         // Dismissed
-        console.log('Share dismissed');
+        // console.log('Share dismissed');
       }
     } catch (error: any) {
       Alert.alert(t('shareApp.error'), error.message);

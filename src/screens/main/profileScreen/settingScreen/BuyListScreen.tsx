@@ -108,6 +108,8 @@ const BuyListScreen = () => {
   const [isLoadingMoreRecommendations, setIsLoadingMoreRecommendations] = useState(false);
   const isLoadingMoreRef = React.useRef(false);
   const lastSuccessfulPageRef = React.useRef(1);
+  const lastLoadMoreCallRef = React.useRef(0); // Track last load more call time for debouncing
+  const currentPageRef = React.useRef(1); // Track current page for pagination (avoids stale closure issues)
 
   // Translation function
   const t = (key: string) => {
@@ -122,11 +124,11 @@ const BuyListScreen = () => {
   // Add to wishlist mutation
   const { mutate: addToWishlist } = useAddToWishlistMutation({
     onSuccess: async (data) => {
-      console.log('Product added to wishlist successfully:', data);
+      // console.log('Product added to wishlist successfully:', data);
       showToast('Product added to wishlist', 'success');
     },
     onError: (error) => {
-      console.error('Failed to add product to wishlist:', error);
+      // console.error('Failed to add product to wishlist:', error);
       showToast(error || 'Failed to add product to wishlist', 'error');
     },
   });
@@ -134,11 +136,11 @@ const BuyListScreen = () => {
   // Delete from wishlist mutation
   const { mutate: deleteFromWishlist } = useDeleteFromWishlistMutation({
     onSuccess: async (data) => {
-      console.log('Product removed from wishlist successfully:', data);
+      // console.log('Product removed from wishlist successfully:', data);
       showToast('Product removed from wishlist', 'success');
     },
     onError: (error) => {
-      console.error('Failed to remove product from wishlist:', error);
+      // console.error('Failed to remove product from wishlist:', error);
       showToast(error || 'Failed to remove product from wishlist', 'error');
     },
   });
@@ -214,18 +216,33 @@ const BuyListScreen = () => {
     isError: recommendationsError 
   } = useRecommendationsMutation({
     onSuccess: (data) => {
-      console.log('Recommendations API success, data:', data);
+      // console.log('Recommendations API success, data:', data);
       setIsLoadingMoreRecommendations(false);
       isLoadingMoreRef.current = false;
       
-      if (data && data.recommendations && data.recommendations.result && Array.isArray(data.recommendations.result)) {
-        const pageSize = data.pageSize || 20;
-        const currentPageFromData = data.page || recommendationsPage;
-        const hasMore = data.recommendations.result.length >= pageSize;
+      // Updated API structure: data.products (not data.recommendations)
+      const productsArray = data?.products || [];
+      const pagination = data?.pagination || {};
+      
+      if (productsArray.length > 0) {
+        // Use pagination info from API response
+        const currentPageFromData = pagination.page || recommendationsPage;
+        const pageSize = pagination.pageSize || 20;
+        const total = pagination.total || 0;
+        const totalPages = pagination.totalPages || 0;
+        
+        // Update currentPageRef to match the page we just received
+        currentPageRef.current = currentPageFromData;
+        
+        // Simple rule: If we got a FULL page (20 items), always try to load next page
+        // Only stop if we got LESS than a full page (meaning we've reached the end)
+        // This matches the behavior before the API update
+        const hasMore = productsArray.length >= pageSize;
+        
         setHasMoreRecommendations(hasMore);
         
         // Map API response to Product format
-        const mappedProducts = data.recommendations.result.map((item: any) => {
+        const mappedProducts = productsArray.map((item: any) => {
           const price = parseFloat(item.priceInfo?.price || item.priceInfo?.consignPrice || 0);
           const originalPrice = parseFloat(item.priceInfo?.consignPrice || item.priceInfo?.price || 0);
           const discount = originalPrice > price && originalPrice > 0
@@ -286,7 +303,7 @@ const BuyListScreen = () => {
       }
     },
     onError: (error) => {
-      console.error('Failed to fetch recommendations:', error);
+      // console.error('Failed to fetch recommendations:', error);
       setIsLoadingMoreRecommendations(false);
       isLoadingMoreRef.current = false;
       setRecommendationsPage(lastSuccessfulPageRef.current);
@@ -294,26 +311,77 @@ const BuyListScreen = () => {
     },
   });
 
-  // Fetch recommendations when locale or user changes
+  // Track if initial fetch has been done (prevent real-time updates)
+  const hasInitialFetchRef = useRef<string | null>(null);
+
+  // Load more recommendations (infinite scroll) - only called at end of scroll
+  const loadMoreRecommendations = React.useCallback(() => {
+    // Use refs to get current values (avoid stale closure)
+    const currentHasMore = hasMoreRecommendations;
+    const currentIsLoading = isLoadingMoreRef.current || isLoadingMoreRecommendations;
+    
+    // Prevent multiple simultaneous calls
+    if (currentIsLoading || !currentHasMore || !locale || !fetchRecommendations) {
+      return;
+    }
+    
+    // Debounce: prevent calls within 500ms of each other (reduced from 1000ms)
+    const now = Date.now();
+    const timeSinceLastCall = now - lastLoadMoreCallRef.current;
+    const DEBOUNCE_MS = 500; // Minimum 500ms between calls
+    
+    if (timeSinceLastCall < DEBOUNCE_MS) {
+      // Schedule a retry after the debounce period
+      setTimeout(() => {
+        // Check again after debounce period
+        if (!isLoadingMoreRef.current && hasMoreRecommendations && !isLoadingMoreRecommendations) {
+          loadMoreRecommendations();
+        }
+      }, DEBOUNCE_MS - timeSinceLastCall);
+      return;
+    }
+    
+    // Calculate next page number from current page ref
+    const nextPage = currentPageRef.current + 1;
+    
+    // Update refs and state BEFORE making the API call
+    lastLoadMoreCallRef.current = now;
+    isLoadingMoreRef.current = true;
+    setIsLoadingMoreRecommendations(true);
+    setRecommendationsPage(nextPage);
+    
+    // Use user ID if available, otherwise use default 'dferg0001'
+    const outMemberId = user?.id?.toString() || 'dferg0001';
+    fetchRecommendations(locale, outMemberId, nextPage, 20, selectedPlatform || '1688');
+  }, [hasMoreRecommendations, isLoadingMoreRecommendations, locale, user?.id, selectedPlatform, fetchRecommendations]);
+
+  // Fetch recommendations only once on mount or when locale/user/platform changes (not real-time)
   useEffect(() => {
     if (locale) {
       const outMemberId = user?.id?.toString() || 'dferg0001';
-      setRecommendationsPage(1);
-      lastSuccessfulPageRef.current = 1;
-      setHasMoreRecommendations(true);
-      setRecommendationsProducts([]);
-      fetchRecommendations(locale, outMemberId, 1, 20);
+      const fetchKey = `${locale}-${outMemberId}-${selectedPlatform || '1688'}`;
+      
+      // Only fetch if this is the first time or locale/user/platform changed
+      if (!hasInitialFetchRef.current || hasInitialFetchRef.current !== fetchKey) {
+        hasInitialFetchRef.current = fetchKey;
+        currentPageRef.current = 1; // Reset current page ref
+        setRecommendationsPage(1);
+        lastSuccessfulPageRef.current = 1;
+        setHasMoreRecommendations(true);
+        setRecommendationsProducts([]);
+        fetchRecommendations(locale, outMemberId, 1, 20, selectedPlatform || '1688');
+      }
     }
-  }, [locale, user?.id]);
+  }, [locale, user?.id, selectedPlatform, fetchRecommendations]);
 
   // Get orders mutation
   const { mutate: getOrders, isLoading } = useGetOrdersMutation({
     onSuccess: async (data) => {
-      console.log('Orders fetched successfully:', data);
+      // console.log('Orders fetched successfully:', data);
       
       // Check if data and orders exist
       if (!data || !data.orders || !Array.isArray(data.orders)) {
-        console.error('Invalid orders data:', data);
+        // console.error('Invalid orders data:', data);
         setOrders([]);
         return;
       }
@@ -361,10 +429,10 @@ const BuyListScreen = () => {
         let unreadCountsMap: { [inquiryId: string]: number } = {};
         if (unreadCountsResponse.success && unreadCountsResponse.data) {
           const { totalUnread, inquiries: unreadInquiries } = unreadCountsResponse.data;
-          console.log('📊 BuyListScreen: Unread counts from API:', {
-            totalUnread,
-            inquiries: unreadInquiries,
-          });
+          // console.log('📊 BuyListScreen: Unread counts from API:', {
+          //   totalUnread,
+          //   inquiries: unreadInquiries,
+          // });
           
           // Create a map of inquiryId -> unreadCount
           unreadInquiries.forEach((item) => {
@@ -377,7 +445,7 @@ const BuyListScreen = () => {
           // Save to AsyncStorage for offline access
           AsyncStorage.setItem(STORAGE_KEYS.INQUIRY_UNREAD_COUNTS, JSON.stringify(unreadCountsMap))
             .catch((error) => {
-              console.error('Failed to save unread counts:', error);
+              // console.error('Failed to save unread counts:', error);
             });
         }
         
@@ -394,12 +462,12 @@ const BuyListScreen = () => {
         
         setOrders(ordersWithInquiries);
       } catch (error) {
-        console.error('Failed to fetch inquiries or unread counts:', error);
+        // console.error('Failed to fetch inquiries or unread counts:', error);
         // Orders are already set, so we can continue
       }
     },
     onError: (error) => {
-      console.error('Failed to fetch orders:', error);
+      // console.error('Failed to fetch orders:', error);
       showToast(error || 'Failed to fetch orders', 'error');
       setOrders([]);
     },
@@ -422,7 +490,7 @@ const BuyListScreen = () => {
 
   // Listen to socket events for new messages (works globally, not just in ChatScreen)
   useEffect(() => {
-    console.log('BuyListScreen: Setting up message received listener');
+    // console.log('BuyListScreen: Setting up message received listener');
     
     const handleMessageReceived = (data: { 
       message: any; 
@@ -430,13 +498,13 @@ const BuyListScreen = () => {
       unreadCount?: number; 
       totalUnreadCount?: number;
     }) => {
-      console.log('🔔 BuyListScreen: NEW MESSAGE RECEIVED!', {
-        inquiryId: data.inquiryId,
-        messageText: data.message?.message || data.message?.text || 'N/A',
-        unreadCount: data.unreadCount,
-        totalUnreadCount: data.totalUnreadCount,
-        fullData: data,
-      });
+      // console.log('🔔 BuyListScreen: NEW MESSAGE RECEIVED!', {
+      //   inquiryId: data.inquiryId,
+      //   messageText: data.message?.message || data.message?.text || 'N/A',
+      //   unreadCount: data.unreadCount,
+      //   totalUnreadCount: data.totalUnreadCount,
+      //   fullData: data,
+      // });
       
       // Update unread count for this inquiry
       if (data.inquiryId) {
@@ -447,11 +515,11 @@ const BuyListScreen = () => {
             ? data.unreadCount 
             : currentCount + 1;
           
-          console.log(`📊 BuyListScreen: Updating unread count for inquiry ${data.inquiryId}:`, {
-            previousCount: currentCount,
-            newCount: newCount,
-            providedUnreadCount: data.unreadCount,
-          });
+          // console.log(`📊 BuyListScreen: Updating unread count for inquiry ${data.inquiryId}:`, {
+          //   previousCount: currentCount,
+          //   newCount: newCount,
+          //   providedUnreadCount: data.unreadCount,
+          // });
           
           const updatedCounts = {
             ...prev,
@@ -461,10 +529,10 @@ const BuyListScreen = () => {
           // Save to AsyncStorage
           AsyncStorage.setItem(STORAGE_KEYS.INQUIRY_UNREAD_COUNTS, JSON.stringify(updatedCounts))
             .then(() => {
-              console.log('💾 BuyListScreen: Saved unread counts to AsyncStorage');
+              // console.log('💾 BuyListScreen: Saved unread counts to AsyncStorage');
             })
             .catch((error) => {
-              console.error('Failed to save unread counts:', error);
+              // console.error('Failed to save unread counts:', error);
             });
           
           return updatedCounts;
@@ -478,10 +546,10 @@ const BuyListScreen = () => {
               const newCount = data.unreadCount !== undefined 
                 ? data.unreadCount 
                 : currentCount + 1;
-              console.log(`✅ BuyListScreen: Updated order ${order.orderNumber} unread count:`, {
-                previousCount: currentCount,
-                newCount: newCount,
-              });
+              // console.log(`✅ BuyListScreen: Updated order ${order.orderNumber} unread count:`, {
+              //   previousCount: currentCount,
+              //   newCount: newCount,
+              // });
               return { ...order, unreadCount: newCount };
             }
             return order;
@@ -489,16 +557,16 @@ const BuyListScreen = () => {
           return updatedOrders;
         });
       } else {
-        console.warn('⚠️ BuyListScreen: Message received but no inquiryId provided', data);
+        // console.warn('⚠️ BuyListScreen: Message received but no inquiryId provided', data);
       }
     };
 
     onMessageReceived(handleMessageReceived);
-    console.log('✅ BuyListScreen: Message received listener registered');
+    // console.log('✅ BuyListScreen: Message received listener registered');
     
     // Cleanup - note: onMessageReceived doesn't have cleanup, but the callback ref will be replaced
     return () => {
-      console.log('BuyListScreen: Cleaning up message received listener');
+      // console.log('BuyListScreen: Cleaning up message received listener');
     };
   }, [onMessageReceived]);
 
@@ -516,7 +584,7 @@ const BuyListScreen = () => {
       try {
         await toggleWishlist(product);
       } catch (error) {
-        console.error('Error toggling wishlist:', error);
+        // console.error('Error toggling wishlist:', error);
       }
     };
     
@@ -581,6 +649,28 @@ const BuyListScreen = () => {
           windowSize={5}
           initialNumToRender={10}
           updateCellsBatchingPeriod={50}
+          onEndReached={() => {
+            // For nested FlatList with scrollEnabled={false}, onEndReached may not fire reliably
+            // Rely on parent ScrollView scroll detection instead
+            // This is kept as a backup but parent scroll detection is primary
+          }}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={() => (
+            <>
+              {/* Loading indicator for pagination */}
+              {isLoadingMoreRecommendations && (
+                <View style={styles.loadingMoreContainer}>
+                  <Text style={styles.loadingMoreText}>Loading more...</Text>
+                </View>
+              )}
+              {/* End of list indicator */}
+              {!hasMoreRecommendations && productsToDisplay.length > 0 && (
+                <View style={styles.endOfListContainer}>
+                  <Text style={styles.endOfListText}>No more products</Text>
+                </View>
+              )}
+            </>
+          )}
         />
       </View>
     );
@@ -719,7 +809,7 @@ const BuyListScreen = () => {
 
   const handleApplyFilters = (newFilters: { orderNumber: string; startDate: Date | null; endDate: Date | null }) => {
     setFilters(newFilters);
-    console.log('Filters applied:', newFilters);
+    // console.log('Filters applied:', newFilters);
     // Here you would filter the orders based on the filters
   };
 
@@ -754,6 +844,19 @@ const BuyListScreen = () => {
       <ScrollView 
         style={styles.scrollView} 
         showsVerticalScrollIndicator={false}
+        onScroll={(event) => {
+          const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+          
+          // Check if user has scrolled near the bottom (within 200px)
+          const isNearBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - 200;
+          
+          // Load more if near bottom, has more items, and not already loading
+          // Let loadMoreRecommendations handle debouncing internally
+          if (isNearBottom && hasMoreRecommendations && !isLoadingMoreRecommendations && !isLoadingMoreRef.current) {
+            loadMoreRecommendations();
+          }
+        }}
+        scrollEventThrottle={400}
       >
         <View style={styles.content}>
           {/* Tab Navigation */}
@@ -888,7 +991,7 @@ const BuyListScreen = () => {
                           // Save to AsyncStorage
                           AsyncStorage.setItem(STORAGE_KEYS.INQUIRY_UNREAD_COUNTS, JSON.stringify(newCounts))
                             .catch((error) => {
-                              console.error('Failed to save unread counts:', error);
+                              // console.error('Failed to save unread counts:', error);
                             });
                           
                           return newCounts;
@@ -937,7 +1040,7 @@ const BuyListScreen = () => {
                               showToast(response.error || 'Failed to create inquiry', 'error');
                             }
                           } catch (error: any) {
-                            console.error('Failed to create inquiry:', error);
+                            // console.error('Failed to create inquiry:', error);
                             showToast(error.message || 'Failed to create inquiry', 'error');
                           }
                         };
@@ -1228,6 +1331,24 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: COLORS.red,
+  },
+  loadingMoreContainer: {
+    paddingVertical: SPACING.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingMoreText: {
+    fontSize: FONTS.sizes.md,
+    color: COLORS.text.secondary,
+  },
+  endOfListContainer: {
+    paddingVertical: SPACING.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  endOfListText: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.text.secondary,
   },
   moreToLoveSection: {
     paddingHorizontal: SPACING.md,

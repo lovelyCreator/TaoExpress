@@ -142,7 +142,7 @@ export const orderApi = {
       }
 
       const url = `${API_BASE_URL}/orders?page=${page}&pageSize=${pageSize}`;
-      console.log('Sending get orders request to:', url);
+      // console.log('Sending get orders request to:', url);
 
       const response = await fetch(url, {
         method: 'GET',
@@ -153,16 +153,16 @@ export const orderApi = {
         },
       });
 
-      console.log('Get orders response status:', response.status);
+      // console.log('Get orders response status:', response.status);
 
       const responseText = await response.text();
-      console.log('Get orders response text:', responseText.substring(0, 500));
+      // console.log('Get orders response text:', responseText.substring(0, 500));
 
       let responseData;
       try {
         responseData = JSON.parse(responseText);
       } catch (parseError) {
-        console.error('Failed to parse response as JSON:', parseError);
+        // console.error('Failed to parse response as JSON:', parseError);
         return {
           success: false,
           error: 'Invalid response from server. Please try again.',
@@ -189,7 +189,7 @@ export const orderApi = {
         data: responseData.data,
       };
     } catch (error: any) {
-      console.error('Get orders error:', error);
+      // console.error('Get orders error:', error);
       const errorMessage = error.message || 'An unexpected error occurred. Please try again.';
       return {
         success: false,
@@ -210,8 +210,8 @@ export const orderApi = {
       }
 
       const url = `${API_BASE_URL}/orders`;
-      console.log('Sending create order request to:', url);
-      console.log('Create order request body:', JSON.stringify(request, null, 2));
+      // console.log('Sending create order request to:', url);
+      // console.log('Create order request body:', JSON.stringify(request, null, 2));
 
       const response = await fetch(url, {
         method: 'POST',
@@ -223,16 +223,16 @@ export const orderApi = {
         body: JSON.stringify(request),
       });
 
-      console.log('Create order response status:', response.status);
+      // console.log('Create order response status:', response.status);
 
       const responseText = await response.text();
-      console.log('Create order response text:', responseText.substring(0, 500));
+      // console.log('Create order response text:', responseText.substring(0, 500));
 
       let responseData;
       try {
         responseData = JSON.parse(responseText);
       } catch (parseError) {
-        console.error('Failed to parse response as JSON:', parseError);
+        // console.error('Failed to parse response as JSON:', parseError);
         return {
           success: false,
           error: 'Invalid response from server. Please try again.',
@@ -259,7 +259,7 @@ export const orderApi = {
         data: responseData.data,
       };
     } catch (error: any) {
-      console.error('Create order error:', error);
+      // console.error('Create order error:', error);
       const errorMessage = error.message || 'An unexpected error occurred. Please try again.';
       return {
         success: false,

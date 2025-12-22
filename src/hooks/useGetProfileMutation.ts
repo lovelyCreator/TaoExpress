@@ -36,7 +36,7 @@ export const useGetProfileMutation = (
     try {
       const response = await getProfile();
 
-      console.log('useGetProfileMutation: API response:', response);
+      // console.log('useGetProfileMutation: API response:', response);
 
       if (response.success && response.data) {
         setData(response.data);
@@ -74,7 +74,7 @@ export const useGetProfileMutation = (
             email: user.email || existingUser.email || '',
             name: user.user_id || existingUser.name || '',
             phone: user.phone || existingUser.phone || '',
-            birthday: user.birthday ? new Date(user.birthday) : existingUser.birthday,
+            birthday: user.birthday || existingUser.birthday,
             avatar: user.pictureUrl || existingUser.avatar,
             addresses: mappedAddresses.length > 0 ? mappedAddresses : existingUser.addresses || [],
             wishlist: user.wishlist || existingUser.wishlist || [],
@@ -83,7 +83,7 @@ export const useGetProfileMutation = (
           
           // Store updated user data
           await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(updatedUser));
-          console.log('Updated user data in AsyncStorage from getProfile');
+          // console.log('Updated user data in AsyncStorage from getProfile');
         }
         
         options?.onSuccess?.(response.data);

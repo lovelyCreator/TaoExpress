@@ -362,7 +362,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
   if (variant === 'moreToLove') {
     const cardW = cardWidth || GRID_CARD_WIDTH;
     const imageH = cardW * 1.0;
-    
+    // console.log('More to Love Product:', product);
     return (
       <TouchableOpacity
         style={[styles.moreToLoveCard, { width: cardW }, style]}

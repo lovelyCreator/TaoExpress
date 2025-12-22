@@ -82,12 +82,12 @@ const registerGuest = async (): Promise<number | null> => {
     }
 
     const data = await response.json();
-    console.log('Guest registration response:', data);
+    // console.log('Guest registration response:', data);
     
     // Return the guest_id from the response
     return data.guest_id;
   } catch (error) {
-    console.error('Error registering guest:', error);
+    // console.error('Error registering guest:', error);
     Alert.alert('Error', 'Failed to register guest. Please try again.');
     return null;
   }
@@ -105,12 +105,12 @@ const OnboardingScreen: React.FC = () => {
   };
   const { mutate: guestLogin, isLoading, isError, error, isSuccess, data } = useGustLoginMutation({
     onSuccess: async (data) => {
-      console.log('Guest Login Success', data);
+      // console.log('Guest Login Success', data);
       await AsyncStorage.setItem('onboarding_completed', 'true');
       navigation.navigate('Main' as never);
     },
     onError: (error) => {
-      console.log('Guest Login Error:', error);
+      // console.log('Guest Login Error:', error);
       // showToast(
       //   t('errors.guestRegisterFailed'),
       //   'error'
@@ -157,15 +157,15 @@ const OnboardingScreen: React.FC = () => {
         ]).start();
       });
     } else {
-      console.log("GuestLogin: GuestLogin Called");
+      // console.log("GuestLogin: GuestLogin Called");
       setErrors({});
       setHasGuestLoginError(false);
 
-      console.log('GuestLogin: GuestLogin called');
+      // console.log('GuestLogin: GuestLogin called');
       await guestLogin({
         fcm_token: '@',
       });
-      console.log('GuestLogin: GuestLogin Completed');
+      // console.log('GuestLogin: GuestLogin Completed');
     }
   };
 

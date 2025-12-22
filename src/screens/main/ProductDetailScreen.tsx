@@ -78,7 +78,7 @@ const ProductDetailScreen: React.FC = () => {
             setWishlistCount(response.data.count || 0);
           }
         } catch (error) {
-          console.error('Failed to refresh wishlist count:', error);
+          // console.error('Failed to refresh wishlist count:', error);
         }
       }
     },
@@ -103,7 +103,7 @@ const ProductDetailScreen: React.FC = () => {
             setWishlistCount(response.data.count || 0);
           }
         } catch (error) {
-          console.error('Failed to refresh wishlist count:', error);
+          // console.error('Failed to refresh wishlist count:', error);
         }
       }
     },
@@ -165,13 +165,13 @@ const ProductDetailScreen: React.FC = () => {
   // Add to cart mutation (for Add to Cart button)
   const { mutate: addToCart, isLoading: isAddingToCart } = useAddToCartMutation({
     onSuccess: (data) => {
-      console.log('Product added to cart successfully:', data);
+      // console.log('Product added to cart successfully:', data);
       showToast(t('product.addedToCart') || 'Product added to cart successfully', 'success');
       // Navigate to cart screen
       navigation.navigate('Cart');
     },
     onError: (error) => {
-      console.error('Failed to add product to cart:', error);
+      // console.error('Failed to add product to cart:', error);
       showToast(error || t('product.failedToAdd') || 'Failed to add product to cart', 'error');
     },
   });
@@ -185,7 +185,7 @@ const ProductDetailScreen: React.FC = () => {
   // Get cart mutation to fetch cart after adding product (for Buy Now - navigates to Payment)
   const { mutate: fetchCart } = useGetCartMutation({
     onSuccess: (data) => {
-      console.log('Cart fetched after Buy Now:', data);
+      // console.log('Cart fetched after Buy Now:', data);
       // Find the cart item we just added
       const cartData = data?.cart;
       const cartItems = cartData?.items || [];
@@ -241,7 +241,7 @@ const ProductDetailScreen: React.FC = () => {
       });
     },
     onError: (error) => {
-      console.error('Failed to fetch cart after Buy Now:', error);
+      // console.error('Failed to fetch cart after Buy Now:', error);
       showToast('Failed to proceed. Please try again.', 'error');
     },
   });
@@ -249,12 +249,12 @@ const ProductDetailScreen: React.FC = () => {
   // Add to cart mutation for Buy Now (then navigates to Payment page)
   const { mutate: addToCartForBuyNow, isLoading: isAddingToCartForBuyNow } = useAddToCartMutation({
     onSuccess: (data) => {
-      console.log('Product added to cart for Buy Now:', data);
+      // console.log('Product added to cart for Buy Now:', data);
       // Fetch cart to get the cart item _id needed for Payment screen
       fetchCart();
     },
     onError: (error) => {
-      console.error('Failed to add product to cart for Buy Now:', error);
+      // console.error('Failed to add product to cart for Buy Now:', error);
       showToast(error || 'Failed to proceed. Please try again.', 'error');
     },
   });
@@ -355,7 +355,7 @@ const ProductDetailScreen: React.FC = () => {
       );
     },
     onError: (error) => {
-      console.error('Failed to search related products:', error);
+      // console.error('Failed to search related products:', error);
       setRelatedProducts([]);
       setRelatedProductsHasMore(false);
     },
@@ -463,11 +463,11 @@ const ProductDetailScreen: React.FC = () => {
   // Product detail mutation
   const { mutate: fetchProductDetail, isLoading: isFetchingDetail } = useProductDetailMutation({
     onSuccess: (data) => {
-      console.log('📦 [ProductDetailScreen] Product detail fetched successfully:', {
-        hasData: !!data,
-        dataKeys: data ? Object.keys(data) : [],
-        source,
-      });
+      // console.log('📦 [ProductDetailScreen] Product detail fetched successfully:', {
+      //   hasData: !!data,
+      //   dataKeys: data ? Object.keys(data) : [],
+      //   source,
+      // });
 
       // Taobao product detail mapping
       if (source === 'taobao' && data) {
@@ -692,15 +692,15 @@ const ProductDetailScreen: React.FC = () => {
     },
     onError: (error) => {
       const errorStr = typeof error === 'string' ? error : (error as any)?.message || String(error);
-      console.error('📦 [ProductDetailScreen] Product detail fetch error:', {
-        error,
-        errorType: typeof error,
-        errorMessage: errorStr,
-        productId,
-        offerId,
-        source,
-        country,
-      });
+      // console.error('📦 [ProductDetailScreen] Product detail fetch error:', {
+      //   error,
+      //   errorType: typeof error,
+      //   errorMessage: errorStr,
+      //   productId,
+      //   offerId,
+      //   source,
+      //   country,
+      // });
       setLoading(false);
       // Reset ref on error so we can retry
       hasFetchedProductRef.current = null;
@@ -752,15 +752,15 @@ const ProductDetailScreen: React.FC = () => {
           setLoading(true);
           const fetchSource = sourceRef.current;
           const fetchCountry = countryRef.current;
-          console.log('📦 [ProductDetailScreen] Fetching product detail:', {
-            currentProductId,
-            productId,
-            offerId,
-            source: fetchSource,
-            country: fetchCountry,
-            routeSource,
-            routeCountry,
-          });
+          // console.log('📦 [ProductDetailScreen] Fetching product detail:', {
+          //   currentProductId,
+          //   productId,
+          //   offerId,
+          //   source: fetchSource,
+          //   country: fetchCountry,
+          //   routeSource,
+          //   routeCountry,
+          // });
           fetchProductDetail(currentProductId, fetchSource, fetchCountry);
         } else if (alreadyFetched) {
           // Already fetched, don't show loading
@@ -789,7 +789,7 @@ const ProductDetailScreen: React.FC = () => {
           setWishlistCount(0);
         }
       } catch (error) {
-        console.error('Failed to fetch wishlist count:', error);
+        // console.error('Failed to fetch wishlist count:', error);
         setWishlistCount(0);
       }
     };
@@ -809,11 +809,11 @@ const ProductDetailScreen: React.FC = () => {
         // For Taobao, use search API with product name or category as keyword
         const searchKeyword = product.name || product.subject || product.subjectTrans || '';
         if (searchKeyword) {
-          console.log('🔍 [ProductDetailScreen] Fetching related products via search API for Taobao:', {
-            keyword: searchKeyword,
-            source: fetchSource,
-            language,
-          });
+          // console.log('🔍 [ProductDetailScreen] Fetching related products via search API for Taobao:', {
+          //   keyword: searchKeyword,
+          //   source: fetchSource,
+          //   language,
+          // });
           searchProducts(searchKeyword, fetchSource, language, 1, 20);
         }
       } else {

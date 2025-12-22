@@ -73,10 +73,10 @@ const AffiliateMarketingScreen = () => {
       });
 
       if (result.action === Share.sharedAction) {
-        console.log('Shared successfully');
+        // console.log('Shared successfully');
       }
     } catch (error) {
-      console.error('Share error:', error);
+      // console.error('Share error:', error);
       Alert.alert(t('common.error'), t('profile.failedToShare'));
     }
   };

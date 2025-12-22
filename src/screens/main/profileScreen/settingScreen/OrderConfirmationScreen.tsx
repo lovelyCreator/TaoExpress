@@ -43,7 +43,7 @@ const OrderConfirmationScreen: React.FC = () => {
         setOrder(response.data);
       }
     } catch (error) {
-      console.error('Error loading order:', error);
+      // console.error('Error loading order:', error);
     } finally {
       setLoading(false);
     }
@@ -55,7 +55,7 @@ const OrderConfirmationScreen: React.FC = () => {
 
   const handleTrackOrder = () => {
     // In a real app, this would navigate to order tracking
-    console.log('Track order:', order?.id);
+    // console.log('Track order:', order?.id);
   };
 
   const handleViewOrder = () => {

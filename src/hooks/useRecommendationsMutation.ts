@@ -7,7 +7,7 @@ interface UseRecommendationsMutationOptions {
 }
 
 interface UseRecommendationsMutationResult {
-  mutate: (country: string, outMemberId?: string, beginPage?: number, pageSize?: number) => Promise<void>;
+  mutate: (country: string, outMemberId?: string, beginPage?: number, pageSize?: number, platform?: string) => Promise<void>;
   data: any;
   error: string | null;
   isLoading: boolean;
@@ -28,7 +28,8 @@ export const useRecommendationsMutation = (
     country: string,
     outMemberId?: string,
     beginPage: number = 1,
-    pageSize: number = 20
+    pageSize: number = 20,
+    platform: string = '1688'
   ) => {
     setIsLoading(true);
     setIsSuccess(false);
@@ -36,20 +37,23 @@ export const useRecommendationsMutation = (
     setError(null);
 
     try {
-      const response = await productsApi.getRecommendations(country, outMemberId, beginPage, pageSize);
+      const response = await productsApi.getRecommendations(country, outMemberId, beginPage, pageSize, platform);
       
       if (response.success && response.data) {
+        console.log('More to Love Recommendations API Response:', "Success");
         setData(response.data);
         setIsSuccess(true);
         options?.onSuccess?.(response.data);
       } else {
         const errorMessage = response.message || 'Failed to fetch recommendations';
+        console.warn('[Recommendations] API returned error:', errorMessage, response);
         setError(errorMessage);
         setIsError(true);
         options?.onError?.(errorMessage);
       }
     } catch (err: any) {
-      const errorMessage = 'An unexpected error occurred. Please try again.';
+      const errorMessage = err?.message || 'An unexpected error occurred. Please try again.';
+      console.error('[Recommendations] API call failed:', err);
       setError(errorMessage);
       setIsError(true);
       options?.onError?.(errorMessage);

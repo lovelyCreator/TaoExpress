@@ -92,7 +92,7 @@ export const cartApi = {
       const token = await getStoredToken();
 
       const url = `${API_BASE_URL}/cart`;
-      console.log('Sending get cart request to:', url);
+      // console.log('Sending get cart request to:', url);
 
       const response = await axios.get(url, {
         headers: {
@@ -101,7 +101,7 @@ export const cartApi = {
         },
       });
 
-      console.log('Get cart response:', response.data);
+      // console.log('Get cart response:', response.data);
 
       if (!response.data || !response.data.data) {
         return {
@@ -117,7 +117,7 @@ export const cartApi = {
         message: 'Cart retrieved successfully',
       };
     } catch (error: any) {
-      console.error('Get cart error:', error);
+      // console.error('Get cart error:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Failed to get cart';
       return {
         success: false,
@@ -133,8 +133,8 @@ export const cartApi = {
       const token = await getStoredToken();
 
       const url = `${API_BASE_URL}/cart`;
-      console.log('Sending add to cart request to:', url);
-      console.log('Add to cart request body:', JSON.stringify(request, null, 2));
+      // console.log('Sending add to cart request to:', url);
+      // console.log('Add to cart request body:', JSON.stringify(request, null, 2));
 
       const response = await axios.post(url, request, {
         headers: {
@@ -143,7 +143,7 @@ export const cartApi = {
         },
       });
 
-      console.log('Add to cart response:', response.data);
+      // console.log('Add to cart response:', response.data);
 
       if (!response.data || !response.data.data) {
         return {
@@ -159,7 +159,7 @@ export const cartApi = {
         message: response.data.message || 'Product added to cart successfully',
       };
     } catch (error: any) {
-      console.error('Add to cart error:', error);
+      // console.error('Add to cart error:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Failed to add product to cart';
       return {
         success: false,
@@ -175,8 +175,8 @@ export const cartApi = {
       const token = await getStoredToken();
 
       const url = `${API_BASE_URL}/cart/${cartItemId}`;
-      console.log('Sending update cart item request to:', url);
-      console.log('Update cart item body:', JSON.stringify({ quantity }, null, 2));
+      // console.log('Sending update cart item request to:', url);
+      // console.log('Update cart item body:', JSON.stringify({ quantity }, null, 2));
 
       const response = await axios.put(url, { quantity }, {
         headers: {
@@ -185,7 +185,7 @@ export const cartApi = {
         },
       });
 
-      console.log('Update cart item response:', response.data);
+      // console.log('Update cart item response:', response.data);
 
       if (!response.data || !response.data.data) {
         return {
@@ -201,7 +201,7 @@ export const cartApi = {
         message: response.data.message || 'Cart item updated successfully',
       };
     } catch (error: any) {
-      console.error('Update cart item error:', error);
+      // console.error('Update cart item error:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Failed to update cart item';
       return {
         success: false,
@@ -217,7 +217,7 @@ export const cartApi = {
       const token = await getStoredToken();
 
       const url = `${API_BASE_URL}/cart/${cartItemId}`;
-      console.log('Sending delete cart item request to:', url);
+      // console.log('Sending delete cart item request to:', url);
 
       const response = await axios.delete(url, {
         headers: {
@@ -226,7 +226,7 @@ export const cartApi = {
         },
       });
 
-      console.log('Delete cart item response:', response.data);
+      // console.log('Delete cart item response:', response.data);
 
       if (!response.data || !response.data.data) {
         return {
@@ -242,7 +242,7 @@ export const cartApi = {
         message: response.data.message || 'Cart item deleted successfully',
       };
     } catch (error: any) {
-      console.error('Delete cart item error:', error);
+      // console.error('Delete cart item error:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Failed to delete cart item';
       return {
         success: false,
@@ -258,7 +258,7 @@ export const cartApi = {
       const token = await getStoredToken();
 
       const url = `${API_BASE_URL}/cart`;
-      console.log('Sending clear cart request to:', url);
+      // console.log('Sending clear cart request to:', url);
 
       const response = await axios.delete(url, {
         headers: {
@@ -267,7 +267,7 @@ export const cartApi = {
         },
       });
 
-      console.log('Clear cart response:', response.data);
+      // console.log('Clear cart response:', response.data);
 
       if (!response.data || !response.data.data) {
         return {
@@ -283,7 +283,7 @@ export const cartApi = {
         message: response.data.message || 'Cart cleared successfully',
       };
     } catch (error: any) {
-      console.error('Clear cart error:', error);
+      // console.error('Clear cart error:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Failed to clear cart';
       return {
         success: false,
@@ -299,8 +299,8 @@ export const cartApi = {
       const token = await getStoredToken();
 
       const url = `${API_BASE_URL}/cart`;
-      console.log('Sending delete batch cart items request to:', url);
-      console.log('Delete batch body:', JSON.stringify({ itemIds: cartItemIds }, null, 2));
+      // console.log('Sending delete batch cart items request to:', url);
+      // console.log('Delete batch body:', JSON.stringify({ itemIds: cartItemIds }, null, 2));
 
       const response = await axios.delete(url, {
         headers: {
@@ -310,7 +310,7 @@ export const cartApi = {
         data: { itemIds: cartItemIds },
       });
 
-      console.log('Delete batch cart items response:', response.data);
+      // console.log('Delete batch cart items response:', response.data);
 
       if (!response.data || !response.data.data) {
         return {
@@ -326,7 +326,7 @@ export const cartApi = {
         message: response.data.message || 'Cart items deleted successfully',
       };
     } catch (error: any) {
-      console.error('Delete batch cart items error:', error);
+      // console.error('Delete batch cart items error:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Failed to delete cart items';
       return {
         success: false,

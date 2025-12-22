@@ -41,8 +41,8 @@ export const wishlistApi = {
       const token = await getStoredToken();
 
       const url = `${API_BASE_URL}/users/wishlist`;
-      console.log('Sending add to wishlist request to:', url);
-      console.log('Add to wishlist request body:', JSON.stringify(request, null, 2));
+      // console.log('Sending add to wishlist request to:', url);
+      // console.log('Add to wishlist request body:', JSON.stringify(request, null, 2));
 
       const response = await axios.post(url, request, {
         headers: {
@@ -51,7 +51,7 @@ export const wishlistApi = {
         },
       });
 
-      console.log('Add to wishlist response:', response.data);
+      // console.log('Add to wishlist response:', response.data);
 
       if (!response.data || !response.data.data) {
         return {
@@ -67,7 +67,7 @@ export const wishlistApi = {
         message: response.data.message || 'Product added to wishlist successfully',
       };
     } catch (error: any) {
-      console.error('Add to wishlist error:', error);
+      // console.error('Add to wishlist error:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Failed to add product to wishlist';
       return {
         success: false,
@@ -83,7 +83,7 @@ export const wishlistApi = {
       const token = await getStoredToken();
 
       const url = `${API_BASE_URL}/users/wishlist`;
-      console.log('Sending get wishlist request to:', url);
+      // console.log('Sending get wishlist request to:', url);
 
       const response = await axios.get(url, {
         headers: {
@@ -92,7 +92,7 @@ export const wishlistApi = {
         },
       });
 
-      console.log('Get wishlist response:', response.data);
+      // console.log('Get wishlist response:', response.data);
 
       if (!response.data || !response.data.data) {
         return {
@@ -108,7 +108,7 @@ export const wishlistApi = {
         message: response.data.message || 'Wishlist retrieved successfully',
       };
     } catch (error: any) {
-      console.error('Get wishlist error:', error);
+      // console.error('Get wishlist error:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Failed to get wishlist';
       return {
         success: false,
@@ -125,8 +125,8 @@ export const wishlistApi = {
       const token = await getStoredToken();
 
       const url = `${API_BASE_URL}/users/wishlist/${externalId}`;
-      console.log('Sending delete from wishlist request to:', url);
-      console.log('Delete request externalId:', externalId);
+      // console.log('Sending delete from wishlist request to:', url);
+      // console.log('Delete request externalId:', externalId);
 
       const response = await axios.delete(url, {
         headers: {
@@ -135,8 +135,8 @@ export const wishlistApi = {
         },
       });
 
-      console.log('Delete from wishlist response status:', response.status);
-      console.log('Delete from wishlist response data:', response.data);
+      // console.log('Delete from wishlist response status:', response.status);
+      // console.log('Delete from wishlist response data:', response.data);
 
       // Check if response has data structure
       if (response.data) {
@@ -159,7 +159,7 @@ export const wishlistApi = {
         // If response.data exists but no wishlist, might be a success message
         if (response.data.message || response.data.success) {
           // Try to get updated wishlist by fetching it
-          console.log('Delete response indicates success, but no wishlist data. Fetching updated wishlist...');
+          // console.log('Delete response indicates success, but no wishlist data. Fetching updated wishlist...');
           const wishlistResponse = await wishlistApi.getWishlist();
           if (wishlistResponse.success && wishlistResponse.data) {
             return {
@@ -178,9 +178,9 @@ export const wishlistApi = {
         data: undefined,
       };
     } catch (error: any) {
-      console.error('Delete from wishlist error:', error);
-      console.error('Error response status:', error.response?.status);
-      console.error('Error response data:', error.response?.data);
+      // console.error('Delete from wishlist error:', error);
+      // console.error('Error response status:', error.response?.status);
+      // console.error('Error response data:', error.response?.data);
       
       // Handle 404 - item might not exist (already deleted or never existed)
       if (error.response?.status === 404) {

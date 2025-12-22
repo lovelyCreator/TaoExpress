@@ -35,7 +35,7 @@ export const useDeleteAddressMutation = (
     try {
       const response = await addressApi.deleteAddress(addressId);
 
-      console.log('useDeleteAddressMutation: API response:', response);
+      // console.log('useDeleteAddressMutation: API response:', response);
 
       if (response.success && response.data) {
         setData(response.data);
