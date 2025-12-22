@@ -37,6 +37,7 @@ import { useWishlistStatus } from '../../hooks/useWishlistStatus';
 import { useAddToWishlistMutation } from '../../hooks/useAddToWishlistMutation';
 import { useDeleteFromWishlistMutation } from '../../hooks/useDeleteFromWishlistMutation';
 import { useGetCartMutation } from '../../hooks/useGetCartMutation';
+import { productsApi } from '../../services/productsApi';
 import HeartPlusIcon from '../../assets/icons/HeartPlusIcon';
 import FamilyStarIcon from '../../assets/icons/FamilyStarIcon';
 import ArrowBackIcon from '../../assets/icons/ArrowBackIcon';
@@ -67,6 +68,19 @@ const ProductDetailScreen: React.FC = () => {
       showToast('Product added to wishlist', 'success');
       // Immediately refresh external IDs to update heart icon color
       await refreshExternalIds();
+      // Refresh wishlist count
+      const externalId = product?.offerId || product?.externalId || product?.id || productId || offerId || '';
+      const fetchSource = sourceRef.current;
+      if (externalId && fetchSource) {
+        try {
+          const response = await productsApi.getWishlistCount(externalId.toString(), fetchSource);
+          if (response.success && response.data) {
+            setWishlistCount(response.data.count || 0);
+          }
+        } catch (error) {
+          console.error('Failed to refresh wishlist count:', error);
+        }
+      }
     },
     onError: (error) => {
       showToast(error || 'Failed to add product to wishlist', 'error');
@@ -79,6 +93,19 @@ const ProductDetailScreen: React.FC = () => {
       showToast('Product removed from wishlist', 'success');
       // Immediately refresh external IDs to update heart icon color
       await refreshExternalIds();
+      // Refresh wishlist count
+      const externalId = product?.offerId || product?.externalId || product?.id || productId || offerId || '';
+      const fetchSource = sourceRef.current;
+      if (externalId && fetchSource) {
+        try {
+          const response = await productsApi.getWishlistCount(externalId.toString(), fetchSource);
+          if (response.success && response.data) {
+            setWishlistCount(response.data.count || 0);
+          }
+        } catch (error) {
+          console.error('Failed to refresh wishlist count:', error);
+        }
+      }
     },
     onError: (error) => {
       showToast(error || 'Failed to remove product from wishlist', 'error');
@@ -267,6 +294,7 @@ const ProductDetailScreen: React.FC = () => {
   const [viewerImageIndex, setViewerImageIndex] = useState(0);
   const [isCopied, setIsCopied] = useState(false);
   const [photoCaptureVisible, setPhotoCaptureVisible] = useState(false);
+  const [wishlistCount, setWishlistCount] = useState<number | null>(null);
 
   // Live stats data
   const liveStats = [
@@ -743,6 +771,32 @@ const ProductDetailScreen: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productId, offerId, initialProductData, routeSource, routeCountry]); // Use route params instead of derived source/country
   
+  // Fetch wishlist count when product is loaded
+  useEffect(() => {
+    const fetchWishlistCount = async () => {
+      if (!product) return;
+      
+      const externalId = product?.offerId || product?.externalId || product?.id || productId || offerId || '';
+      const fetchSource = sourceRef.current;
+      
+      if (!externalId || !fetchSource) return;
+      
+      try {
+        const response = await productsApi.getWishlistCount(externalId.toString(), fetchSource);
+        if (response.success && response.data) {
+          setWishlistCount(response.data.count || 0);
+        } else {
+          setWishlistCount(0);
+        }
+      } catch (error) {
+        console.error('Failed to fetch wishlist count:', error);
+        setWishlistCount(0);
+      }
+    };
+    
+    fetchWishlistCount();
+  }, [product, productId, offerId, routeSource]);
+
   // Fetch related products when productId is available
   useEffect(() => {
     const currentProductId = productId?.toString() || offerId?.toString() || '';
@@ -1332,16 +1386,21 @@ const ProductDetailScreen: React.FC = () => {
           
           <View style={{ flex: 1 }} />
           
-          <TouchableOpacity
-            style={styles.heartButton}
-            onPress={() => toggleWishlist(product)}
-          >
-            <HeartPlusIcon
-              width={24}
-              height={24}
-              color={isLiked ? COLORS.red : COLORS.black}
-            />
-          </TouchableOpacity>
+          <View style={styles.heartButtonContainer}>
+            {wishlistCount !== null && wishlistCount > 0 && (
+              <Text style={styles.wishlistCountText}>{wishlistCount}</Text>
+            )}
+            <TouchableOpacity
+              style={styles.heartButton}
+              onPress={() => toggleWishlist(product)}
+            >
+              <HeartPlusIcon
+                width={24}
+                height={24}
+                color={isLiked ? COLORS.red : COLORS.black}
+              />
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     );
@@ -2296,9 +2355,24 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontWeight: '600',
   },
+  heartButtonContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+  },
   heartButton: {
     padding: SPACING.xs,
     backgroundColor: '#FFFFFF33',
+    borderRadius: BORDER_RADIUS.full,
+    ...SHADOWS.small,
+  },
+  wishlistCountText: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.text.primary,
+    fontWeight: '600',
+    backgroundColor: '#FFFFFF33',
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
     borderRadius: BORDER_RADIUS.full,
     ...SHADOWS.small,
   },

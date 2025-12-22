@@ -1,183 +1,439 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Image,
   SafeAreaView,
+  FlatList,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-
-import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../../../constants';
+import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '../../../constants';
 import { RootStackParamList } from '../../../types';
 import { useTranslation } from '../../../hooks/useTranslation';
+import { useNotes } from '../../../hooks/useNotes';
+import { useGeneralInquiry } from '../../../hooks/useGeneralInquiry';
+import { useSocket } from '../../../context/SocketContext';
+import { useAuth } from '../../../context/AuthContext';
+import { BroadcastNote } from '../../../services/socketService';
+import { GeneralInquiry } from '../../../services/socketService';
+import NoteBroadcastModal from '../../../components/NoteBroadcastModal';
 
 type NoteScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Note'>;
-
-interface Note {
-  id: string;
-  title: string;
-  preview: string;
-  date: string;
-  isRead: boolean;
-  avatar?: string;
-  userId?: string;
-  storeId?: string;
-}
 
 const NoteScreen: React.FC = () => {
   const navigation = useNavigation<NoteScreenNavigationProp>();
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<'all' | 'written' | 'unread' | 'answered'>('answered');
+  const { isAuthenticated } = useAuth();
+  const { isConnected } = useSocket();
+  const { notes: broadcastNotes, dismissNote } = useNotes();
+  const {
+    inquiries: generalInquiries,
+    isLoading: isLoadingInquiries,
+    getInquiriesList,
+    refreshUnreadCounts,
+  } = useGeneralInquiry({ autoFetch: true });
 
-  // Sample notes data
-  const notes: Note[] = [
-    {
-      id: '1',
-      title: 'Answered',
-      preview: 'hello',
-      date: '2025-11-19 17:00:261',
-      isRead: false,
-      avatar: 'https://ui-avatars.com/api/?name=Store&background=FFD700&color=fff',
-      userId: 'user123',
-      storeId: 'store456',
-    },
-    {
-      id: '2',
-      title: 'Order Inquiry',
-      preview: 'When will my order be shipped?',
-      date: '2025-11-18 14:30:15',
-      isRead: true,
-      avatar: 'https://ui-avatars.com/api/?name=Shop&background=4A90E2&color=fff',
-      userId: 'user456',
-      storeId: 'store789',
-    },
-    {
-      id: '3',
-      title: 'Product Question',
-      preview: 'Is this item available in blue color?',
-      date: '2025-11-17 09:15:42',
-      isRead: true,
-      avatar: 'https://ui-avatars.com/api/?name=Market&background=26D0CE&color=fff',
-      userId: 'user789',
-      storeId: 'store123',
-    },
-  ];
+  const [selectedNote, setSelectedNote] = useState<BroadcastNote | null>(null);
+  const [isNoteModalVisible, setIsNoteModalVisible] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState<'all' | 'notes' | 'inquiries'>('all');
 
-  const handleNotePress = (note: Note) => {
-    // Navigate to chat screen with the note's user/store info
-    navigation.navigate('Chat', {
-      userId: note.userId,
-      storeId: note.storeId,
-    });
+  // Refresh data
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await getInquiriesList();
+      await refreshUnreadCounts();
+    } catch (error) {
+      console.error('Failed to refresh:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [getInquiriesList, refreshUnreadCounts]);
+
+  // Load inquiries on focus
+  useFocusEffect(
+    useCallback(() => {
+      if (isAuthenticated && isConnected) {
+        getInquiriesList();
+        refreshUnreadCounts();
+      }
+    }, [isAuthenticated, isConnected, getInquiriesList, refreshUnreadCounts])
+  );
+
+  // Handle note press - show modal
+  const handleNotePress = (note: BroadcastNote) => {
+    setSelectedNote(note);
+    setIsNoteModalVisible(true);
   };
 
-  const handleAddNote = () => {
-    navigation.navigate('LeaveNote' as never);
+  // Handle inquiry press - navigate to chat
+  const handleInquiryPress = (inquiry: GeneralInquiry) => {
+    navigation.navigate('GeneralInquiryChat', { inquiryId: inquiry._id });
   };
 
-  const renderHeader = () => (
-    <View style={styles.header}>
-      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-        <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
+  // Handle add button - create new inquiry
+  const handleAddInquiry = () => {
+    navigation.navigate('CreateGeneralInquiry');
+  };
+
+  // Format date
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return t('common.justNow') || 'Just now';
+    if (diffMins < 60) {
+      const template = t('common.minutesAgo') || '{count}m ago';
+      return template.replace('{count}', diffMins.toString());
+    }
+    if (diffHours < 24) {
+      const template = t('common.hoursAgo') || '{count}h ago';
+      return template.replace('{count}', diffHours.toString());
+    }
+    if (diffDays < 7) {
+      const template = t('common.daysAgo') || '{count}d ago';
+      return template.replace('{count}', diffDays.toString());
+    }
+    return date.toLocaleDateString();
+  };
+
+  // Get note type icon
+  const getNoteTypeIcon = (type: BroadcastNote['type']) => {
+    switch (type) {
+      case 'announcement':
+        return 'megaphone';
+      case 'maintenance':
+        return 'construct';
+      case 'update':
+        return 'refresh';
+      case 'warning':
+        return 'warning';
+      case 'info':
+        return 'information-circle';
+      case 'promotion':
+        return 'gift';
+      default:
+        return 'notifications';
+    }
+  };
+
+  // Get note type color
+  const getNoteTypeColor = (type: BroadcastNote['type']) => {
+    switch (type) {
+      case 'announcement':
+        return COLORS.primary;
+      case 'maintenance':
+        return COLORS.warning;
+      case 'update':
+        return COLORS.info;
+      case 'warning':
+        return COLORS.error;
+      case 'info':
+        return COLORS.info;
+      case 'promotion':
+        return COLORS.primary;
+      default:
+        return COLORS.primary;
+    }
+  };
+
+  // Get note type label
+  const getNoteTypeLabel = (type: BroadcastNote['type']) => {
+    switch (type) {
+      case 'announcement':
+        return t('note.type.announcement') || 'Announcement';
+      case 'maintenance':
+        return t('note.type.maintenance') || 'Maintenance';
+      case 'update':
+        return t('note.type.update') || 'Update';
+      case 'warning':
+        return t('note.type.warning') || 'Warning';
+      case 'info':
+        return t('note.type.info') || 'Information';
+      case 'promotion':
+        return t('note.type.promotion') || 'Promotion';
+      default:
+        return t('note.type.announcement') || 'Announcement';
+    }
+  };
+
+  // Get priority label
+  const getPriorityLabel = (priority: BroadcastNote['priority']) => {
+    switch (priority) {
+      case 'urgent':
+        return t('note.priority.urgent') || 'URGENT';
+      case 'high':
+        return t('note.priority.high') || 'HIGH';
+      case 'normal':
+        return t('note.priority.normal') || 'NORMAL';
+      case 'low':
+        return t('note.priority.low') || 'LOW';
+      default:
+        return String(priority).toUpperCase();
+    }
+  };
+
+  // Render broadcast note item
+  const renderNoteItem = (note: BroadcastNote) => {
+    const typeIcon = getNoteTypeIcon(note.type);
+    const typeColor = getNoteTypeColor(note.type);
+    const typeLabel = getNoteTypeLabel(note.type);
+    const isUrgent = note.priority === 'urgent' || (note.type === 'maintenance' && note.priority === 'high');
+
+    return (
+      <TouchableOpacity
+        style={styles.itemCard}
+        onPress={() => handleNotePress(note)}
+        activeOpacity={0.7}
+      >
+        <View style={[styles.noteIconContainer, { backgroundColor: typeColor + '20' }]}>
+          <Ionicons name={typeIcon as any} size={24} color={typeColor} />
+        </View>
+        <View style={styles.itemContent}>
+          <View style={styles.itemHeader}>
+            <Text style={styles.itemTitle} numberOfLines={1}>
+              {typeLabel}
+            </Text>
+            {isUrgent && (
+              <View style={[styles.priorityBadge, { backgroundColor: COLORS.error }]}>
+                <Text style={styles.priorityText}>{getPriorityLabel(note.priority)}</Text>
+              </View>
+            )}
+          </View>
+          <Text style={styles.itemPreview} numberOfLines={2}>
+            {note.content}
+          </Text>
+          <Text style={styles.itemDate}>{formatDate(note.createdAt)}</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={20} color={COLORS.gray[400]} />
       </TouchableOpacity>
-      <Text style={styles.headerTitle}>{t('notes.title')}</Text>
-      <TouchableOpacity style={styles.addButton} onPress={handleAddNote}>
-        <Ionicons name="add" size={24} color={COLORS.white} />
+    );
+  };
+
+  // Render general inquiry item
+  const renderInquiryItem = (inquiry: GeneralInquiry) => {
+    const lastMessage = inquiry.messages && inquiry.messages.length > 0 
+      ? inquiry.messages[inquiry.messages.length - 1] 
+      : null;
+    const lastMessageText = lastMessage?.message || t('inquiry.noMessages') || 'No messages yet';
+    const lastMessageTime = inquiry.lastMessageAt || inquiry.createdAt;
+
+    return (
+      <TouchableOpacity
+        style={styles.itemCard}
+        onPress={() => handleInquiryPress(inquiry)}
+        activeOpacity={0.7}
+      >
+        <View style={[styles.inquiryIconContainer, { backgroundColor: COLORS.primary + '20' }]}>
+          <Ionicons name="chatbubbles" size={24} color={COLORS.primary} />
+        </View>
+        <View style={styles.itemContent}>
+          <View style={styles.itemHeader}>
+            <Text style={styles.itemTitle} numberOfLines={1}>
+              {inquiry.subject || t('inquiry.noSubject') || 'No Subject'}
+            </Text>
+            {inquiry.unreadCount && inquiry.unreadCount > 0 && (
+              <View style={styles.unreadBadge}>
+                <Text style={styles.unreadBadgeText}>{inquiry.unreadCount}</Text>
+              </View>
+            )}
+          </View>
+          <Text style={styles.itemPreview} numberOfLines={2}>
+            {lastMessageText || t('inquiry.noMessages') || 'No messages yet'}
+          </Text>
+          <View style={styles.itemFooter}>
+            <Text style={styles.itemDate}>{formatDate(lastMessageTime)}</Text>
+            {inquiry.assignedAdmin && (
+              <Text style={styles.assignedText}>
+                {t('inquiry.assignedTo') || 'Assigned to'} {inquiry.assignedAdmin.name}
+              </Text>
+            )}
+          </View>
+        </View>
+        <Ionicons name="chevron-forward" size={20} color={COLORS.gray[400]} />
       </TouchableOpacity>
+    );
+  };
+
+  // Render section header
+  const renderSectionHeader = (title: string, count?: number) => (
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      {count !== undefined && count > 0 && (
+        <View style={styles.countBadge}>
+          <Text style={styles.countText}>{count}</Text>
+        </View>
+      )}
     </View>
   );
 
+  // Render empty state
+  const renderEmptyState = (message: string) => (
+    <View style={styles.emptyState}>
+      <Ionicons name="document-text-outline" size={64} color={COLORS.gray[300]} />
+      <Text style={styles.emptyText}>{message}</Text>
+    </View>
+  );
+
+  // Filter items based on active tab
+  const getFilteredNotes = () => {
+    if (activeTab === 'notes' || activeTab === 'all') {
+      return broadcastNotes;
+    }
+    return [];
+  };
+
+  const getFilteredInquiries = () => {
+    if (activeTab === 'inquiries' || activeTab === 'all') {
+      return generalInquiries;
+    }
+    return [];
+  };
+
+  const filteredNotes = getFilteredNotes();
+  const filteredInquiries = getFilteredInquiries();
+
+  // Render filter tabs
   const renderTabs = () => (
     <View style={styles.tabsContainer}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsContent}>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'all' && styles.activeTab]}
           onPress={() => setActiveTab('all')}
         >
-          <Text style={[styles.tabText, activeTab === 'all' && styles.activeTabText]}>{t('notes.all')}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'written' && styles.activeTab]}
-          onPress={() => setActiveTab('written')}
-        >
-          <Text style={[styles.tabText, activeTab === 'written' && styles.activeTabText]}>
-            {t('notes.written')}
+          <Text style={[styles.tabText, activeTab === 'all' && styles.activeTabText]}>
+            {t('notes.all') || 'All'}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'unread' && styles.activeTab]}
-          onPress={() => setActiveTab('unread')}
+          style={[styles.tab, activeTab === 'notes' && styles.activeTab]}
+          onPress={() => setActiveTab('notes')}
         >
-          <Text style={[styles.tabText, activeTab === 'unread' && styles.activeTabText]}>
-            {t('notes.unread')}
+          <Text style={[styles.tabText, activeTab === 'notes' && styles.activeTabText]}>
+            {t('notes.broadcastNotes') || 'Notes'}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'answered' && styles.activeTab]}
-          onPress={() => setActiveTab('answered')}
+          style={[styles.tab, activeTab === 'inquiries' && styles.activeTab]}
+          onPress={() => setActiveTab('inquiries')}
         >
-          <Text style={[styles.tabText, activeTab === 'answered' && styles.activeTabText]}>
-            {t('notes.answered')}
+          <Text style={[styles.tabText, activeTab === 'inquiries' && styles.activeTabText]}>
+            {t('notes.inquiries') || 'Inquiries'}
           </Text>
         </TouchableOpacity>
       </ScrollView>
-    </View>
-  );
-
-  const renderNoteItem = (note: Note) => (
-    <TouchableOpacity
-      key={note.id}
-      style={styles.noteCard}
-      onPress={() => handleNotePress(note)}
-      activeOpacity={0.7}
-    >
-      <View style={styles.noteContent}>
-        <View style={styles.avatarContainer}>
-          <Image source={{ uri: note.avatar }} style={styles.avatar} />
-          {!note.isRead && <View style={styles.unreadDot} />}
-        </View>
-        <View style={styles.noteInfo}>
-          <View style={styles.noteHeader}>
-            <Text style={[styles.noteTitle, !note.isRead && styles.unreadTitle]}>
-              {note.title}
-            </Text>
-            <Text style={styles.notePreview}>{note.preview}</Text>
-          </View>
-          <Text style={styles.noteDate}>{note.date}</Text>
-        </View>
-        <Ionicons name="chevron-forward" size={20} color={COLORS.gray[400]} />
-      </View>
-    </TouchableOpacity>
-  );
-
-  const renderEmptyState = () => (
-    <View style={styles.emptyState}>
-      <View style={styles.emptyIconContainer}>
-        <Ionicons name="mail-outline" size={80} color={COLORS.gray[300]} />
-      </View>
-      <Text style={styles.emptyText}>{t('notes.noMessages')}</Text>
     </View>
   );
 
   return (
     <SafeAreaView style={styles.container}>
-      {renderHeader()}
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
+          <Text style={styles.headerNoteLabel}>{t('notes.noteLabel') || 'Note'}</Text>
+        </View>
+        <Text style={styles.headerTitle}>{t('notes.title') || 'Notes & Inquiries'}</Text>
+        <TouchableOpacity style={styles.addButton} onPress={handleAddInquiry}>
+          <Ionicons name="add" size={24} color={COLORS.white} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Filter Tabs */}
       {renderTabs()}
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <View style={styles.contentContainer}>
-          {notes.length > 0 ? (
-            notes.map((note) => renderNoteItem(note))
-          ) : (
-            renderEmptyState()
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            colors={[COLORS.primary]}
+          />
+        }
+      >
+        {/* Broadcast Notes Section */}
+        {(activeTab === 'all' || activeTab === 'notes') && (
+          <View style={styles.section}>
+            {renderSectionHeader(
+              t('notes.broadcastNotes') || 'Broadcast Notes',
+              filteredNotes.length
+            )}
+            {filteredNotes.length > 0 ? (
+              filteredNotes.map((note) => (
+                <View key={note.noteId}>{renderNoteItem(note)}</View>
+              ))
+            ) : (
+              activeTab === 'notes' && renderEmptyState(t('notes.noNotes') || 'No notes yet')
+            )}
+          </View>
+        )}
+
+        {/* General Inquiries Section */}
+        {(activeTab === 'all' || activeTab === 'inquiries') && (
+          <View style={styles.section}>
+            {renderSectionHeader(
+              t('notes.inquiries') || '1:1 Inquiries',
+              filteredInquiries.length
+            )}
+            {isLoadingInquiries ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color={COLORS.primary} />
+              </View>
+            ) : filteredInquiries.length > 0 ? (
+              filteredInquiries.map((inquiry) => (
+                <View key={inquiry._id}>{renderInquiryItem(inquiry)}</View>
+              ))
+            ) : (
+              activeTab === 'inquiries' && renderEmptyState(t('notes.noInquiries') || 'No inquiries yet')
+            )}
+          </View>
+        )}
+
+        {/* Combined Empty State */}
+        {activeTab === 'all' &&
+          filteredNotes.length === 0 &&
+          filteredInquiries.length === 0 &&
+          !isLoadingInquiries && (
+            <View style={styles.emptyState}>
+              <Ionicons name="document-text-outline" size={80} color={COLORS.gray[300]} />
+              <Text style={styles.emptyText}>
+                {t('notes.noMessages') || 'No notes or inquiries yet'}
+              </Text>
+              <Text style={styles.emptySubtext}>
+                {t('notes.createFirst') || 'Create your first inquiry to get started'}
+              </Text>
+            </View>
           )}
-        </View>
       </ScrollView>
+
+      {/* Note Broadcast Modal */}
+      <NoteBroadcastModal
+        note={selectedNote}
+        visible={isNoteModalVisible}
+        centered={true}
+        onClose={() => {
+          setIsNoteModalVisible(false);
+          setSelectedNote(null);
+        }}
+        onDismiss={(noteId) => {
+          dismissNote(noteId);
+          setIsNoteModalVisible(false);
+          setSelectedNote(null);
+        }}
+      />
     </SafeAreaView>
   );
 };
@@ -185,150 +441,222 @@ const NoteScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.background,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.sm,
-    paddingTop: SPACING['2xl'],
+    paddingVertical: SPACING.md,
     backgroundColor: COLORS.white,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
   },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.gray[100],
-    justifyContent: 'center',
-    alignItems: 'center',
+  headerLeft: {
+    width: 60,
+  },
+  headerNoteLabel: {
+    fontSize: FONTS.sizes.sm,
+    fontWeight: '600',
+    color: COLORS.text.secondary,
   },
   headerTitle: {
     fontSize: FONTS.sizes.xl,
     fontWeight: '700',
     color: COLORS.text.primary,
+    flex: 1,
+    textAlign: 'center',
   },
   addButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#2196F3',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  scrollView: {
-    flex: 1,
+    ...SHADOWS.sm,
   },
   tabsContainer: {
+    backgroundColor: COLORS.white,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  tabsContent: {
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.md,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.gray[100],
+    gap: SPACING.sm,
   },
   tab: {
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.sm,
-    marginRight: SPACING.sm,
+    paddingHorizontal: SPACING.xl,
+    paddingVertical: SPACING.md,
     borderRadius: BORDER_RADIUS.full,
-    backgroundColor: COLORS.gray[50],
+    backgroundColor: COLORS.gray[100],
+    marginRight: SPACING.sm,
   },
   activeTab: {
-    backgroundColor: '#2196F3',
+    backgroundColor: COLORS.primary,
   },
   tabText: {
-    fontSize: FONTS.sizes.sm,
-    fontWeight: '500',
+    fontSize: FONTS.sizes.md,
+    fontWeight: '600',
     color: COLORS.text.secondary,
   },
   activeTabText: {
     color: COLORS.white,
-    fontWeight: '600',
+    fontWeight: '700',
   },
-  contentContainer: {
-    paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.md,
-    paddingBottom: SPACING.xl,
-  },
-  noteCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: SPACING.md,
-    padding: SPACING.md,
-    marginBottom: SPACING.md,
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  noteContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  avatarContainer: {
-    position: 'relative',
-    marginRight: SPACING.md,
-  },
-  avatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: COLORS.gray[200],
-  },
-  unreadDot: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: COLORS.error,
-    borderWidth: 2,
-    borderColor: COLORS.white,
-  },
-  noteInfo: {
+  scrollView: {
     flex: 1,
   },
-  noteHeader: {
-    marginBottom: SPACING.xs,
+  scrollContent: {
+    padding: SPACING.lg,
+    paddingBottom: SPACING.xl,
   },
-  noteTitle: {
-    fontSize: FONTS.sizes.sm,
-    fontWeight: '500',
-    color: COLORS.text.primary,
-    marginBottom: 2,
+  section: {
+    marginBottom: SPACING.xl,
   },
-  unreadTitle: {
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SPACING.lg,
+    gap: SPACING.sm,
+  },
+  sectionTitle: {
+    fontSize: FONTS.sizes.xl,
     fontWeight: '700',
-    color: COLORS.error,
-  },
-  notePreview: {
-    fontSize: FONTS.sizes.sm,
     color: COLORS.text.primary,
-    fontWeight: '600',
   },
-  noteDate: {
+  countBadge: {
+    backgroundColor: COLORS.primary,
+    borderRadius: BORDER_RADIUS.full,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.xs,
+    minWidth: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  countText: {
+    fontSize: FONTS.sizes.sm,
+    fontWeight: '700',
+    color: COLORS.white,
+  },
+  itemCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.white,
+    borderRadius: BORDER_RADIUS.lg,
+    padding: SPACING.lg,
+    marginBottom: SPACING.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    ...SHADOWS.sm,
+  },
+  noteIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: SPACING.lg,
+  },
+  inquiryIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: SPACING.lg,
+  },
+  itemContent: {
+    flex: 1,
+  },
+  itemHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: SPACING.sm,
+    gap: SPACING.sm,
+  },
+  itemTitle: {
+    fontSize: FONTS.sizes.lg,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+    flex: 1,
+  },
+  priorityBadge: {
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.xs,
+    borderRadius: BORDER_RADIUS.md,
+  },
+  priorityText: {
     fontSize: FONTS.sizes.xs,
-    color: COLORS.gray[500],
+    fontWeight: '700',
+    color: COLORS.white,
+    letterSpacing: 0.5,
+  },
+  unreadBadge: {
+    backgroundColor: COLORS.primary,
+    borderRadius: BORDER_RADIUS.full,
+    minWidth: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: SPACING.sm,
+  },
+  unreadBadgeText: {
+    color: COLORS.white,
+    fontSize: FONTS.sizes.sm,
+    fontWeight: '700',
+  },
+  itemPreview: {
+    fontSize: FONTS.sizes.md,
+    color: COLORS.text.secondary,
+    marginBottom: SPACING.sm,
+    lineHeight: 22,
+  },
+  itemFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: SPACING.sm,
+  },
+  itemDate: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.text.secondary,
+    fontWeight: '500',
+  },
+  assignedText: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.text.secondary,
+    fontWeight: '500',
   },
   emptyState: {
     alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: SPACING['3xl'],
     paddingTop: SPACING['3xl'] * 2,
-  },
-  emptyIconContainer: {
-    marginBottom: SPACING.lg,
+    paddingHorizontal: SPACING.xl,
   },
   emptyText: {
+    fontSize: FONTS.sizes.lg,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+    marginTop: SPACING.lg,
+    marginBottom: SPACING.sm,
+    textAlign: 'center',
+  },
+  emptySubtext: {
     fontSize: FONTS.sizes.md,
-    color: COLORS.gray[400],
+    color: COLORS.text.secondary,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  loadingContainer: {
+    padding: SPACING.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 

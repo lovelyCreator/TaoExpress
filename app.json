@@ -4,9 +4,14 @@
     "slug": "todaymall",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./src/assets/icons/favicon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "splash": {
+      "image": "./src/assets/icons/logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FFFFFF"
+    },
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
@@ -20,9 +25,10 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./src/assets/icons/favicon.png",
         "backgroundColor": "#ffffff"
       },
+      "enableHermes": true,
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.app.todaymall",
@@ -37,7 +43,9 @@
         "translucent": true,
         "backgroundColor": "#00000000",
         "barStyle": "dark-content"
-      }
+      },
+      "enableProguardInReleaseBuilds": true,
+      "enableShrinkResourcesInReleaseBuilds": true
     },
     "scheme": "todaymall",
     "web": {

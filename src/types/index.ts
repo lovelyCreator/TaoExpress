@@ -353,6 +353,10 @@ export type RootStackParamList = {
     orderDetails?: CustomerOrderDetails;
   };
   ChattingMembers: undefined,
+  // General Inquiry screens
+  GeneralInquiryList: undefined;
+  GeneralInquiryChat: { inquiryId: string };
+  CreateGeneralInquiry: undefined;
   ChatSearch: undefined,
   CustomerService: undefined,
   OrderInquiry: { orderNumber?: string },

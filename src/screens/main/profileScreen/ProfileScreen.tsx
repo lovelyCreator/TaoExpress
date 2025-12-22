@@ -22,6 +22,8 @@ import { useAuth } from '../../../context/AuthContext';
 import { useAppSelector } from '../../../store/hooks';
 import { translations } from '../../../i18n/translations';
 import { useSocket } from '../../../context/SocketContext';
+import { useNotes } from '../../../hooks/useNotes';
+import { useGeneralInquiry } from '../../../hooks/useGeneralInquiry';
 import { inquiryApi } from '../../../services/inquiryApi';
 import { NotificationBadge, ProductCard } from '../../../components';
 import { useRecommendationsMutation } from '../../../hooks/useRecommendationsMutation';
@@ -58,6 +60,8 @@ const ProfileScreen: React.FC = () => {
   const badgePulse = useRef(new Animated.Value(1)).current;
   const { unreadCount: socketUnreadCount, onUnreadCountUpdated } = useSocket(); // Get total unread count from socket context
   const [notificationCount, setNotificationCount] = useState(0); // Local state for notification count (from REST API)
+  const { notes: broadcastNotes } = useNotes(); // Get broadcast notes count
+  const { unreadCount: generalInquiryUnreadCount } = useGeneralInquiry(); // Get general inquiry unread count
   
   // Recommendations state for "More to Love"
   const [recommendationsProducts, setRecommendationsProducts] = useState<Product[]>([]);
@@ -543,7 +547,7 @@ const ProfileScreen: React.FC = () => {
             <CoinIcon width={30} height={30} color={COLORS.white} />
           </View>
           <View style={{flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center'}}>
-            <Text style={styles.statValue}>{(user as any)?.deposit ? (user as any).deposit : '0'}</Text>
+            <Text style={styles.statValue}>{String((user as any)?.deposit || '0')}</Text>
             <Text style={styles.statLabel}>Deposit</Text>
           </View>
         </TouchableOpacity>
@@ -555,7 +559,7 @@ const ProfileScreen: React.FC = () => {
             <PointIcon width={30} height={30} color={COLORS.white} />
           </View>
           <View style={{flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center'}}>
-            <Text style={styles.statValue}>{(user as any)?.points ? (user as any).points : '0'}</Text>
+            <Text style={styles.statValue}>{String((user as any)?.points || '0')}</Text>
             <Text style={styles.statLabel}>{t('profile.points')}</Text>
           </View>
         </TouchableOpacity>
@@ -578,7 +582,7 @@ const ProfileScreen: React.FC = () => {
             <CouponIcon width={30} height={30} color={COLORS.white} />
           </View>
           <View style={{flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center'}}>
-            <Text style={styles.statValue}>{(user as any)?.coupon ? (user as any).coupon : '0'}</Text>
+            <Text style={styles.statValue}>{String((user as any)?.coupon || '0')}</Text>
             <Text style={styles.statLabel}>{t('profile.coupons')}</Text>
           </View>
         </TouchableOpacity>
@@ -770,7 +774,16 @@ const ProfileScreen: React.FC = () => {
               style={styles.myOrderItem}
               onPress={() => navigation.navigate('Note' as never)}
             >
-              <SuggestionIcon width={24} height={24} color={COLORS.black} />
+              <View style={styles.iconWithBadge}>
+                <SuggestionIcon width={24} height={24} color={COLORS.black} />
+                {(broadcastNotes.length > 0 || (generalInquiryUnreadCount && generalInquiryUnreadCount > 0)) && (
+                  <View style={styles.suggestionBadge}>
+                    <Text style={styles.suggestionBadgeText}>
+                      {String(broadcastNotes.length + (generalInquiryUnreadCount || 0))}
+                    </Text>
+                  </View>
+                )}
+              </View>
               <Text style={styles.myOrderItemText}>Suggestion</Text>
             </TouchableOpacity>
           </View>
@@ -937,7 +950,7 @@ const ProfileScreen: React.FC = () => {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {renderUserSection()}
         {isAuthenticated && renderStatsSection()}
-        {renderMenuItems()}
+        {isAuthenticated && renderMenuItems()}
         {renderMoreToLove()}
       </ScrollView>
     </SafeAreaView>
@@ -1274,6 +1287,28 @@ const styles = StyleSheet.create({
     color: COLORS.text.primary,
     fontWeight: '500',
     textAlign: 'center',
+  },
+  iconWithBadge: {
+    position: 'relative',
+  },
+  suggestionBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    backgroundColor: COLORS.error,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+    borderWidth: 2,
+    borderColor: COLORS.white,
+  },
+  suggestionBadgeText: {
+    color: COLORS.white,
+    fontSize: FONTS.sizes.xs,
+    fontWeight: '600',
   },
   menuItem: {
     flexDirection: 'row',

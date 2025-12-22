@@ -39,6 +39,23 @@ export interface GeneralInquiry {
   unreadCount?: number;
 }
 
+export interface BroadcastNote {
+  noteId: string;
+  type: 'announcement' | 'maintenance' | 'update' | 'warning' | 'info' | 'promotion';
+  content: string;
+  createdBy: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+  createdByName: string;
+  priority: 'low' | 'normal' | 'high' | 'urgent';
+  targetAudience: 'all' | 'users' | 'admins';
+  createdAt: string;
+  updatedAt?: string;
+  expiresAt?: string;
+}
+
 class SocketService {
   private socket: Socket | null = null;
   private isConnecting: boolean = false;
@@ -219,6 +236,91 @@ class SocketService {
    */
   getUnreadCounts(): void {
     this.emit('user:inquiry:unread-counts');
+  }
+
+  // ========== General Inquiry Socket Methods ==========
+
+  /**
+   * Create a general inquiry
+   */
+  createGeneralInquiry(data: {
+    subject?: string;
+    category?: 'general' | 'support' | 'complaint' | 'suggestion' | 'technical';
+    message: string;
+    attachments?: Array<{
+      type: 'image' | 'file' | 'video';
+      url: string;
+      name?: string;
+    }>;
+  }): void {
+    this.emit('user:general-inquiry:create', data);
+  }
+
+  /**
+   * Send a message in a general inquiry
+   */
+  sendGeneralInquiryMessage(inquiryId: string, message: string, attachments?: any[]): void {
+    this.emit('user:general-inquiry:send-message', {
+      inquiryId,
+      message,
+      attachments: attachments || [],
+    });
+  }
+
+  /**
+   * Get list of general inquiries
+   */
+  getGeneralInquiryList(status?: 'open' | 'closed' | 'resolved'): void {
+    this.emit('user:general-inquiry:list', status ? { status } : {});
+  }
+
+  /**
+   * Get a single general inquiry
+   */
+  getGeneralInquiry(inquiryId: string): void {
+    this.emit('user:general-inquiry:get', { inquiryId });
+  }
+
+  /**
+   * Subscribe to a general inquiry for real-time updates
+   */
+  subscribeToGeneralInquiry(inquiryId: string): void {
+    this.emit('user:general-inquiry:subscribe', { inquiryId });
+  }
+
+  /**
+   * Unsubscribe from a general inquiry
+   */
+  unsubscribeFromGeneralInquiry(inquiryId: string): void {
+    this.emit('user:general-inquiry:unsubscribe', { inquiryId });
+  }
+
+  /**
+   * Mark messages as read in a general inquiry
+   */
+  markGeneralInquiryRead(inquiryId: string): void {
+    this.emit('user:general-inquiry:mark-read', { inquiryId });
+  }
+
+  /**
+   * Close a general inquiry
+   */
+  closeGeneralInquiry(inquiryId: string): void {
+    this.emit('user:general-inquiry:close', { inquiryId });
+  }
+
+  /**
+   * Get total unread count for general inquiries
+   */
+  getGeneralInquiryUnreadCount(): void {
+    this.emit('user:general-inquiry:unread-count');
+  }
+
+  /**
+   * Get unread counts by general inquiry
+   */
+  getGeneralInquiryUnreadCounts(): void {
+    this.emit('user:general-inquiry:unread-counts');
   }
 }
 

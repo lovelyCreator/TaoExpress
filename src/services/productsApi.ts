@@ -15,6 +15,9 @@ import { uploadToCloudinary, uploadVideoToCloudinary } from './cloudinary';
 // API base URL - using environment variable with fallback to local endpoint
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://todaymall.co.kr/api/v1';
 
+// In-memory cache for category tree (clears on app restart)
+const categoryTreeCache: Record<string, CategoriesTreeResponse> = {};
+
 // Products API
 export const productsApi = {
 
@@ -404,11 +407,23 @@ export const productsApi = {
     }
   },
 
-  // Get category tree
+  // Get category tree (with caching)
   getCategoryTree: async (
     platform: string = '1688'
   ): Promise<ApiResponse<CategoriesTreeResponse | null>> => {
     try {
+      // Check cache first
+      const cacheKey = platform;
+      if (categoryTreeCache[cacheKey]) {
+        console.log(`[CategoryCache] Using cached data for platform: ${platform}`);
+        return {
+          success: true,
+          data: categoryTreeCache[cacheKey],
+          message: 'Category tree retrieved from cache',
+        };
+      }
+
+      // Cache miss - fetch from API
       const token = await getStoredToken();
       const url = `${API_BASE_URL}/categories/tree?platform=${platform}`;
       
@@ -420,6 +435,10 @@ export const productsApi = {
       });
       
       if (response.data && response.data.status === 'success' && response.data.data) {
+        // Save to cache
+        categoryTreeCache[cacheKey] = response.data.data;
+        console.log(`[CategoryCache] Cached data for platform: ${platform}`);
+        
         return {
           success: true,
           data: response.data.data,
@@ -719,6 +738,50 @@ export const productsApi = {
           data: null,
         };
       }
+    }
+  },
+
+  // Get wishlist count for a product
+  getWishlistCount: async (
+    externalId: string,
+    source: string = '1688'
+  ): Promise<ApiResponse<{ externalId: string; source: string; count: number } | null>> => {
+    try {
+      const token = await getStoredToken();
+      const params = new URLSearchParams({
+        externalId,
+        source,
+      });
+      
+      const url = `${API_BASE_URL}/products/wishlist/count?${params.toString()}`;
+      
+      const response = await axios.get(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (response.data && response.data.status === 'success' && response.data.data) {
+        return {
+          success: true,
+          data: response.data.data,
+          message: 'Wishlist count retrieved successfully',
+        };
+      }
+      
+      return {
+        success: false,
+        message: 'No wishlist count data received',
+        data: null,
+      };
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to get wishlist count';
+      return {
+        success: false,
+        message: errorMessage,
+        data: null,
+      };
     }
   },
 };

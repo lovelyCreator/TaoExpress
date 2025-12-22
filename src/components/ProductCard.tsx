@@ -550,6 +550,8 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 180,
     borderRadius: BORDER_RADIUS.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
   },
   productInfo: {
     padding: SPACING.sm,
@@ -590,6 +592,8 @@ const styles = StyleSheet.create({
   newInImage: {
     borderRadius: 8,
     borderBottomRightRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
   },
   newInLikeButton: {
     position: 'absolute',
@@ -658,6 +662,8 @@ const styles = StyleSheet.create({
   gridImage: {
     marginBottom: SPACING.sm,
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
   },
   fullWidthImage: {
     marginBottom: 0,
@@ -706,6 +712,8 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.sm,
     marginRight: 0,
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
   },
   horizontalInfo: {
     flex: 1,
@@ -743,6 +751,8 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.sm,
     borderRadius: 12,
     borderBottomRightRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
   },
   moreToLoveInfo: {
     flex: 1,
@@ -806,6 +816,8 @@ const styles = StyleSheet.create({
   },
   simpleImage: {
     borderRadius: BORDER_RADIUS.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
   },
   simpleInfo: {
     padding: SPACING.sm,

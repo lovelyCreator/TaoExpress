@@ -91,6 +91,10 @@ import ChatSearchScreen from '../screens/main/chatScreen/ChatSearchScreen';
 import CustomerServiceScreen from '../screens/main/profileScreen/CustomerServiceScreen';
 import OrderInquiryScreen from '../screens/main/profileScreen/OrderInquiryScreen';
 import ImageSearchScreen from '../screens/main/searchScreen/ImageSearchScreen';
+// General Inquiry screens
+import GeneralInquiryListScreen from '../screens/main/profileScreen/GeneralInquiryListScreen';
+import GeneralInquiryChatScreen from '../screens/main/profileScreen/GeneralInquiryChatScreen';
+import CreateGeneralInquiryScreen from '../screens/main/profileScreen/CreateGeneralInquiryScreen';
 
 const RootStack = createStackNavigator<RootStackParamList>();
 const AuthStack = createStackNavigator<AuthStackParamList>();
@@ -935,6 +939,28 @@ const RootNavigator = () => {
               headerTitleStyle: {
                 fontWeight: '600',
               },
+            }}
+          />
+          {/* General Inquiry screens */}
+          <RootStack.Screen 
+            name="GeneralInquiryList" 
+            component={GeneralInquiryListScreen}
+            options={{
+              headerShown: false,
+            }}
+          />
+          <RootStack.Screen 
+            name="GeneralInquiryChat" 
+            component={GeneralInquiryChatScreen}
+            options={{
+              headerShown: false,
+            }}
+          />
+          <RootStack.Screen 
+            name="CreateGeneralInquiry" 
+            component={CreateGeneralInquiryScreen}
+            options={{
+              headerShown: false,
             }}
           />
 

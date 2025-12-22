@@ -8,6 +8,7 @@ import { AuthProvider } from './src/context/AuthContext';
 import { ToastProvider } from './src/context/ToastContext';
 import { SocketProvider } from './src/context/SocketContext';
 import { ErrorBoundary } from './src/components';
+import NoteBroadcastManager from './src/components/NoteBroadcastManager';
 import AppNavigator from './src/navigation/AppNavigator';
 import { COLORS, FONTS } from './src/constants';
 import { Provider } from 'react-redux';
@@ -48,6 +49,7 @@ const AppContent = () => {
         translucent={true}
       />
       <AppNavigator />
+      <NoteBroadcastManager />
     </>
   );
 };
